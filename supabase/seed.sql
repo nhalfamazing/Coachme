@@ -1,0 +1,1 @@
+-- Seed data for local Supabase. Add INSERTs below as tables are created.

@@ -1,36 +1,70 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CoachMe
 
-## Getting Started
+The performance graph for emerging athletes. Mobile-first, multi-sport.
 
-First, run the development server:
+## Local dev quickstart
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+# 1. install deps
+pnpm install
+
+# 2. copy env template (fill in once Supabase is running)
+cp .env.local.example .env.local
+
+# 3. start Supabase locally (Docker required)
+./scripts/supabase-start.sh
+# or: pnpm exec supabase start
+
+# 4. run the Next.js dev server
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+After `supabase start`, the CLI prints local `API URL`, `anon key`, and `service_role key`. Paste those into `.env.local`:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- `NEXT_PUBLIC_SUPABASE_URL` -> the local API URL (default `http://127.0.0.1:54321`)
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` -> the local anon key
+- `SUPABASE_SERVICE_ROLE_KEY` -> the local service_role key (server-only)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+To stop the local Supabase stack:
 
-## Learn More
+```bash
+./scripts/supabase-stop.sh
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Stack
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Next.js 16 (App Router, TypeScript strict)
+- Tailwind CSS v4
+- Base UI (`@base-ui-components/react`)
+- Lucide icons
+- Supabase JS client + `@supabase/ssr`
+- Supabase CLI (local dev)
+- pnpm
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Layout
 
-## Deploy on Vercel
+```
+src/
+  app/
+    (marketing)/page.tsx   # landing
+    layout.tsx             # root, mobile-first
+  components/ui/           # shadcn lives here once initialized
+  lib/supabase/
+    client.ts              # browser client
+    server.ts              # server client (cookies)
+supabase/
+  migrations/
+  seed.sql
+scripts/
+  supabase-start.sh
+  supabase-stop.sh
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Notes
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Local-first by design. Hosted Supabase comes later.
+- shadcn CLI is not yet initialized in this scaffold. To add it later:
+  ```bash
+  pnpm dlx shadcn@latest init
+  pnpm dlx shadcn@latest add button input label card
+  ```
