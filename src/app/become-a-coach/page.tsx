@@ -10,7 +10,62 @@ const SPORTS = [
   "Tennis", "Track", "Volleyball", "Wrestling",
 ];
 
-const US_STATES = ['FL', 'CA', 'TX', 'NY', 'GA', 'NC', 'PA', 'OH', 'IL', 'MI', 'WA', 'AZ', 'CO', 'MA', 'NJ', 'VA'];
+const US_STATES = ['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'];
+
+const CITY_SUGGESTIONS = [
+  'Miami', 'Tampa', 'Orlando', 'Jacksonville', 'Fort Lauderdale', 'Coral Gables', 'Doral', 'Hialeah',
+  'Los Angeles', 'San Diego', 'San Francisco', 'San Jose', 'Sacramento', 'Long Beach', 'Oakland',
+  'New York', 'Brooklyn', 'Queens', 'Buffalo',
+  'Houston', 'Dallas', 'Austin', 'San Antonio', 'Fort Worth',
+  'Atlanta', 'Savannah',
+  'Charlotte', 'Raleigh', 'Durham',
+  'Philadelphia', 'Pittsburgh',
+  'Chicago', 'Naperville',
+  'Boston', 'Cambridge',
+  'Seattle', 'Tacoma',
+  'Phoenix', 'Tucson',
+  'Denver', 'Colorado Springs',
+  'Detroit', 'Grand Rapids',
+  'Newark', 'Jersey City',
+  'Washington',
+  'Las Vegas',
+  'Nashville', 'Memphis',
+  'Portland',
+  'Minneapolis',
+  'New Orleans',
+];
+
+const SPECIALTY_SUGGESTIONS = [
+  'Hitting & plate discipline',
+  'Pitching mechanics',
+  'Catching & framing',
+  'Fielding & infield work',
+  'Outfield reads & routes',
+  'Strength & conditioning',
+  'Speed & agility training',
+  'Mental performance',
+  'Recovery & injury prevention',
+  'Shooting form',
+  'Ball handling',
+  'Post moves',
+  'Defensive footwork',
+  'Quarterback mechanics',
+  'Route running',
+  'Offensive line technique',
+  'Tackling & coverage',
+  'Goalkeeping',
+  'Finishing & shooting',
+  'Passing & ball control',
+  'Serve & return',
+  'Sprint mechanics',
+  'Distance & race strategy',
+  'Throws technique',
+  'Jumping technique',
+  'Setting & passing',
+  'Spike approach',
+  'Takedowns & escapes',
+  'Position-specific drills',
+];
 
 const MODES_OPTIONS = [
   { key: "in_person", label: "In person" },
@@ -196,14 +251,10 @@ export default function BecomeACoachPage() {
 
         <Section label="YOUR COACHING">
           <Field label="SPORT *">
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {SPORTS.map(s => (
-                <Chip key={s} active={form.sport === s} onClick={() => upd("sport", s)}>{s}</Chip>
-              ))}
-            </div>
+            <Select value={form.sport} onChange={v => upd("sport", v)} options={SPORTS} placeholder="Pick a sport" />
           </Field>
-          <Field label="WHAT'S YOUR SPECIALTY? *" hint="One short phrase. Example: 'Hitting & plate discipline', 'Pitching mechanics', 'Strength & conditioning'.">
-            <Input value={form.specialty} onChange={v => upd("specialty", v)} placeholder="Hitting & plate discipline" />
+          <Field label="WHAT'S YOUR SPECIALTY? *" hint="Pick from the list or type your own.">
+            <Autocomplete value={form.specialty} onChange={v => upd("specialty", v)} options={SPECIALTY_SUGGESTIONS} placeholder="Hitting & plate discipline" />
           </Field>
           <Row>
             <Field label="YEARS COACHING *">
@@ -235,13 +286,10 @@ export default function BecomeACoachPage() {
         <Section label="WHERE YOU TRAIN">
           <Row>
             <Field label="CITY *">
-              <Input value={form.city} onChange={v => upd("city", v)} placeholder="Miami" />
+              <Autocomplete value={form.city} onChange={v => upd("city", v)} options={CITY_SUGGESTIONS} placeholder="Start typing your city" />
             </Field>
             <Field label="STATE *">
-              <select value={form.state} onChange={e => upd("state", e.target.value)}
-                style={inputStyle}>
-                {US_STATES.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
+              <Select value={form.state} onChange={v => upd("state", v)} options={US_STATES} />
             </Field>
           </Row>
         </Section>
@@ -346,6 +394,57 @@ function Input({ value, onChange, placeholder, type = "text" }) {
       onFocus={e => e.currentTarget.style.borderColor = "#C5FF3D"}
       onBlur={e => e.currentTarget.style.borderColor = "#2A2A30"}
     />
+  );
+}
+
+function Select({ value, onChange, options, placeholder }) {
+  return (
+    <div style={{ position: "relative" }}>
+      <select
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        style={{
+          ...inputStyle,
+          paddingRight: 40,
+          appearance: "none",
+          WebkitAppearance: "none",
+          MozAppearance: "none",
+          cursor: "pointer",
+          color: value ? "#F4F4F5" : "#5F636B",
+        }}
+        onFocus={e => e.currentTarget.style.borderColor = "#C5FF3D"}
+        onBlur={e => e.currentTarget.style.borderColor = "#2A2A30"}
+      >
+        {placeholder && <option value="">{placeholder}</option>}
+        {options.map(opt => {
+          const value = typeof opt === "string" ? opt : opt.value;
+          const label = typeof opt === "string" ? opt : opt.label;
+          return <option key={value} value={value} style={{ background: "#18181C", color: "#F4F4F5" }}>{label}</option>;
+        })}
+      </select>
+      <span style={{
+        position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)",
+        pointerEvents: "none", color: "#9CA0A8", fontSize: 12,
+      }}>▾</span>
+    </div>
+  );
+}
+
+function Autocomplete({ value, onChange, options, placeholder }) {
+  const listId = `dl-${Math.random().toString(36).slice(2, 8)}`;
+  return (
+    <>
+      <input
+        type="text" value={value} onChange={e => onChange(e.target.value)}
+        placeholder={placeholder} list={listId}
+        style={inputStyle}
+        onFocus={e => e.currentTarget.style.borderColor = "#C5FF3D"}
+        onBlur={e => e.currentTarget.style.borderColor = "#2A2A30"}
+      />
+      <datalist id={listId}>
+        {options.map(opt => <option key={opt} value={opt} />)}
+      </datalist>
+    </>
   );
 }
 

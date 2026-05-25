@@ -37,11 +37,43 @@ const SPORTS = [
   { name: 'Wrestling', icon: '🤼' },
 ];
 
-const BASEBALL_POSITIONS = ['Pitcher', 'Catcher', '1st Base', '2nd Base', '3rd Base', 'Shortstop', 'Left Field', 'Center Field', 'Right Field', 'Utility'];
+const POSITIONS_BY_SPORT: Record<string, string[]> = {
+  Baseball: ['Pitcher', 'Catcher', '1st Base', '2nd Base', '3rd Base', 'Shortstop', 'Left Field', 'Center Field', 'Right Field', 'Utility'],
+  Basketball: ['Point Guard', 'Shooting Guard', 'Small Forward', 'Power Forward', 'Center'],
+  Football: ['Quarterback', 'Running Back', 'Wide Receiver', 'Tight End', 'Offensive Line', 'Defensive Line', 'Linebacker', 'Safety', 'Cornerback', 'Kicker', 'Punter'],
+  Soccer: ['Goalkeeper', 'Center Back', 'Fullback', 'Defensive Midfielder', 'Central Midfielder', 'Attacking Midfielder', 'Winger', 'Striker'],
+  Tennis: ['Singles', 'Doubles', 'Both'],
+  Track: ['Sprints', 'Middle Distance', 'Long Distance', 'Hurdles', 'Throws', 'Jumps', 'Multi-Events'],
+  Volleyball: ['Setter', 'Outside Hitter', 'Middle Blocker', 'Opposite Hitter', 'Libero', 'Defensive Specialist'],
+  Wrestling: ['Wrestler'],
+};
 
-const CLASS_YEARS = [2026, 2027, 2028, 2029, 2030, 2031, 2032, 2033];
+const AGES = Array.from({ length: 20 }, (_, i) => 6 + i); // 6-25
 
-const US_STATES = ['FL', 'CA', 'TX', 'NY', 'GA', 'NC', 'PA', 'OH', 'IL', 'MI', 'WA', 'AZ', 'CO', 'MA', 'NJ', 'VA'];
+const US_STATES = ['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'];
+
+const CITY_SUGGESTIONS = [
+  'Miami', 'Tampa', 'Orlando', 'Jacksonville', 'Fort Lauderdale', 'Coral Gables', 'Doral', 'Hialeah',
+  'Los Angeles', 'San Diego', 'San Francisco', 'San Jose', 'Sacramento', 'Long Beach', 'Oakland',
+  'New York', 'Brooklyn', 'Queens', 'Buffalo',
+  'Houston', 'Dallas', 'Austin', 'San Antonio', 'Fort Worth',
+  'Atlanta', 'Savannah',
+  'Charlotte', 'Raleigh', 'Durham',
+  'Philadelphia', 'Pittsburgh',
+  'Chicago', 'Naperville',
+  'Boston', 'Cambridge',
+  'Seattle', 'Tacoma',
+  'Phoenix', 'Tucson',
+  'Denver', 'Colorado Springs',
+  'Detroit', 'Grand Rapids',
+  'Newark', 'Jersey City',
+  'Washington',
+  'Las Vegas',
+  'Nashville', 'Memphis',
+  'Portland',
+  'Minneapolis',
+  'New Orleans',
+];
 
 const BASEBALL_BANNER = 'https://images.unsplash.com/photo-1471295253337-3ceaaedca402?w=900&q=80';
 
@@ -380,7 +412,7 @@ function SignUpFlow({ onComplete }) {
   const [form, setForm] = useState({
     firstName: '', lastName: '',
     sport: 'Baseball', position: '',
-    classYear: 2030,
+    age: '',
     city: '', state: 'FL',
     exitVelo: '', sixtyYd: '', throwVelo: '', popTime: '',
   });
@@ -413,7 +445,7 @@ function SignUpFlow({ onComplete }) {
       initials,
       sport: form.sport,
       position: form.position,
-      classYear: form.classYear,
+      age: form.age ? parseInt(String(form.age)) : null,
       city: form.city,
       state: form.state,
       location: `${form.city}, ${form.state}`,
@@ -427,7 +459,7 @@ function SignUpFlow({ onComplete }) {
   };
 
   const nameValid = form.firstName.trim() && form.lastName.trim();
-  const sportValid = form.sport && form.position.trim();
+  const sportValid = form.sport && form.position.trim() && form.age;
   const locValid = form.city.trim() && form.state;
 
   return (
@@ -438,44 +470,57 @@ function SignUpFlow({ onComplete }) {
         <SUInput label="FIRST NAME" placeholder="Noah" value={form.firstName} onChange={v => upd('firstName', v)} autoFocus/>
         <SUInput label="LAST NAME" placeholder="Scarlett" value={form.lastName} onChange={v => upd('lastName', v)}/>
       </SUStep>}
-      {step === 2 && <SUStep title="What's your sport?" sub="You can add more later." idx={2} total={totalSteps - 1}
+      {step === 2 && <SUStep title="What's your sport?" sub="Pick from the list. You can add more sports later." idx={2} total={totalSteps - 1}
         canContinue={sportValid} onNext={next} onBack={back}>
-        <SULabel>SPORT</SULabel>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 18 }}>
-          {SPORTS.map(s => (
-            <SUChip key={s.name} active={form.sport === s.name} onClick={() => upd('sport', s.name)}>
-              <span style={{ fontSize: 16 }}>{s.icon}</span> {s.name}
-            </SUChip>
-          ))}
-        </div>
-        {form.sport === 'Baseball' ? (
-          <>
-            <SULabel>POSITION</SULabel>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 18 }}>
-              {BASEBALL_POSITIONS.map(p => (
-                <SUChip key={p} small active={form.position === p} onClick={() => upd('position', p)}>{p}</SUChip>
-              ))}
-            </div>
-          </>
-        ) : (
-          <SUInput label="POSITION" placeholder="What do you play?" value={form.position} onChange={v => upd('position', v)}/>
+        <SUSelect
+          label="SPORT"
+          value={form.sport}
+          onChange={v => { upd('sport', v); upd('position', ''); }}
+          options={SPORTS.map(s => ({ value: s.name, label: `${s.icon}  ${s.name}` }))}
+        />
+        {form.sport && (
+          POSITIONS_BY_SPORT[form.sport] ? (
+            <SUSelect
+              label="POSITION"
+              value={form.position}
+              onChange={v => upd('position', v)}
+              options={POSITIONS_BY_SPORT[form.sport].map(p => ({ value: p, label: p }))}
+              placeholder="Pick your position"
+            />
+          ) : (
+            <SUAutocomplete
+              label="POSITION"
+              value={form.position}
+              onChange={v => upd('position', v)}
+              options={[]}
+              placeholder="What do you play?"
+            />
+          )
         )}
-        <SULabel>GRADUATION YEAR</SULabel>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {CLASS_YEARS.map(y => (
-            <SUChip key={y} small active={form.classYear === y} onClick={() => upd('classYear', y)}>{y}</SUChip>
-          ))}
-        </div>
+        <SUSelect
+          label="HOW OLD ARE YOU?"
+          value={form.age ? String(form.age) : ''}
+          onChange={v => upd('age', v)}
+          options={AGES.map(a => ({ value: String(a), label: `${a} years old` }))}
+          placeholder="Pick your age"
+        />
       </SUStep>}
       {step === 3 && <SUStep title="Where are you?" sub="Helps us match you with local trainers." idx={3} total={totalSteps - 1}
         canContinue={locValid} onNext={next} onBack={back}>
-        <SUInput label="CITY" placeholder="Miami" value={form.city} onChange={v => upd('city', v)} autoFocus/>
-        <SULabel>STATE</SULabel>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {US_STATES.map(s => (
-            <SUChip key={s} small active={form.state === s} onClick={() => upd('state', s)}>{s}</SUChip>
-          ))}
-        </div>
+        <SUAutocomplete
+          label="CITY"
+          value={form.city}
+          onChange={v => upd('city', v)}
+          options={CITY_SUGGESTIONS}
+          placeholder="Start typing your city"
+          autoFocus
+        />
+        <SUSelect
+          label="STATE"
+          value={form.state}
+          onChange={v => upd('state', v)}
+          options={US_STATES.map(s => ({ value: s, label: s }))}
+        />
       </SUStep>}
       {step === 4 && <SUStep title="Starting stats?" sub="Optional. Trainers will verify your real numbers in person." idx={4} total={totalSteps - 1}
         canContinue={true} onNext={next} onBack={back} continueLabel={Object.keys(form).filter(k => BASEBALL_STAT_DEFS.find(d => d.key === k) && form[k]).length > 0 ? 'Save my stats' : 'Skip for now'}>
@@ -647,6 +692,67 @@ function SUInput({ label, placeholder, value, onChange, autoFocus }) {
   );
 }
 
+function SUSelect({ label, value, onChange, options, placeholder }) {
+  return (
+    <div style={{ marginBottom: 18 }}>
+      <SULabel>{label}</SULabel>
+      <div style={{ position: 'relative' }}>
+        <select
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          className="body"
+          style={{
+            width: '100%', background: '#18181C', border: '1px solid #2A2A30',
+            borderRadius: 12, padding: '14px 40px 14px 16px', color: value ? '#F4F4F5' : '#5F636B',
+            fontSize: 15, outline: 'none', appearance: 'none',
+            WebkitAppearance: 'none', MozAppearance: 'none',
+            cursor: 'pointer', fontFamily: 'inherit',
+          }}
+          onFocus={e => e.currentTarget.style.borderColor = '#C5FF3D'}
+          onBlur={e => e.currentTarget.style.borderColor = '#2A2A30'}
+        >
+          {placeholder && <option value="">{placeholder}</option>}
+          {options.map(o => <option key={o.value} value={o.value} style={{ background: '#18181C', color: '#F4F4F5' }}>{o.label}</option>)}
+        </select>
+        <span style={{
+          position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)',
+          pointerEvents: 'none', color: '#9CA0A8',
+        }}>
+          <ChevronRight size={16} style={{ transform: 'rotate(90deg)' }}/>
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function SUAutocomplete({ label, value, onChange, options, placeholder, autoFocus }) {
+  const listId = `dl-${label.replace(/\s+/g, '-').toLowerCase()}`;
+  return (
+    <div style={{ marginBottom: 18 }}>
+      <SULabel>{label}</SULabel>
+      <input
+        type="text" autoFocus={autoFocus} value={value} onChange={e => onChange(e.target.value)}
+        placeholder={placeholder} list={listId} className="body"
+        style={{
+          width: '100%', background: '#18181C', border: '1px solid #2A2A30',
+          borderRadius: 12, padding: '14px 16px', color: '#F4F4F5',
+          fontSize: 15, outline: 'none', transition: 'border-color 0.15s',
+        }}
+        onFocus={e => e.currentTarget.style.borderColor = '#C5FF3D'}
+        onBlur={e => e.currentTarget.style.borderColor = '#2A2A30'}
+      />
+      <datalist id={listId}>
+        {options.map(opt => <option key={opt} value={opt} />)}
+      </datalist>
+      {options.length > 0 && (
+        <div style={{ fontSize: 11, color: '#5F636B', marginTop: 6, lineHeight: 1.5 }} className="body">
+          Type to search or pick from suggestions.
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SUStatInput({ def, value, onChange }) {
   return (
     <div style={{
@@ -769,7 +875,9 @@ function ProfileView({ athlete, trainerIds, trainers = TRAINERS, onOpenTrainer, 
             <div style={{ flex: 1, marginLeft: 14, paddingBottom: 4 }}>
               <div className="display" style={{ fontSize: 28, lineHeight: 1, textTransform: 'uppercase' }}>{athlete.name}</div>
               <div className="mono" style={{ fontSize: 10.5, color: '#9CA0A8', marginTop: 6, letterSpacing: '0.06em' }}>
-                {athlete.position.toUpperCase()} &middot; CLASS {athlete.classYear} &middot; {athlete.city.toUpperCase()}
+                {athlete.position.toUpperCase()}
+                {athlete.age ? ` · AGE ${athlete.age}` : ''}
+                {' · '}{athlete.city.toUpperCase()}
               </div>
             </div>
           </div>
