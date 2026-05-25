@@ -140,6 +140,19 @@ export default function CoachMeApp() {
   const [chatOpen, setChatOpen] = useState(null);
   const [callOpen, setCallOpen] = useState(null);
 
+  // Coaches who signed themselves up via /become-a-coach. Stored locally
+  // for now; this will move to Supabase in Phase 1.
+  const [submittedTrainers, setSubmittedTrainers] = useState([]);
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('coachme_coaches') || '[]');
+      setSubmittedTrainers(Array.isArray(saved) ? saved : []);
+    } catch {
+      setSubmittedTrainers([]);
+    }
+  }, []);
+  const allTrainers = [...TRAINERS, ...submittedTrainers];
+
   const switchTab = (t) => {
     if (t === tab) return;
     setTabAnim(true);
@@ -302,10 +315,10 @@ export default function CoachMeApp() {
           <>
             <div className="phone-scroll" style={{ flex: 1, overflow: 'auto', position: 'relative' }}>
               <div className={`tab-fade ${tabAnim ? 'out' : ''}`}>
-                {tab === 'profile' && <ProfileView athlete={athlete} trainerIds={trainerIds} onOpenTrainer={openTrainer} onGoToTrainers={() => switchTab('trainers')}/>}
-                {tab === 'trainers' && <TrainersView onOpenTrainer={openTrainer} athlete={athlete}/>}
-                {tab === 'messages' && <MessagesView conversations={conversations} onOpenChat={openChat} onGoToTrainers={() => switchTab('trainers')}/>}
-                {tab === 'sessions' && <SessionsView sessions={sessions} onOpenTrainer={openTrainer} onGoToTrainers={() => switchTab('trainers')}/>}
+                {tab === 'profile' && <ProfileView athlete={athlete} trainerIds={trainerIds} trainers={allTrainers} onOpenTrainer={openTrainer} onGoToTrainers={() => switchTab('trainers')}/>}
+                {tab === 'trainers' && <TrainersView onOpenTrainer={openTrainer} athlete={athlete} trainers={allTrainers}/>}
+                {tab === 'messages' && <MessagesView conversations={conversations} trainers={allTrainers} onOpenChat={openChat} onGoToTrainers={() => switchTab('trainers')}/>}
+                {tab === 'sessions' && <SessionsView sessions={sessions} trainers={allTrainers} onOpenTrainer={openTrainer} onGoToTrainers={() => switchTab('trainers')}/>}
               </div>
             </div>
 
@@ -313,7 +326,7 @@ export default function CoachMeApp() {
 
             {trainerOpen && (
               <TrainerDetail
-                trainer={TRAINERS.find(t => t.id === trainerOpen)}
+                trainer={allTrainers.find(t => t.id === trainerOpen)}
                 onClose={closeTrainer}
                 onBook={startBook}
                 onMessage={openChat}
@@ -323,7 +336,7 @@ export default function CoachMeApp() {
 
             {chatOpen && (
               <ChatView
-                trainer={TRAINERS.find(t => t.id === chatOpen)}
+                trainer={allTrainers.find(t => t.id === chatOpen)}
                 conversation={conversations[chatOpen]}
                 athlete={athlete}
                 onClose={() => setChatOpen(null)}
@@ -334,7 +347,7 @@ export default function CoachMeApp() {
 
             {callOpen && (
               <VideoCallView
-                trainer={TRAINERS.find(t => t.id === callOpen)}
+                trainer={allTrainers.find(t => t.id === callOpen)}
                 athlete={athlete}
                 onClose={() => setCallOpen(null)}
               />
@@ -716,7 +729,7 @@ function SUDone({ form, onFinish }) {
 /* ============================================================
    PROFILE VIEW
    ============================================================ */
-function ProfileView({ athlete, trainerIds, onOpenTrainer, onGoToTrainers }) {
+function ProfileView({ athlete, trainerIds, trainers = TRAINERS, onOpenTrainer, onGoToTrainers }) {
   const hasStats = athlete.stats && athlete.stats.length > 0;
   const hasTrainers = trainerIds && trainerIds.length > 0;
 
@@ -798,7 +811,7 @@ function ProfileView({ athlete, trainerIds, onOpenTrainer, onGoToTrainers }) {
       {hasTrainers ? (
         <div style={{ padding: '0 16px', marginBottom: 24, display: 'flex', flexDirection: 'column', gap: 10 }}>
           {trainerIds.map(id => {
-            const t = TRAINERS.find(tr => tr.id === id);
+            const t = trainers.find(tr => tr.id === id);
             if (!t) return null;
             return <TrainerRow key={id} trainer={t} onClick={() => onOpenTrainer(id)}/>;
           })}
@@ -908,10 +921,10 @@ function TrainerRow({ trainer, onClick }) {
 /* ============================================================
    TRAINERS VIEW
    ============================================================ */
-function TrainersView({ onOpenTrainer, athlete }) {
+function TrainersView({ onOpenTrainer, athlete, trainers = TRAINERS }) {
   // Only show trainers verified for this athlete's sport. No cross-sport
   // padding, no fabricated rosters.
-  const sportTrainers = TRAINERS.filter(t => t.sport === athlete.sport);
+  const sportTrainers = trainers.filter(t => t.sport === athlete.sport);
   const formerPros = sportTrainers.filter(t => t.badge === 'FORMER PRO');
   const others = sportTrainers.filter(t => t.badge !== 'FORMER PRO');
 
@@ -939,15 +952,16 @@ function TrainersView({ onOpenTrainer, athlete }) {
           <div className="body" style={{ fontSize: 13, color: '#9CA0A8', marginBottom: 24, lineHeight: 1.5, maxWidth: 300, margin: '0 auto 24px' }}>
             We're onboarding real, verified coaches for {athlete.sport.toLowerCase()} in {athlete.city}. We'll let you know the moment one is available.
           </div>
-          <div style={{
+          <a href="/become-a-coach" target="_blank" rel="noopener" style={{
             display: 'inline-flex', alignItems: 'center', gap: 8,
-            padding: '8px 14px', borderRadius: 999,
-            background: 'rgba(255,255,255,0.04)', border: '1px solid #2A2A30',
-          }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#C5FF3D' }} className="pulse-dot"/>
-            <span className="mono" style={{ fontSize: 10, color: '#9CA0A8', letterSpacing: '0.12em', fontWeight: 700 }}>
-              NOTIFY ME WHEN READY
-            </span>
+            padding: '10px 18px', borderRadius: 999, textDecoration: 'none',
+            background: 'rgba(197,255,61,0.08)', border: '1px solid rgba(197,255,61,0.4)',
+            color: '#C5FF3D', fontWeight: 700, fontSize: 12, letterSpacing: '0.08em',
+          }} className="mono">
+            ARE YOU A COACH? JOIN COACHME <ArrowRight size={12}/>
+          </a>
+          <div className="body" style={{ fontSize: 11, color: '#5F636B', marginTop: 16, lineHeight: 1.5 }}>
+            Share this link with coaches you know. Every trainer on CoachMe signs up themselves.
           </div>
         </div>
       </div>
@@ -1029,9 +1043,9 @@ function TrainerCardFeatured({ trainer, onClick }) {
         <div className="mono" style={{ fontSize: 10, color: '#9CA0A8', marginTop: 4, letterSpacing: '0.06em' }}>{trainer.specialty.toUpperCase()}</div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, padding: 12, background: 'rgba(255,255,255,0.025)', borderRadius: 10, marginTop: 14, border: '1px solid rgba(255,255,255,0.04)' }}>
-          <Mini num={trainer.athletes} label="ATHLETES"/>
-          <Mini num={trainer.avgGain} label="AVG GAIN" small/>
-          <Mini num={trainer.rating} label="RATING" icon={<Star size={9} fill="#C5FF3D" color="#C5FF3D"/>}/>
+          <Mini num={trainer.athletes || 0} label="ATHLETES"/>
+          <Mini num={trainer.avgGain || '—'} label="AVG GAIN" small/>
+          <Mini num={trainer.rating ?? 'NEW'} label="RATING" icon={trainer.rating ? <Star size={9} fill="#C5FF3D" color="#C5FF3D"/> : null}/>
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 14 }}>
@@ -1055,7 +1069,7 @@ function Mini({ num, label, small, icon }) {
 /* ============================================================
    MESSAGES VIEW
    ============================================================ */
-function MessagesView({ conversations, onOpenChat, onGoToTrainers }) {
+function MessagesView({ conversations, trainers = TRAINERS, onOpenChat, onGoToTrainers }) {
   const sortedConvs = Object.values(conversations).filter(c => c.messages.length > 0);
 
   if (sortedConvs.length === 0) {
@@ -1109,7 +1123,7 @@ function MessagesView({ conversations, onOpenChat, onGoToTrainers }) {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '4px 8px' }}>
         {sortedConvs.map(c => {
-          const trainer = TRAINERS.find(t => t.id === c.trainerId);
+          const trainer = trainers.find(t => t.id === c.trainerId);
           if (!trainer) return null;
           const last = c.messages[c.messages.length - 1];
           let preview = '';
@@ -1558,7 +1572,7 @@ function CallButton({ children, onClick, active }) {
 /* ============================================================
    SESSIONS VIEW
    ============================================================ */
-function SessionsView({ sessions, onOpenTrainer, onGoToTrainers }) {
+function SessionsView({ sessions, trainers = TRAINERS, onOpenTrainer, onGoToTrainers }) {
   const upcoming = sessions.filter(s => s.status === 'upcoming' || s.status === 'review');
   const past = sessions.filter(s => s.status === 'past');
 
@@ -1605,7 +1619,7 @@ function SessionsView({ sessions, onOpenTrainer, onGoToTrainers }) {
             <SectionLabel>UPCOMING</SectionLabel>
           </div>
           <div style={{ padding: '12px 16px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {upcoming.map(s => <SessionCard key={s.id} session={s} onClickTrainer={() => onOpenTrainer(s.trainerId)}/>)}
+            {upcoming.map(s => <SessionCard key={s.id} session={s} trainers={trainers} onClickTrainer={() => onOpenTrainer(s.trainerId)}/>)}
           </div>
         </>
       )}
@@ -1616,7 +1630,7 @@ function SessionsView({ sessions, onOpenTrainer, onGoToTrainers }) {
             <SectionLabel>COMPLETED</SectionLabel>
           </div>
           <div style={{ padding: '12px 16px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {past.map(s => <SessionCard key={s.id} session={s} onClickTrainer={() => onOpenTrainer(s.trainerId)}/>)}
+            {past.map(s => <SessionCard key={s.id} session={s} trainers={trainers} onClickTrainer={() => onOpenTrainer(s.trainerId)}/>)}
           </div>
         </>
       )}
@@ -1624,8 +1638,8 @@ function SessionsView({ sessions, onOpenTrainer, onGoToTrainers }) {
   );
 }
 
-function SessionCard({ session, onClickTrainer }) {
-  const trainer = TRAINERS.find(t => t.id === session.trainerId);
+function SessionCard({ session, trainers = TRAINERS, onClickTrainer }) {
+  const trainer = trainers.find(t => t.id === session.trainerId);
   const Mode = MODE_META[session.mode];
   const ModeIcon = Mode.icon;
   if (!trainer) return null;
@@ -1765,7 +1779,11 @@ function TrainerDetail({ trainer, onClose, onBook, onMessage, onCall }) {
 
             <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
               <Chip icon={<MapPin size={10}/>}>{trainer.location.toUpperCase()}</Chip>
-              <Chip icon={<Star size={10} fill="#C5FF3D" color="#C5FF3D"/>}>{trainer.rating} &middot; {trainer.reviews} REVIEWS</Chip>
+              {trainer.rating ? (
+                <Chip icon={<Star size={10} fill="#C5FF3D" color="#C5FF3D"/>}>{trainer.rating} &middot; {trainer.reviews} REVIEWS</Chip>
+              ) : (
+                <Chip>NEW COACH</Chip>
+              )}
             </div>
           </div>
         </div>
@@ -1795,9 +1813,9 @@ function TrainerDetail({ trainer, onClose, onBook, onMessage, onCall }) {
             border: '1px solid #2A2A30', borderRadius: 14,
             display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, position: 'relative',
           }}>
-            <BigStat num={trainer.athletes} label="ATHLETES"/>
-            <BigStat num={trainer.avgGain} label="AVG GAIN" small/>
-            <BigStat num={trainer.commits} label="D1 COMMITS"/>
+            <BigStat num={trainer.athletes || 0} label="ATHLETES"/>
+            <BigStat num={trainer.avgGain || '—'} label="AVG GAIN" small/>
+            <BigStat num={trainer.commits || 0} label="D1 COMMITS"/>
           </div>
         </div>
 
