@@ -17,63 +17,13 @@ import {
 /* ============================================================
    CONSTANTS
    ============================================================ */
-const TRAINERS = [
-  {
-    id: 1, name: 'Carlos Beltran', initials: 'CB',
-    photo: 'https://randomuser.me/api/portraits/men/55.jpg',
-    cover: 'https://images.unsplash.com/photo-1471295253337-3ceaaedca402?w=900&q=80',
-    title: 'Former MLB Outfielder', sport: 'Baseball',
-    years: 12, specialty: 'Hitting & Plate Discipline', location: 'Miami, FL',
-    rate: 95, rating: 4.9, reviews: 124, athletes: 38, avgGain: '+6.4 EV', commits: 7,
-    modes: ['in_person', 'live_online', 'async'], badge: 'FORMER PRO',
-    bio: 'Two-time All-Star. Helping youth players develop the same mental and physical tools that made my career.',
-    color: '#FF6B3D',
-  },
-  {
-    id: 2, name: 'Mike Torres', initials: 'MT',
-    photo: 'https://randomuser.me/api/portraits/men/32.jpg',
-    cover: 'https://images.unsplash.com/photo-1566577739112-5180d4bf9390?w=900&q=80',
-    title: 'D1 College Coach', sport: 'Baseball',
-    years: 8, specialty: 'Pitching Mechanics', location: 'Tampa, FL',
-    rate: 75, rating: 4.8, reviews: 86, athletes: 22, avgGain: '+5 mph velo', commits: 4,
-    modes: ['live_online', 'async'], badge: 'COLLEGE COACH',
-    bio: 'Built pitching programs for two D1 schools. Specialty in velocity development for ages 12-18.',
-    color: '#5DA9FF',
-  },
-  {
-    id: 3, name: 'James Sutton', initials: 'JS',
-    photo: 'https://randomuser.me/api/portraits/men/28.jpg',
-    cover: 'https://images.unsplash.com/photo-1508344928928-7165b67de128?w=900&q=80',
-    title: 'Hitting Specialist', sport: 'Baseball',
-    years: 6, specialty: 'Swing Path & Power', location: 'Miami, FL',
-    rate: 60, rating: 4.7, reviews: 51, athletes: 18, avgGain: '+4 EV', commits: 2,
-    modes: ['in_person', 'async'], badge: 'CERTIFIED',
-    bio: 'TPI certified. Former JuCo standout. Focused on the science of bat speed.',
-    color: '#C5FF3D',
-  },
-  {
-    id: 4, name: 'Andre Lewis', initials: 'AL',
-    photo: 'https://randomuser.me/api/portraits/men/40.jpg',
-    cover: 'https://images.unsplash.com/photo-1593766787879-91152b81bf67?w=900&q=80',
-    title: 'Catching Coach', sport: 'Baseball',
-    years: 10, specialty: 'Pop Time & Framing', location: 'Doral, FL',
-    rate: 80, rating: 4.9, reviews: 67, athletes: 25, avgGain: '-0.15 pop', commits: 5,
-    modes: ['in_person', 'live_online'], badge: 'FORMER PRO',
-    bio: 'Six seasons in AAA. Specialty: turning average catchers into framing artists.',
-    color: '#B17CFF',
-  },
-  {
-    id: 5, name: 'Sofia Martinez', initials: 'SM',
-    photo: 'https://randomuser.me/api/portraits/women/44.jpg',
-    cover: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=900&q=80',
-    title: 'Strength & Conditioning', sport: 'Baseball',
-    years: 5, specialty: 'Power Development', location: 'Coral Gables, FL',
-    rate: 65, rating: 4.8, reviews: 41, athletes: 30, avgGain: '+8% power', commits: 3,
-    modes: ['in_person', 'async'], badge: 'CSCS',
-    bio: 'Strength coach for high school and travel ball. Build your engine.',
-    color: '#FF9BCD',
-  },
-];
+// Real trainers go here once they're verified and onboarded. Until then
+// the list stays empty so the app never shows fabricated people or stats.
+// Schema (for when we add real ones):
+//   id, name, initials, photo (real), cover, title, sport, years,
+//   specialty, location, rate, rating, reviews, athletes, avgGain,
+//   commits, modes, badge, bio, color
+const TRAINERS: any[] = [];
 
 const SPORTS = [
   { name: 'Baseball', icon: '⚾' },
@@ -114,12 +64,9 @@ const BASEBALL_STAT_DEFS = [
   { key: 'popTime', label: 'Pop Time', unit: 's', placeholder: '2.20' },
 ];
 
-const SLOTS = [
-  { day: 'TOMORROW', date: 'Thu Aug 14', time: '4:30 PM' },
-  { day: 'FRIDAY', date: 'Fri Aug 15', time: '5:00 PM' },
-  { day: 'SATURDAY', date: 'Sat Aug 16', time: '10:00 AM' },
-  { day: 'SATURDAY', date: 'Sat Aug 16', time: '2:00 PM' },
-];
+// Real availability comes from the trainer's calendar once trainers exist.
+// Empty until that integration ships.
+const SLOTS: any[] = [];
 
 const QUICK_REPLIES = ['Thanks coach', 'See you then', 'Send drill plan', 'When works for you?'];
 
@@ -277,27 +224,7 @@ export default function CoachMeApp() {
       const conv = prev[trainerId] || { trainerId, online: false, unread: 0, messages: [] };
       return { ...prev, [trainerId]: { ...conv, messages: [...conv.messages, newMsg] } };
     });
-
-    setTimeout(() => {
-      const replies = [
-        'Got it. Let me check the schedule.',
-        'Sounds good. See you then.',
-        'Nice work today. Keep grinding.',
-        "I'll pull together a plan for that.",
-        'Send me a video of your last at-bat and I will review it.',
-      ];
-      const reply = {
-        id: Date.now() + 1,
-        from: 'trainer',
-        text: replies[Math.floor(Math.random() * replies.length)],
-        ts: new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
-      };
-      setConversations(prev => {
-        const conv = prev[trainerId];
-        if (!conv) return prev;
-        return { ...prev, [trainerId]: { ...conv, messages: [...conv.messages, reply] } };
-      });
-    }, 1400);
+    // Real replies come from the trainer on the other end. No fake auto-reply.
   };
 
   const startCall = (trainerId) => {
@@ -982,15 +909,57 @@ function TrainerRow({ trainer, onClick }) {
    TRAINERS VIEW
    ============================================================ */
 function TrainersView({ onOpenTrainer, athlete }) {
-  const formerPros = TRAINERS.filter(t => t.badge === 'FORMER PRO');
-  const others = TRAINERS.filter(t => t.badge !== 'FORMER PRO');
+  // Only show trainers verified for this athlete's sport. No cross-sport
+  // padding, no fabricated rosters.
+  const sportTrainers = TRAINERS.filter(t => t.sport === athlete.sport);
+  const formerPros = sportTrainers.filter(t => t.badge === 'FORMER PRO');
+  const others = sportTrainers.filter(t => t.badge !== 'FORMER PRO');
+
+  if (sportTrainers.length === 0) {
+    return (
+      <div style={{ padding: '12px 0 24px' }}>
+        <div style={{ padding: '0 16px 12px' }}>
+          <div className="display" style={{ fontSize: 36, lineHeight: 1, marginBottom: 4 }}>FIND A <span style={{ color: '#C5FF3D' }}>TRAINER</span></div>
+          <div className="mono" style={{ fontSize: 11, color: '#9CA0A8', letterSpacing: '0.08em' }}>
+            {athlete.sport.toUpperCase()} &middot; {athlete.city.toUpperCase()}
+          </div>
+        </div>
+        <div style={{ padding: '40px 16px 0', textAlign: 'center' }}>
+          <div style={{
+            width: 80, height: 80, borderRadius: 20,
+            background: 'linear-gradient(135deg, rgba(197,255,61,0.1) 0%, rgba(197,255,61,0.02) 100%)',
+            border: '1px solid rgba(197,255,61,0.25)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px',
+          }}>
+            <Search size={36} color="#C5FF3D"/>
+          </div>
+          <div className="display" style={{ fontSize: 28, lineHeight: 1, marginBottom: 10, textTransform: 'uppercase' }}>
+            NO TRAINERS YET
+          </div>
+          <div className="body" style={{ fontSize: 13, color: '#9CA0A8', marginBottom: 24, lineHeight: 1.5, maxWidth: 300, margin: '0 auto 24px' }}>
+            We're onboarding real, verified coaches for {athlete.sport.toLowerCase()} in {athlete.city}. We'll let you know the moment one is available.
+          </div>
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+            padding: '8px 14px', borderRadius: 999,
+            background: 'rgba(255,255,255,0.04)', border: '1px solid #2A2A30',
+          }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#C5FF3D' }} className="pulse-dot"/>
+            <span className="mono" style={{ fontSize: 10, color: '#9CA0A8', letterSpacing: '0.12em', fontWeight: 700 }}>
+              NOTIFY ME WHEN READY
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: '12px 0 24px' }}>
       <div style={{ padding: '0 16px 8px' }}>
         <div className="display" style={{ fontSize: 36, lineHeight: 1, marginBottom: 4 }}>FIND A <span style={{ color: '#C5FF3D' }}>TRAINER</span></div>
         <div className="mono" style={{ fontSize: 11, color: '#9CA0A8', letterSpacing: '0.08em' }}>
-          {TRAINERS.length} TRAINERS &middot; {athlete.sport.toUpperCase()} &middot; {athlete.city.toUpperCase()} 25 MI
+          {sportTrainers.length} TRAINER{sportTrainers.length !== 1 ? 'S' : ''} &middot; {athlete.sport.toUpperCase()} &middot; {athlete.city.toUpperCase()}
         </div>
       </div>
 
@@ -1442,19 +1411,10 @@ function VideoCallView({ trainer, athlete, onClose }) {
   const [duration, setDuration] = useState(0);
   const [muted, setMuted] = useState(false);
   const [videoOff, setVideoOff] = useState(false);
-  const [showPR, setShowPR] = useState(false);
 
   useEffect(() => {
     const id = setInterval(() => setDuration(d => d + 1), 1000);
     return () => clearInterval(id);
-  }, []);
-
-  useEffect(() => {
-    const id = setTimeout(() => {
-      setShowPR(true);
-      setTimeout(() => setShowPR(false), 4000);
-    }, 5000);
-    return () => clearTimeout(id);
   }, []);
 
   const fmt = (s) => {
@@ -1552,30 +1512,7 @@ function VideoCallView({ trainer, athlete, onClose }) {
         </div>
       </div>
 
-      {showPR && (
-        <div className="slide-up-msg" style={{
-          position: 'absolute', top: 230, left: 16, right: 16, zIndex: 12,
-        }}>
-          <div style={{
-            background: 'rgba(197,255,61,0.95)', color: '#000',
-            borderRadius: 16, padding: '14px 18px',
-            display: 'flex', alignItems: 'center', gap: 14,
-            boxShadow: '0 10px 40px rgba(197,255,61,0.3)',
-          }}>
-            <div style={{
-              width: 40, height: 40, borderRadius: 10, background: '#000',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-            }}>
-              <TrendingUp size={22} color="#C5FF3D"/>
-            </div>
-            <div style={{ flex: 1 }}>
-              <div className="mono" style={{ fontSize: 9, letterSpacing: '0.15em', fontWeight: 700, opacity: 0.7 }}>COACH LOGGED A METRIC</div>
-              <div className="display" style={{ fontSize: 22, lineHeight: 1, marginTop: 4 }}>EXIT VELO &middot; 88 MPH</div>
-              <div className="mono" style={{ fontSize: 10, marginTop: 4, fontWeight: 700 }}>NEW PR &middot; +1 MPH &middot; VERIFIED LIVE</div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Real PR notifications fire from the trainer's session input. No fake demo metric. */}
 
       <div style={{
         position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10,
@@ -1977,6 +1914,20 @@ function BookingFlow({ booking, setBooking, onConfirm, onClose }) {
                 </div>
               </div>
             </div>
+
+            {SLOTS.length === 0 && (
+              <div style={{
+                padding: 20, borderRadius: 12, background: '#18181C',
+                border: '1px dashed #2A2A30', textAlign: 'center', marginBottom: 20,
+              }}>
+                <div className="display" style={{ fontSize: 18, marginBottom: 6, textTransform: 'uppercase' }}>
+                  No Slots Available
+                </div>
+                <div className="body" style={{ fontSize: 12, color: '#9CA0A8', lineHeight: 1.5 }}>
+                  Real availability loads from the trainer's calendar. Once a verified trainer is connected, their open times appear here.
+                </div>
+              </div>
+            )}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
               {SLOTS.map((s, i) => (
