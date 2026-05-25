@@ -11,7 +11,8 @@ import {
   TrendingUp, Search, User as UserIcon, MessageCircle,
   ChevronRight, ChevronLeft, X, ArrowRight,
   Plus, Mic, MicOff, VideoOff, PhoneOff, Camera,
-  Send as SendIcon, MoreHorizontal, Inbox, UserPlus
+  Send as SendIcon, MoreHorizontal, Inbox, UserPlus,
+  Users, Heart
 } from 'lucide-react';
 
 /* ============================================================
@@ -315,8 +316,9 @@ export default function CoachMeApp() {
           <>
             <div className="phone-scroll" style={{ flex: 1, overflow: 'auto', position: 'relative' }}>
               <div className={`tab-fade ${tabAnim ? 'out' : ''}`}>
-                {tab === 'profile' && <ProfileView athlete={athlete} trainerIds={trainerIds} trainers={allTrainers} onOpenTrainer={openTrainer} onGoToTrainers={() => switchTab('trainers')}/>}
+                {tab === 'profile' && <ProfileView athlete={athlete} trainerIds={trainerIds} trainers={allTrainers} onOpenTrainer={openTrainer} onGoToTrainers={() => switchTab('trainers')} onOpenChat={openChat}/>}
                 {tab === 'trainers' && <TrainersView onOpenTrainer={openTrainer} athlete={athlete} trainers={allTrainers}/>}
+                {tab === 'community' && <CommunityView athlete={athlete}/>}
                 {tab === 'messages' && <MessagesView conversations={conversations} trainers={allTrainers} onOpenChat={openChat} onGoToTrainers={() => switchTab('trainers')}/>}
                 {tab === 'sessions' && <SessionsView sessions={sessions} trainers={allTrainers} onOpenTrainer={openTrainer} onGoToTrainers={() => switchTab('trainers')}/>}
               </div>
@@ -729,7 +731,7 @@ function SUDone({ form, onFinish }) {
 /* ============================================================
    PROFILE VIEW
    ============================================================ */
-function ProfileView({ athlete, trainerIds, trainers = TRAINERS, onOpenTrainer, onGoToTrainers }) {
+function ProfileView({ athlete, trainerIds, trainers = TRAINERS, onOpenTrainer, onGoToTrainers, onOpenChat }) {
   const hasStats = athlete.stats && athlete.stats.length > 0;
   const hasTrainers = trainerIds && trainerIds.length > 0;
 
@@ -813,7 +815,27 @@ function ProfileView({ athlete, trainerIds, trainers = TRAINERS, onOpenTrainer, 
           {trainerIds.map(id => {
             const t = trainers.find(tr => tr.id === id);
             if (!t) return null;
-            return <TrainerRow key={id} trainer={t} onClick={() => onOpenTrainer(id)}/>;
+            return (
+              <div key={id} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <TrainerRow trainer={t} onClick={() => onOpenTrainer(id)}/>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <button onClick={() => onOpenChat && onOpenChat(id)} style={{
+                    background: '#18181C', border: '1px solid #2A2A30', borderRadius: 10,
+                    padding: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    color: '#F4F4F5', cursor: 'pointer', fontWeight: 600, fontSize: 12,
+                  }} className="body">
+                    <MessageCircle size={14} color="#C5FF3D"/> Message
+                  </button>
+                  <button onClick={() => onOpenTrainer(id)} style={{
+                    background: '#18181C', border: '1px solid #2A2A30', borderRadius: 10,
+                    padding: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    color: '#F4F4F5', cursor: 'pointer', fontWeight: 600, fontSize: 12,
+                  }} className="body">
+                    <Video size={14} color="#5DA9FF"/> Book session
+                  </button>
+                </div>
+              </div>
+            );
           })}
         </div>
       ) : (
@@ -1674,12 +1696,206 @@ function SessionCard({ session, trainers = TRAINERS, onClickTrainer }) {
 }
 
 /* ============================================================
+   COMMUNITY FEED (athlete to athlete)
+   ============================================================ */
+function CommunityView({ athlete }) {
+  const [posts, setPosts] = useState([]);
+  const [draft, setDraft] = useState('');
+  const MAX_LEN = 280;
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('coachme_posts') || '[]');
+      setPosts(Array.isArray(saved) ? saved : []);
+    } catch {
+      setPosts([]);
+    }
+  }, []);
+
+  const save = (next) => {
+    setPosts(next);
+    try { localStorage.setItem('coachme_posts', JSON.stringify(next)); } catch {}
+  };
+
+  const submit = () => {
+    const text = draft.trim();
+    if (!text) return;
+    const post = {
+      id: Date.now(),
+      author: {
+        name: athlete.name,
+        initials: athlete.initials,
+        sport: athlete.sport,
+        position: athlete.position,
+        city: athlete.city,
+        photo: athlete.photo,
+      },
+      text,
+      ts: Date.now(),
+      likes: 0,
+      liked: false,
+    };
+    save([post, ...posts]);
+    setDraft('');
+  };
+
+  const toggleLike = (id) => {
+    save(posts.map(p => p.id === id ? {
+      ...p, liked: !p.liked, likes: p.liked ? Math.max(0, p.likes - 1) : p.likes + 1,
+    } : p));
+  };
+
+  const remove = (id) => {
+    save(posts.filter(p => p.id !== id));
+  };
+
+  return (
+    <div style={{ padding: '12px 0 24px' }}>
+      <div style={{ padding: '0 16px 12px' }}>
+        <div className="display" style={{ fontSize: 36, lineHeight: 1, marginBottom: 4 }}>THE <span style={{ color: '#C5FF3D' }}>FEED</span></div>
+        <div className="mono" style={{ fontSize: 11, color: '#9CA0A8', letterSpacing: '0.08em' }}>
+          ATHLETES &middot; TRAINING UPDATES &middot; PRS
+        </div>
+      </div>
+
+      {/* Composer */}
+      <div style={{ padding: '8px 16px 16px' }}>
+        <div style={{
+          background: 'linear-gradient(160deg, #1A1A20 0%, #0F0F14 100%)',
+          border: '1px solid #2A2A30', borderRadius: 16, padding: 14,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+            <Avatar initials={athlete.initials} size={36} color="#C5FF3D" square/>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="display" style={{ fontSize: 16, lineHeight: 1, textTransform: 'uppercase' }}>{athlete.name}</div>
+              <div className="mono" style={{ fontSize: 9.5, color: '#9CA0A8', marginTop: 4, letterSpacing: '0.06em' }}>
+                {athlete.sport.toUpperCase()} &middot; {athlete.position.toUpperCase()}
+              </div>
+            </div>
+          </div>
+          <textarea
+            value={draft}
+            onChange={e => setDraft(e.target.value.slice(0, MAX_LEN))}
+            placeholder="Just had practice? Hit a PR? Ask the community a question."
+            className="body"
+            rows={3}
+            style={{
+              width: '100%', background: 'transparent', border: 'none',
+              color: '#F4F4F5', fontSize: 14, outline: 'none', resize: 'none',
+              fontFamily: 'inherit', lineHeight: 1.5, padding: 0,
+            }}
+          />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 }}>
+            <span className="mono" style={{
+              fontSize: 10, color: draft.length > MAX_LEN - 20 ? '#FF6B3D' : '#5F636B',
+              letterSpacing: '0.08em',
+            }}>
+              {draft.length}/{MAX_LEN}
+            </span>
+            <button onClick={submit} disabled={!draft.trim()} style={{
+              background: draft.trim() ? '#C5FF3D' : '#1A1A20',
+              color: draft.trim() ? '#000' : '#5F636B',
+              border: 'none', padding: '8px 18px', borderRadius: 999,
+              fontWeight: 700, fontSize: 13, cursor: draft.trim() ? 'pointer' : 'not-allowed',
+              display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.15s',
+            }} className="body">
+              Post <Send size={13}/>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Feed */}
+      {posts.length === 0 ? (
+        <div style={{ padding: '20px 16px 0', textAlign: 'center' }}>
+          <div style={{
+            width: 72, height: 72, borderRadius: 18,
+            background: 'linear-gradient(135deg, rgba(197,255,61,0.1) 0%, rgba(197,255,61,0.02) 100%)',
+            border: '1px solid rgba(197,255,61,0.25)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px',
+          }}>
+            <Users size={32} color="#C5FF3D"/>
+          </div>
+          <div className="display" style={{ fontSize: 24, lineHeight: 1, marginBottom: 8, textTransform: 'uppercase' }}>NO POSTS YET</div>
+          <div className="body" style={{ fontSize: 13, color: '#9CA0A8', lineHeight: 1.5, maxWidth: 280, margin: '0 auto' }}>
+            Be the first to share. Drop a training update, ask a drill question, or hype your next PR.
+          </div>
+        </div>
+      ) : (
+        <div style={{ padding: '0 12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {posts.map(p => <PostCard key={p.id} post={p} currentName={athlete.name} onLike={() => toggleLike(p.id)} onDelete={() => remove(p.id)}/>)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PostCard({ post, currentName, onLike, onDelete }) {
+  const mine = post.author?.name === currentName;
+  const ago = timeAgo(post.ts);
+  return (
+    <div style={{
+      background: 'linear-gradient(160deg, #1A1A20 0%, #0F0F14 100%)',
+      border: '1px solid #2A2A30', borderRadius: 14, padding: 14,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 10 }}>
+        <Avatar initials={post.author?.initials || '?'} photo={post.author?.photo} size={40} color="#C5FF3D" square/>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="display" style={{ fontSize: 16, lineHeight: 1, textTransform: 'uppercase' }}>{post.author?.name}</div>
+          <div className="mono" style={{ fontSize: 9.5, color: '#9CA0A8', marginTop: 4, letterSpacing: '0.06em' }}>
+            {post.author?.sport?.toUpperCase()}
+            {post.author?.position && ` · ${post.author.position.toUpperCase()}`}
+            {ago && ` · ${ago.toUpperCase()}`}
+          </div>
+        </div>
+        {mine && (
+          <button onClick={onDelete} title="Delete post" style={{
+            background: 'none', border: 'none', color: '#5F636B', cursor: 'pointer',
+            padding: 4, display: 'flex',
+          }}>
+            <X size={14}/>
+          </button>
+        )}
+      </div>
+      <div className="body" style={{ fontSize: 14, color: '#F4F4F5', lineHeight: 1.5, whiteSpace: 'pre-wrap', marginBottom: 12 }}>
+        {post.text}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, paddingTop: 10, borderTop: '1px solid #1F1F25' }}>
+        <button onClick={onLike} style={{
+          background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+          display: 'flex', alignItems: 'center', gap: 6,
+          color: post.liked ? '#FF6B3D' : '#9CA0A8',
+        }}>
+          <Heart size={15} fill={post.liked ? '#FF6B3D' : 'none'}/>
+          <span className="mono" style={{ fontSize: 11, fontWeight: 700 }}>{post.likes || 0}</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function timeAgo(ts) {
+  if (!ts) return '';
+  const diff = Date.now() - ts;
+  const s = Math.floor(diff / 1000);
+  if (s < 60) return 'just now';
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  if (d < 7) return `${d}d ago`;
+  return new Date(ts).toLocaleDateString();
+}
+
+/* ============================================================
    BOTTOM NAV
    ============================================================ */
 function BottomNav({ tab, switchTab, unread }) {
   const tabs = [
     { id: 'profile', label: 'Profile', icon: UserIcon },
     { id: 'trainers', label: 'Trainers', icon: Search },
+    { id: 'community', label: 'Feed', icon: Users },
     { id: 'messages', label: 'Messages', icon: MessageCircle, badge: unread },
     { id: 'sessions', label: 'Sessions', icon: CalIcon },
   ];
@@ -1688,7 +1904,7 @@ function BottomNav({ tab, switchTab, unread }) {
       borderTop: '1px solid #1F1F25',
       background: 'rgba(10,10,11,0.92)', backdropFilter: 'blur(20px)',
       WebkitBackdropFilter: 'blur(20px)',
-      display: 'flex', justifyContent: 'space-around', padding: '12px 4px 18px',
+      display: 'flex', justifyContent: 'space-around', padding: '12px 2px 18px',
       flexShrink: 0,
     }}>
       {tabs.map(t => {
@@ -1697,9 +1913,9 @@ function BottomNav({ tab, switchTab, unread }) {
         return (
           <button key={t.id} onClick={() => switchTab(t.id)} style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-            background: 'none', border: 'none', cursor: 'pointer', padding: '6px 10px',
+            background: 'none', border: 'none', cursor: 'pointer', padding: '6px 6px',
             color: active ? '#C5FF3D' : '#5F636B', position: 'relative',
-            transition: 'color 0.15s',
+            transition: 'color 0.15s', minWidth: 0,
           }}>
             <div style={{ position: 'relative' }}>
               <Icon size={20} strokeWidth={active ? 2.2 : 1.8}/>
