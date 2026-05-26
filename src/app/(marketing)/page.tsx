@@ -12,7 +12,7 @@ import {
   ChevronRight, ChevronLeft, X, ArrowRight,
   Plus, Mic, MicOff, VideoOff, PhoneOff, Camera,
   Send as SendIcon, MoreHorizontal, Inbox, UserPlus,
-  Users, Heart
+  Users, Heart, Dumbbell, Flame, Zap, Award, Trophy, Target, Clock
 } from 'lucide-react';
 
 /* ============================================================
@@ -96,6 +96,59 @@ const BASEBALL_STAT_DEFS = [
   { key: 'throwVelo', label: 'Throw Velo', unit: 'mph', placeholder: '75' },
   { key: 'popTime', label: 'Pop Time', unit: 's', placeholder: '2.20' },
 ];
+
+const WORKOUT_TYPES = [
+  { key: 'practice',     label: 'Practice',         color: '#C5FF3D' },
+  { key: 'strength',     label: 'Strength',         color: '#FF6B3D' },
+  { key: 'skills',       label: 'Skills work',      color: '#5DA9FF' },
+  { key: 'conditioning', label: 'Conditioning',     color: '#FF9BCD' },
+  { key: 'game',         label: 'Game / Scrimmage', color: '#B17CFF' },
+  { key: 'film',         label: 'Film study',       color: '#FFB347' },
+  { key: 'recovery',     label: 'Recovery',         color: '#7DD3C0' },
+];
+
+const INTENSITY_LABELS = ['Light', 'Easy', 'Medium', 'Hard', 'All-out'];
+
+// Achievements are checked against derived state — never fake-awarded.
+const ACHIEVEMENTS = [
+  { id: 'first_workout',  icon: Flame,    label: 'First Workout',     hint: 'Log your first training session.' },
+  { id: 'streak_3',       icon: Zap,      label: '3-Day Streak',      hint: 'Train 3 days in a row.' },
+  { id: 'streak_7',       icon: Flame,    label: 'Week Warrior',      hint: 'Train 7 days in a row.' },
+  { id: 'workouts_10',    icon: Dumbbell, label: '10 Workouts',       hint: 'Log 10 total workouts.' },
+  { id: 'workouts_50',    icon: Trophy,   label: '50 Workouts',       hint: 'Log 50 total workouts.' },
+  { id: 'first_post',     icon: Users,    label: 'First Post',        hint: 'Share something in the Feed.' },
+  { id: 'first_pr',       icon: TrendingUp, label: 'First PR',        hint: 'Add a starting stat to your profile.' },
+  { id: 'first_trainer',  icon: Award,    label: 'Coached Up',        hint: 'Connect with a real trainer.' },
+];
+
+function isSameDay(a: Date, b: Date) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+function calcStreak(workouts) {
+  if (!workouts || workouts.length === 0) return 0;
+  const days = new Set(workouts.map(w => new Date(w.date).toDateString()));
+  let streak = 0;
+  const cursor = new Date();
+  // If today is logged, start streak today; otherwise check from yesterday.
+  if (!days.has(cursor.toDateString())) {
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  while (days.has(cursor.toDateString())) {
+    streak++;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return streak;
+}
+
+function countThisWeek(workouts) {
+  if (!workouts || workouts.length === 0) return 0;
+  const now = new Date();
+  const start = new Date(now);
+  start.setDate(now.getDate() - 6);
+  start.setHours(0, 0, 0, 0);
+  return workouts.filter(w => new Date(w.date) >= start).length;
+}
 
 // Real availability comes from the trainer's calendar once trainers exist.
 // Empty until that integration ships.
@@ -185,6 +238,33 @@ export default function CoachMeApp() {
     }
   }, []);
   const allTrainers = [...TRAINERS, ...submittedTrainers];
+
+  // Workout log (athlete's daily training). Persisted to localStorage.
+  const [workouts, setWorkouts] = useState([]);
+  const [logWorkoutOpen, setLogWorkoutOpen] = useState(false);
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('coachme_workouts') || '[]');
+      setWorkouts(Array.isArray(saved) ? saved : []);
+    } catch {
+      setWorkouts([]);
+    }
+  }, []);
+  const saveWorkouts = (next) => {
+    setWorkouts(next);
+    try { localStorage.setItem('coachme_workouts', JSON.stringify(next)); } catch {}
+  };
+  const addWorkout = (w) => saveWorkouts([{ id: Date.now(), ...w }, ...workouts]);
+  const removeWorkout = (id) => saveWorkouts(workouts.filter(w => w.id !== id));
+
+  // Detect what the athlete has done so achievements can unlock honestly.
+  const [hasPosts, setHasPosts] = useState(false);
+  useEffect(() => {
+    try {
+      const posts = JSON.parse(localStorage.getItem('coachme_posts') || '[]');
+      setHasPosts(Array.isArray(posts) && posts.length > 0);
+    } catch {}
+  }, [tab]); // re-check when switching tabs
 
   const switchTab = (t) => {
     if (t === tab) return;
@@ -347,7 +427,7 @@ export default function CoachMeApp() {
           <>
             <div className="phone-scroll" style={{ flex: 1, overflow: 'auto', position: 'relative' }}>
               <div className={`tab-fade ${tabAnim ? 'out' : ''}`}>
-                {tab === 'profile' && <ProfileView athlete={athlete} trainerIds={trainerIds} trainers={allTrainers} onOpenTrainer={openTrainer} onGoToTrainers={() => switchTab('trainers')} onOpenChat={openChat}/>}
+                {tab === 'profile' && <ProfileView athlete={athlete} trainerIds={trainerIds} trainers={allTrainers} workouts={workouts} hasPosts={hasPosts} onOpenTrainer={openTrainer} onGoToTrainers={() => switchTab('trainers')} onOpenChat={openChat} onLogWorkout={() => setLogWorkoutOpen(true)} onRemoveWorkout={removeWorkout}/>}
                 {tab === 'trainers' && <TrainersView onOpenTrainer={openTrainer} athlete={athlete} trainers={allTrainers}/>}
                 {tab === 'community' && <CommunityView athlete={athlete}/>}
                 {tab === 'messages' && <MessagesView conversations={conversations} trainers={allTrainers} onOpenChat={openChat} onGoToTrainers={() => switchTab('trainers')}/>}
@@ -396,6 +476,13 @@ export default function CoachMeApp() {
             )}
 
             {confirmed && <Celebration />}
+
+            {logWorkoutOpen && (
+              <LogWorkoutModal
+                onClose={() => setLogWorkoutOpen(false)}
+                onSave={(w) => { addWorkout(w); setLogWorkoutOpen(false); }}
+              />
+            )}
           </>
         )}
       </div>
@@ -836,9 +923,25 @@ function SUDone({ form, onFinish }) {
 /* ============================================================
    PROFILE VIEW
    ============================================================ */
-function ProfileView({ athlete, trainerIds, trainers = TRAINERS, onOpenTrainer, onGoToTrainers, onOpenChat }) {
+function ProfileView({ athlete, trainerIds, trainers = TRAINERS, workouts = [], hasPosts = false, onOpenTrainer, onGoToTrainers, onOpenChat, onLogWorkout, onRemoveWorkout }) {
   const hasStats = athlete.stats && athlete.stats.length > 0;
   const hasTrainers = trainerIds && trainerIds.length > 0;
+  const streak = calcStreak(workouts);
+  const thisWeek = countThisWeek(workouts);
+  const totalWorkouts = workouts.length;
+
+  // Achievement unlock state
+  const earned: Record<string, boolean> = {
+    first_workout:  totalWorkouts >= 1,
+    streak_3:       streak >= 3,
+    streak_7:       streak >= 7,
+    workouts_10:    totalWorkouts >= 10,
+    workouts_50:    totalWorkouts >= 50,
+    first_post:     hasPosts,
+    first_pr:       hasStats,
+    first_trainer:  hasTrainers,
+  };
+  const earnedCount = Object.values(earned).filter(Boolean).length;
 
   return (
     <div style={{ padding: '0 0 24px' }}>
@@ -895,6 +998,13 @@ function ProfileView({ athlete, trainerIds, trainers = TRAINERS, onOpenTrainer, 
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Training stat badges */}
+      <div style={{ padding: '0 16px 14px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+        <TrainBadge icon={<Flame size={14} color="#FF6B3D"/>} value={streak} label="DAY STREAK"/>
+        <TrainBadge icon={<CalIcon size={14} color="#5DA9FF"/>} value={thisWeek} label="THIS WEEK"/>
+        <TrainBadge icon={<Dumbbell size={14} color="#C5FF3D"/>} value={totalWorkouts} label="TOTAL"/>
       </div>
 
       <div style={{ padding: '0 16px', marginBottom: 8 }}>
@@ -955,11 +1065,142 @@ function ProfileView({ athlete, trainerIds, trainers = TRAINERS, onOpenTrainer, 
         />
       )}
 
-      {athlete.level > 1 && (
-        <div style={{ padding: '0 16px' }}>
-          <SectionLabel>ACHIEVEMENTS</SectionLabel>
+      {/* Training log */}
+      <div style={{ padding: '0 16px 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <SectionLabel>TRAINING LOG</SectionLabel>
+        <button onClick={onLogWorkout} className="mono" style={{
+          background: '#C5FF3D', color: '#000', border: 'none', cursor: 'pointer',
+          padding: '6px 12px', borderRadius: 999, fontSize: 10, fontWeight: 700,
+          letterSpacing: '0.1em', display: 'flex', alignItems: 'center', gap: 5,
+        }}>
+          <Plus size={12}/> LOG WORKOUT
+        </button>
+      </div>
+      {workouts.length === 0 ? (
+        <EmptyCard
+          icon={<Dumbbell size={20} color="#5F636B"/>}
+          title="No workouts logged yet"
+          sub="Log your daily training to build streaks, track consistency, and unlock achievements. Trainers see your real work."
+          cta="Log your first workout"
+          onClick={onLogWorkout}
+        />
+      ) : (
+        <div style={{ padding: '0 16px 24px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {workouts.slice(0, 8).map(w => <WorkoutRow key={w.id} workout={w} onDelete={() => onRemoveWorkout && onRemoveWorkout(w.id)}/>)}
+          {workouts.length > 8 && (
+            <div className="mono" style={{ textAlign: 'center', fontSize: 10, color: '#5F636B', letterSpacing: '0.1em', paddingTop: 4 }}>
+              + {workouts.length - 8} EARLIER WORKOUTS
+            </div>
+          )}
         </div>
       )}
+
+      {/* Achievements */}
+      <div style={{ padding: '0 16px 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <SectionLabel>ACHIEVEMENTS</SectionLabel>
+        <span className="mono" style={{ fontSize: 10, color: '#5F636B', letterSpacing: '0.1em' }}>
+          {earnedCount} / {ACHIEVEMENTS.length}
+        </span>
+      </div>
+      <div style={{ padding: '0 16px 24px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+        {ACHIEVEMENTS.map(a => <AchievementCard key={a.id} achievement={a} earned={earned[a.id]}/>)}
+      </div>
+    </div>
+  );
+}
+
+function TrainBadge({ icon, value, label }) {
+  return (
+    <div style={{
+      background: 'linear-gradient(160deg, #1A1A20 0%, #0F0F14 100%)',
+      border: '1px solid #2A2A30', borderRadius: 12, padding: '10px 8px',
+      textAlign: 'center',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, marginBottom: 4 }}>
+        {icon}
+        <span className="display" style={{ fontSize: 22, lineHeight: 1, color: '#F4F4F5' }}>{value}</span>
+      </div>
+      <div className="mono" style={{ fontSize: 8.5, color: '#5F636B', letterSpacing: '0.1em' }}>{label}</div>
+    </div>
+  );
+}
+
+function WorkoutRow({ workout, onDelete }) {
+  const def = WORKOUT_TYPES.find(t => t.key === workout.type) || WORKOUT_TYPES[0];
+  const ago = workoutDayLabel(workout.date);
+  return (
+    <div style={{
+      background: 'linear-gradient(160deg, #1A1A20 0%, #0F0F14 100%)',
+      border: '1px solid #2A2A30', borderRadius: 12, padding: 12,
+      display: 'flex', alignItems: 'center', gap: 12, position: 'relative', overflow: 'hidden',
+    }}>
+      <div style={{
+        position: 'absolute', left: 0, top: 0, width: 3, height: '100%', background: def.color,
+      }}/>
+      <div style={{
+        width: 36, height: 36, borderRadius: 10,
+        background: `${def.color}18`, border: `1px solid ${def.color}40`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginLeft: 4,
+      }}>
+        <Dumbbell size={16} color={def.color}/>
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div className="display" style={{ fontSize: 16, lineHeight: 1, textTransform: 'uppercase' }}>{def.label}</div>
+        <div className="mono" style={{ fontSize: 10, color: '#9CA0A8', marginTop: 4, letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          <span>{ago.toUpperCase()}</span>
+          <span>·</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}><Clock size={9}/> {workout.duration} MIN</span>
+          {workout.intensity ? <><span>·</span><span>{INTENSITY_LABELS[workout.intensity - 1]?.toUpperCase()}</span></> : null}
+        </div>
+        {workout.notes ? (
+          <div className="body" style={{ fontSize: 12, color: '#D4D6DA', marginTop: 6, lineHeight: 1.45 }}>{workout.notes}</div>
+        ) : null}
+      </div>
+      <button onClick={onDelete} title="Delete" style={{
+        background: 'none', border: 'none', color: '#5F636B', cursor: 'pointer', padding: 4,
+        display: 'flex', flexShrink: 0,
+      }}>
+        <X size={14}/>
+      </button>
+    </div>
+  );
+}
+
+function workoutDayLabel(date) {
+  const d = new Date(date);
+  const now = new Date();
+  if (isSameDay(d, now)) return 'Today';
+  const y = new Date(now);
+  y.setDate(now.getDate() - 1);
+  if (isSameDay(d, y)) return 'Yesterday';
+  const diff = Math.floor((now.getTime() - d.getTime()) / 86400000);
+  if (diff < 7) return `${diff} days ago`;
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+function AchievementCard({ achievement, earned }) {
+  const Icon = achievement.icon;
+  return (
+    <div style={{
+      background: earned
+        ? 'linear-gradient(160deg, rgba(197,255,61,0.10) 0%, rgba(197,255,61,0.03) 100%)'
+        : 'linear-gradient(160deg, #1A1A20 0%, #0F0F14 100%)',
+      border: earned ? '1px solid rgba(197,255,61,0.4)' : '1px solid #2A2A30',
+      borderRadius: 12, padding: 12, opacity: earned ? 1 : 0.6,
+      display: 'flex', alignItems: 'center', gap: 10,
+    }}>
+      <div style={{
+        width: 34, height: 34, borderRadius: 9,
+        background: earned ? 'rgba(197,255,61,0.16)' : 'rgba(255,255,255,0.04)',
+        border: earned ? '1px solid rgba(197,255,61,0.4)' : '1px solid #2A2A30',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+      }}>
+        <Icon size={16} color={earned ? '#C5FF3D' : '#5F636B'}/>
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div className="display" style={{ fontSize: 14, lineHeight: 1, textTransform: 'uppercase', color: earned ? '#F4F4F5' : '#9CA0A8' }}>{achievement.label}</div>
+        <div className="body" style={{ fontSize: 10.5, color: '#5F636B', marginTop: 3, lineHeight: 1.4 }}>{achievement.hint}</div>
+      </div>
     </div>
   );
 }
@@ -2215,6 +2456,158 @@ function BigStat({ num, label, small }) {
     <div style={{ textAlign: 'center' }}>
       <div className="display" style={{ fontSize: small ? 22 : 30, lineHeight: 1, color: '#C5FF3D' }}>{num}</div>
       <div className="mono" style={{ fontSize: 9, color: '#5F636B', letterSpacing: '0.12em', marginTop: 6, textTransform: 'uppercase' }}>{label}</div>
+    </div>
+  );
+}
+
+/* ============================================================
+   LOG WORKOUT MODAL
+   ============================================================ */
+function LogWorkoutModal({ onClose, onSave }) {
+  const [type, setType] = useState('practice');
+  const [duration, setDuration] = useState('');
+  const [intensity, setIntensity] = useState(3);
+  const [notes, setNotes] = useState('');
+  const [error, setError] = useState('');
+
+  const save = () => {
+    const mins = parseInt(duration);
+    if (!mins || mins < 1) {
+      setError('Enter how long the workout was (in minutes).');
+      return;
+    }
+    if (mins > 600) {
+      setError('That seems too long. Try a value under 600 minutes.');
+      return;
+    }
+    onSave({
+      date: new Date().toISOString(),
+      type,
+      duration: mins,
+      intensity,
+      notes: notes.trim(),
+    });
+  };
+
+  return (
+    <div style={{
+      position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)',
+      backdropFilter: 'blur(8px)', zIndex: 200, display: 'flex', alignItems: 'flex-end',
+    }} onClick={onClose}>
+      <div className="slide-up" onClick={e => e.stopPropagation()} style={{
+        width: '100%', background: '#0F0F14', borderTopLeftRadius: 24, borderTopRightRadius: 24,
+        padding: 24, borderTop: '1px solid #2A2A30', position: 'relative', maxHeight: '90vh', overflowY: 'auto',
+      }} className="phone-scroll">
+        <div style={{ position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)', width: 36, height: 4, background: '#3A3A42', borderRadius: 999 }}/>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, marginTop: 4 }}>
+          <div className="display" style={{ fontSize: 26, lineHeight: 1, textTransform: 'uppercase' }}>
+            LOG <span style={{ color: '#C5FF3D' }}>WORKOUT</span>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#5F636B', cursor: 'pointer' }}>
+            <X size={20}/>
+          </button>
+        </div>
+
+        <div className="body" style={{ fontSize: 13, color: '#9CA0A8', marginBottom: 20, lineHeight: 1.5 }}>
+          Log today's training. Builds your streak and unlocks achievements.
+        </div>
+
+        <div className="mono" style={{ fontSize: 10.5, color: '#9CA0A8', letterSpacing: '0.12em', marginBottom: 8, textTransform: 'uppercase' }}>
+          TYPE
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 18 }}>
+          {WORKOUT_TYPES.map(t => (
+            <button key={t.key} onClick={() => setType(t.key)} className="body" style={{
+              padding: '8px 12px', borderRadius: 999,
+              background: type === t.key ? `${t.color}18` : '#18181C',
+              border: type === t.key ? `1px solid ${t.color}` : '1px solid #2A2A30',
+              color: type === t.key ? t.color : '#D4D6DA',
+              fontSize: 12, fontWeight: 600, cursor: 'pointer',
+              fontFamily: 'inherit',
+            }}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="mono" style={{ fontSize: 10.5, color: '#9CA0A8', letterSpacing: '0.12em', marginBottom: 8, textTransform: 'uppercase' }}>
+          DURATION (MINUTES)
+        </div>
+        <input
+          type="number" inputMode="numeric" value={duration}
+          onChange={e => { setDuration(e.target.value); setError(''); }}
+          placeholder="60"
+          className="body"
+          style={{
+            width: '100%', background: '#18181C', border: '1px solid #2A2A30',
+            borderRadius: 12, padding: '14px 16px', color: '#F4F4F5',
+            fontSize: 15, outline: 'none', marginBottom: 18,
+          }}
+          onFocus={e => e.currentTarget.style.borderColor = '#C5FF3D'}
+          onBlur={e => e.currentTarget.style.borderColor = '#2A2A30'}
+        />
+
+        <div className="mono" style={{ fontSize: 10.5, color: '#9CA0A8', letterSpacing: '0.12em', marginBottom: 8, textTransform: 'uppercase' }}>
+          INTENSITY
+        </div>
+        <div style={{ display: 'flex', gap: 6, marginBottom: 18 }}>
+          {INTENSITY_LABELS.map((label, i) => {
+            const lvl = i + 1;
+            const active = intensity === lvl;
+            return (
+              <button key={lvl} onClick={() => setIntensity(lvl)} className="body" style={{
+                flex: 1, padding: '10px 6px', borderRadius: 10,
+                background: active ? 'rgba(197,255,61,0.12)' : '#18181C',
+                border: active ? '1px solid #C5FF3D' : '1px solid #2A2A30',
+                color: active ? '#C5FF3D' : '#D4D6DA',
+                fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                fontFamily: 'inherit', textAlign: 'center',
+              }}>
+                <div className="display" style={{ fontSize: 16, lineHeight: 1 }}>{lvl}</div>
+                <div style={{ fontSize: 9, marginTop: 3, letterSpacing: '0.05em' }}>{label.toUpperCase()}</div>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="mono" style={{ fontSize: 10.5, color: '#9CA0A8', letterSpacing: '0.12em', marginBottom: 8, textTransform: 'uppercase' }}>
+          NOTES (OPTIONAL)
+        </div>
+        <textarea
+          value={notes} onChange={e => setNotes(e.target.value)}
+          placeholder="Felt good. Worked on inside pitches."
+          rows={3}
+          className="body"
+          style={{
+            width: '100%', background: '#18181C', border: '1px solid #2A2A30',
+            borderRadius: 12, padding: '12px 14px', color: '#F4F4F5',
+            fontSize: 13, outline: 'none', marginBottom: 18,
+            resize: 'vertical', minHeight: 70, fontFamily: 'inherit',
+          }}
+          onFocus={e => e.currentTarget.style.borderColor = '#C5FF3D'}
+          onBlur={e => e.currentTarget.style.borderColor = '#2A2A30'}
+        />
+
+        {error && (
+          <div style={{
+            padding: '10px 12px', borderRadius: 10, marginBottom: 14,
+            background: 'rgba(255,68,68,0.1)', border: '1px solid rgba(255,68,68,0.4)',
+            color: '#FF8888', fontSize: 12,
+          }} className="body">
+            {error}
+          </div>
+        )}
+
+        <button onClick={save} className="body" style={{
+          width: '100%', background: '#C5FF3D', color: '#000', border: 'none',
+          padding: '15px 20px', borderRadius: 999,
+          fontWeight: 700, fontSize: 14, cursor: 'pointer',
+          display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8,
+        }}>
+          Save workout <ArrowRight size={15}/>
+        </button>
+      </div>
     </div>
   );
 }
