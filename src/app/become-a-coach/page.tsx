@@ -149,10 +149,9 @@ export default function BecomeACoachPage() {
   };
 
   const pageStyles = `
-    @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
-    .display { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.005em; }
-    .body { font-family: 'Manrope', system-ui, sans-serif; }
-    .mono { font-family: 'JetBrains Mono', monospace; }
+    .display { font-family: var(--font-display), 'Bebas Neue', sans-serif; letter-spacing: 0.005em; }
+    .body { font-family: var(--font-body), 'Manrope', system-ui, sans-serif; }
+    .mono { font-family: var(--font-mono), 'JetBrains Mono', monospace; }
   `;
 
   if (step === 1) {
@@ -298,7 +297,7 @@ export default function BecomeACoachPage() {
           <Field label="BIO *" hint="2-4 sentences. Tell athletes about your background and how you train. This becomes your public profile.">
             <textarea
               value={form.bio} onChange={e => upd("bio", e.target.value)}
-              placeholder="Six seasons in AAA before moving into coaching. I specialize in catchers — pop time, framing, and game-calling. I work with players ages 12-18 who want to play at the next level."
+              placeholder="Six seasons in AAA before moving into coaching. I specialize in catchers: pop time, framing, and game-calling. I work with players ages 12-18 who want to play at the next level."
               rows={5}
               style={{ ...inputStyle, resize: "vertical", minHeight: 110, fontFamily: "inherit" }}
             />

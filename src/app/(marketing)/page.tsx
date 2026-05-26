@@ -75,7 +75,7 @@ const CITY_SUGGESTIONS = [
   'New Orleans',
 ];
 
-const BASEBALL_BANNER = 'https://images.unsplash.com/photo-1471295253337-3ceaaedca402?w=900&q=80';
+const BASEBALL_BANNER = '/banner.jpg';
 
 const MODE_META = {
   in_person: { label: 'In Person', icon: MapPin, color: '#C5FF3D' },
@@ -288,11 +288,10 @@ export default function CoachMeApp() {
   const totalUnread = Object.values(conversations).reduce((s, c) => s + (c.unread || 0), 0);
 
   const phoneStyles = `
-    @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
     * { -webkit-tap-highlight-color: transparent; }
-    .display { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.005em; }
-    .body { font-family: 'Manrope', system-ui, sans-serif; }
-    .mono { font-family: 'JetBrains Mono', monospace; }
+    .display { font-family: var(--font-display), 'Bebas Neue', sans-serif; letter-spacing: 0.005em; }
+    .body { font-family: var(--font-body), 'Manrope', system-ui, sans-serif; }
+    .mono { font-family: var(--font-mono), 'JetBrains Mono', monospace; }
     .phone { -webkit-font-smoothing: antialiased; }
     .phone *::selection { background: #C5FF3D; color: #000; }
     .phone-scroll::-webkit-scrollbar { display: none; }
