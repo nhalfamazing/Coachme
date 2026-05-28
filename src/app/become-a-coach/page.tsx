@@ -184,13 +184,21 @@ export default function BecomeACoachPage() {
               3. Athletes in {form.sport.toLowerCase()} start finding you
             </div>
           </div>
-          <div>
-            <a href="/" style={{
+          <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+            <a href="/coach" style={{
               display: "inline-flex", alignItems: "center", gap: 8,
               background: "#C5FF3D", color: "#000", padding: "12px 22px",
               borderRadius: 999, fontWeight: 700, fontSize: 14, textDecoration: "none",
             }}>
-              See the athlete app <ArrowRight size={14} />
+              Go to my coach dashboard <ArrowRight size={14} />
+            </a>
+            <a href="/" style={{
+              display: "inline-flex", alignItems: "center", gap: 8,
+              background: "transparent", color: "#F4F4F5", padding: "12px 22px",
+              borderRadius: 999, fontWeight: 600, fontSize: 14, textDecoration: "none",
+              border: "1px solid #3A3A42",
+            }}>
+              See the athlete app
             </a>
           </div>
         </div>

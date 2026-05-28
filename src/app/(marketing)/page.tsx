@@ -150,6 +150,57 @@ function countThisWeek(workouts) {
   return workouts.filter(w => new Date(w.date) >= start).length;
 }
 
+/* ============================================================
+   SHARED MESSAGE THREADS (athlete <-> coach)
+   Single source of truth in localStorage 'coachme_threads', read and
+   written by BOTH the athlete app and the coach dashboard at /coach.
+   Stopgap until Supabase realtime lands in Phase 1.
+   ============================================================ */
+function loadThreads() {
+  try {
+    const t = JSON.parse(localStorage.getItem('coachme_threads') || '[]');
+    return Array.isArray(t) ? t : [];
+  } catch { return []; }
+}
+function saveThreads(threads) {
+  try { localStorage.setItem('coachme_threads', JSON.stringify(threads)); } catch {}
+}
+function makeThreadId(athleteId, coachId) { return `${athleteId}::${coachId}`; }
+function athleteSnapshot(a) {
+  return {
+    id: a.id, name: a.name, initials: a.initials, sport: a.sport,
+    position: a.position, age: a.age ?? null, city: a.city,
+    stats: Array.isArray(a.stats) ? a.stats : [],
+  };
+}
+// Athlete sends a message to a coach: upsert the thread, append it.
+function pushAthleteMessage(athlete, coachId, coachName, text) {
+  const threads = loadThreads();
+  const id = makeThreadId(athlete.id, coachId);
+  let t = threads.find(x => x.id === id);
+  if (!t) {
+    t = { id, coachId, coachName, athlete: athleteSnapshot(athlete), messages: [], updatedAt: Date.now() };
+    threads.push(t);
+  }
+  t.athlete = athleteSnapshot(athlete);
+  t.coachName = coachName;
+  t.messages.push({ id: Date.now(), from: 'athlete', text, ts: Date.now() });
+  t.updatedAt = Date.now();
+  saveThreads(threads);
+}
+// Convert a stored thread's messages into the athlete UI's shape.
+function threadToConversation(athleteId, coachId) {
+  const threads = loadThreads();
+  const t = threads.find(x => x.id === makeThreadId(athleteId, coachId));
+  if (!t) return [];
+  return t.messages.map(m => ({
+    id: m.id,
+    from: m.from === 'athlete' ? 'me' : 'trainer',
+    text: m.text,
+    ts: new Date(m.ts).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
+  }));
+}
+
 // Real availability comes from the trainer's calendar once trainers exist.
 // Empty until that integration ships.
 const SLOTS: any[] = [];
@@ -213,6 +264,20 @@ function CoverPhoto({ src, height = 120, overlay, color = '#C5FF3D', children, b
    ============================================================ */
 export default function CoachMeApp() {
   const [athlete, setAthlete] = useState(null);
+
+  // Restore a previously created athlete so the app remembers you.
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('coachme_athlete') || 'null');
+      if (saved && saved.id) setAthlete(saved);
+    } catch {}
+  }, []);
+
+  const completeSignup = (a) => {
+    const withId = { id: a.id || Date.now(), ...a };
+    setAthlete(withId);
+    try { localStorage.setItem('coachme_athlete', JSON.stringify(withId)); } catch {}
+  };
 
   const [tab, setTab] = useState('profile');
   const [trainerOpen, setTrainerOpen] = useState(null);
@@ -327,14 +392,18 @@ export default function CoachMeApp() {
   const openChat = (trainerId) => {
     setChatOpen(trainerId);
     setTrainerOpen(null);
+    // Hydrate from the shared thread store so any coach replies show up.
+    const stored = athlete ? threadToConversation(athlete.id, trainerId) : [];
     setConversations(prev => {
       const existing = prev[trainerId];
-      if (existing) {
-        return { ...prev, [trainerId]: { ...existing, unread: 0 } };
-      }
       return {
         ...prev,
-        [trainerId]: { trainerId, online: Math.random() > 0.5, unread: 0, messages: [] },
+        [trainerId]: {
+          trainerId,
+          online: existing?.online ?? true,
+          unread: 0,
+          messages: stored.length ? stored : (existing?.messages || []),
+        },
       };
     });
   };
@@ -350,8 +419,27 @@ export default function CoachMeApp() {
       const conv = prev[trainerId] || { trainerId, online: false, unread: 0, messages: [] };
       return { ...prev, [trainerId]: { ...conv, messages: [...conv.messages, newMsg] } };
     });
-    // Real replies come from the trainer on the other end. No fake auto-reply.
+    // Persist to the shared store so the coach sees it in their dashboard.
+    if (athlete) {
+      const coach = allTrainers.find(t => t.id === trainerId);
+      pushAthleteMessage(athlete, trainerId, coach?.name || 'Coach', text);
+    }
+    // Real replies come from the coach on the other end (via /coach). No fake auto-reply.
   };
+
+  // Live sync: when the coach replies in another tab, refresh the open chat.
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.key !== 'coachme_threads' || !athlete || !chatOpen) return;
+      const msgs = threadToConversation(athlete.id, chatOpen);
+      setConversations(prev => ({
+        ...prev,
+        [chatOpen]: { ...(prev[chatOpen] || { trainerId: chatOpen, online: true, unread: 0 }), messages: msgs },
+      }));
+    };
+    window.addEventListener('storage', handler);
+    return () => window.removeEventListener('storage', handler);
+  }, [athlete, chatOpen]);
 
   const startCall = (trainerId) => {
     setCallOpen(trainerId);
@@ -422,7 +510,7 @@ export default function CoachMeApp() {
         </div>
 
         {!athlete ? (
-          <SignUpFlow onComplete={setAthlete} />
+          <SignUpFlow onComplete={completeSignup} />
         ) : (
           <>
             <div className="phone-scroll" style={{ flex: 1, overflow: 'auto', position: 'relative' }}>
