@@ -786,6 +786,13 @@ function SUWelcome({ onNext }) {
         }} className="body">
           Get started <ArrowRight size={16}/>
         </button>
+
+        <div className="body" style={{ marginTop: 16, textAlign: 'center', fontSize: 12.5, color: '#5F636B' }}>
+          Are you a coach?{' '}
+          <a href="/become-a-coach" style={{ color: '#C5FF3D', fontWeight: 700, textDecoration: 'none' }}>Join CoachMe</a>
+          {'  ·  '}
+          <a href="/coach" style={{ color: '#C5FF3D', fontWeight: 700, textDecoration: 'none' }}>Coach log in</a>
+        </div>
       </div>
     </div>
   );
@@ -1192,6 +1199,38 @@ function ProfileView({ athlete, trainerIds, trainers = TRAINERS, workouts = [], 
       </div>
       <div style={{ padding: '0 16px 24px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
         {ACHIEVEMENTS.map(a => <AchievementCard key={a.id} achievement={a} earned={earned[a.id]}/>)}
+      </div>
+
+      {/* For coaches footer */}
+      <div style={{ padding: '8px 16px 16px' }}>
+        <div style={{
+          background: 'linear-gradient(160deg, #1A1A20 0%, #0F0F14 100%)',
+          border: '1px solid #2A2A30', borderRadius: 14, padding: 16, textAlign: 'center',
+        }}>
+          <div className="display" style={{ fontSize: 18, lineHeight: 1, textTransform: 'uppercase', marginBottom: 6 }}>
+            ARE YOU A COACH?
+          </div>
+          <div className="body" style={{ fontSize: 12, color: '#9CA0A8', lineHeight: 1.5, marginBottom: 14 }}>
+            Join CoachMe to train athletes, or log in to your coach dashboard.
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <a href="/become-a-coach" className="body" style={{
+              flex: 1, background: '#C5FF3D', color: '#000', textDecoration: 'none',
+              padding: '10px', borderRadius: 999, fontWeight: 700, fontSize: 12.5,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            }}>
+              <UserPlus size={13}/> Join as coach
+            </a>
+            <a href="/coach" className="body" style={{
+              flex: 1, background: 'transparent', color: '#F4F4F5', textDecoration: 'none',
+              padding: '10px', borderRadius: 999, fontWeight: 600, fontSize: 12.5,
+              border: '1px solid #3A3A42',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            }}>
+              <UserIcon size={13}/> Coach log in
+            </a>
+          </div>
+        </div>
       </div>
     </div>
   );
