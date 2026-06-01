@@ -76,16 +76,37 @@ function Avatar({ initials, size = 44, color = "#C5FF3D", square = false }) {
 }
 
 export default function CoachDashboard() {
-  const [coach, setCoach] = useState(null);
+  const [coach, setCoachState] = useState(null);
   const [coaches, setCoaches] = useState([]);
   const [threads, setThreads] = useState([]);
   const [openId, setOpenId] = useState(null);
   const [callOpen, setCallOpen] = useState(false);
   const [ready, setReady] = useState(false);
 
+  // Persist coach selection across refresh (sessionStorage so it's per-tab,
+  // not leaked across browser sessions). Real auth lands in Phase 1.
+  const setCoach = (c) => {
+    setCoachState(c);
+    try {
+      if (c) sessionStorage.setItem("coachme_active_coach", JSON.stringify(c));
+      else sessionStorage.removeItem("coachme_active_coach");
+    } catch {}
+  };
+
   useEffect(() => {
-    setCoaches(loadCoaches());
+    const allCoaches = loadCoaches();
+    setCoaches(allCoaches);
     setThreads(loadThreads());
+    try {
+      const savedRaw = sessionStorage.getItem("coachme_active_coach");
+      if (savedRaw) {
+        const saved = JSON.parse(savedRaw);
+        // Re-resolve from the latest stored coach (in case profile got updated)
+        const fresh = allCoaches.find(c => c.id === saved.id);
+        if (fresh) setCoachState(fresh);
+        else if (saved && saved.id) setCoachState(saved);
+      }
+    } catch {}
     setReady(true);
   }, []);
 

@@ -2,7 +2,7 @@
 /* eslint-disable @next/next/no-img-element, react/no-unknown-property */
 // @ts-nocheck
 
-import { useState } from "react";
+import { useState, useId } from "react";
 import { ArrowRight, ChevronLeft, CheckCircle2 } from "lucide-react";
 
 const SPORTS = [
@@ -438,7 +438,9 @@ function Select({ value, onChange, options, placeholder }) {
 }
 
 function Autocomplete({ value, onChange, options, placeholder }) {
-  const listId = `dl-${Math.random().toString(36).slice(2, 8)}`;
+  // useId gives a stable id that matches between server render and client
+  // hydration. Math.random() here caused a hydration mismatch.
+  const listId = `dl-${useId()}`;
   return (
     <>
       <input

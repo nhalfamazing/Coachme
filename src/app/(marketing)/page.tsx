@@ -400,7 +400,8 @@ export default function CoachMeApp() {
         ...prev,
         [trainerId]: {
           trainerId,
-          online: existing?.online ?? true,
+          // Default offline. Real presence comes with Supabase Phase 1.
+          online: existing?.online ?? false,
           unread: 0,
           messages: stored.length ? stored : (existing?.messages || []),
         },
@@ -427,15 +428,35 @@ export default function CoachMeApp() {
     // Real replies come from the coach on the other end (via /coach). No fake auto-reply.
   };
 
-  // Live sync: when the coach replies in another tab, refresh the open chat.
+  // Live sync: when the coach replies in another tab, refresh every
+  // conversation for this athlete (not just the open chat) so the
+  // Messages tab last-message preview and the open chat both update.
   useEffect(() => {
     const handler = (e) => {
-      if (e.key !== 'coachme_threads' || !athlete || !chatOpen) return;
-      const msgs = threadToConversation(athlete.id, chatOpen);
-      setConversations(prev => ({
-        ...prev,
-        [chatOpen]: { ...(prev[chatOpen] || { trainerId: chatOpen, online: true, unread: 0 }), messages: msgs },
-      }));
+      if (e.key !== 'coachme_threads' || !athlete) return;
+      const threads = loadThreads();
+      const myThreads = threads.filter(t => typeof t.id === 'string' && t.id.startsWith(`${athlete.id}::`));
+      setConversations(prev => {
+        const next = { ...prev };
+        myThreads.forEach(t => {
+          const messages = t.messages.map(m => ({
+            id: m.id,
+            from: m.from === 'athlete' ? 'me' : 'trainer',
+            text: m.text,
+            ts: new Date(m.ts).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
+          }));
+          const existing = prev[t.coachId];
+          const last = messages[messages.length - 1];
+          const isReplyFromCoach = last && last.from === 'trainer' && chatOpen !== t.coachId;
+          next[t.coachId] = {
+            trainerId: t.coachId,
+            online: existing?.online ?? false,
+            unread: chatOpen === t.coachId ? 0 : (isReplyFromCoach ? (existing?.unread || 0) + 1 : (existing?.unread || 0)),
+            messages,
+          };
+        });
+        return next;
+      });
     };
     window.addEventListener('storage', handler);
     return () => window.removeEventListener('storage', handler);
@@ -515,7 +536,7 @@ export default function CoachMeApp() {
           <>
             <div className="phone-scroll" style={{ flex: 1, overflow: 'auto', position: 'relative' }}>
               <div className={`tab-fade ${tabAnim ? 'out' : ''}`}>
-                {tab === 'profile' && <ProfileView athlete={athlete} trainerIds={trainerIds} trainers={allTrainers} workouts={workouts} hasPosts={hasPosts} onOpenTrainer={openTrainer} onGoToTrainers={() => switchTab('trainers')} onOpenChat={openChat} onLogWorkout={() => setLogWorkoutOpen(true)} onRemoveWorkout={removeWorkout}/>}
+                {tab === 'profile' && <ProfileView athlete={athlete} trainerIds={trainerIds} trainers={allTrainers} workouts={workouts} hasPosts={hasPosts} hasMessagedCoach={Object.values(conversations).some(c => c.messages?.some(m => m.from === 'me'))} onOpenTrainer={openTrainer} onGoToTrainers={() => switchTab('trainers')} onOpenChat={openChat} onLogWorkout={() => setLogWorkoutOpen(true)} onRemoveWorkout={removeWorkout} onSignOut={() => { try { localStorage.removeItem('coachme_athlete'); } catch {} setAthlete(null); }}/>}
                 {tab === 'trainers' && <TrainersView onOpenTrainer={openTrainer} athlete={athlete} trainers={allTrainers}/>}
                 {tab === 'community' && <CommunityView athlete={athlete}/>}
                 {tab === 'messages' && <MessagesView conversations={conversations} trainers={allTrainers} onOpenChat={openChat} onGoToTrainers={() => switchTab('trainers')}/>}
@@ -1018,7 +1039,7 @@ function SUDone({ form, onFinish }) {
 /* ============================================================
    PROFILE VIEW
    ============================================================ */
-function ProfileView({ athlete, trainerIds, trainers = TRAINERS, workouts = [], hasPosts = false, onOpenTrainer, onGoToTrainers, onOpenChat, onLogWorkout, onRemoveWorkout }) {
+function ProfileView({ athlete, trainerIds, trainers = TRAINERS, workouts = [], hasPosts = false, hasMessagedCoach = false, onOpenTrainer, onGoToTrainers, onOpenChat, onLogWorkout, onRemoveWorkout, onSignOut }) {
   const hasStats = athlete.stats && athlete.stats.length > 0;
   const hasTrainers = trainerIds && trainerIds.length > 0;
   const streak = calcStreak(workouts);
@@ -1034,7 +1055,9 @@ function ProfileView({ athlete, trainerIds, trainers = TRAINERS, workouts = [], 
     workouts_50:    totalWorkouts >= 50,
     first_post:     hasPosts,
     first_pr:       hasStats,
-    first_trainer:  hasTrainers,
+    // Unlocks on EITHER booking a session OR messaging any coach, since
+    // booking needs real trainer calendars to be wired in.
+    first_trainer:  hasTrainers || hasMessagedCoach,
   };
   const earnedCount = Object.values(earned).filter(Boolean).length;
 
@@ -1202,7 +1225,7 @@ function ProfileView({ athlete, trainerIds, trainers = TRAINERS, workouts = [], 
       </div>
 
       {/* For coaches footer */}
-      <div style={{ padding: '8px 16px 16px' }}>
+      <div style={{ padding: '8px 16px 12px' }}>
         <div style={{
           background: 'linear-gradient(160deg, #1A1A20 0%, #0F0F14 100%)',
           border: '1px solid #2A2A30', borderRadius: 14, padding: 16, textAlign: 'center',
@@ -1232,6 +1255,22 @@ function ProfileView({ athlete, trainerIds, trainers = TRAINERS, workouts = [], 
           </div>
         </div>
       </div>
+
+      {/* Sign out (also clears the saved athlete so the welcome screen shows again) */}
+      {onSignOut && (
+        <div style={{ padding: '0 16px 24px', textAlign: 'center' }}>
+          <button onClick={() => {
+            if (typeof window !== 'undefined' && window.confirm('Sign out and start over? Your workouts and posts stay on this device.')) {
+              onSignOut();
+            }
+          }} className="mono" style={{
+            background: 'transparent', border: 'none', color: '#5F636B', cursor: 'pointer',
+            fontSize: 10.5, letterSpacing: '0.15em', padding: '8px 12px',
+          }}>
+            SIGN OUT
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -1688,7 +1727,6 @@ function ConversationRow({ trainer, conv, preview, onClick }) {
    ============================================================ */
 function ChatView({ trainer, conversation, athlete, onClose, onSend, onCall }) {
   const [input, setInput] = useState('');
-  const [typing, setTyping] = useState(false);
   const scrollRef = useRef(null);
   const messages = conversation?.messages || [];
 
@@ -1696,15 +1734,15 @@ function ChatView({ trainer, conversation, athlete, onClose, onSend, onCall }) {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages.length, typing]);
+  }, [messages.length]);
 
   const handleSend = (text) => {
     const t = (text || input).trim();
     if (!t) return;
     onSend(t);
     setInput('');
-    setTyping(true);
-    setTimeout(() => setTyping(false), 1500);
+    // No fake "trainer is typing" simulation — replies come from the real
+    // coach on the other end (via /coach), surfaced through the storage sync.
   };
 
   return (
@@ -1767,7 +1805,6 @@ function ChatView({ trainer, conversation, athlete, onClose, onSend, onCall }) {
         ) : (
           messages.map((m, i) => <Message key={m.id} m={m} trainer={trainer} isLastFromSender={i === messages.length - 1 || messages[i+1]?.from !== m.from}/>)
         )}
-        {typing && <TypingIndicator trainer={trainer}/>}
       </div>
 
       {input.length === 0 && (
@@ -1891,25 +1928,6 @@ function Message({ m, trainer, isLastFromSender }) {
         {isLastFromSender && (
           <div className="mono" style={{ fontSize: 9, color: '#5F636B', marginTop: 4, letterSpacing: '0.06em', textAlign: isMe ? 'right' : 'left' }}>{m.ts}</div>
         )}
-      </div>
-    </div>
-  );
-}
-
-function TypingIndicator({ trainer }) {
-  return (
-    <div className="slide-up-msg" style={{ alignSelf: 'flex-start', display: 'flex', gap: 8, alignItems: 'center' }}>
-      <Avatar photo={trainer.photo} initials={trainer.initials} size={28} color={trainer.color}/>
-      <div style={{
-        background: '#18181C', border: '1px solid #2A2A30',
-        borderRadius: 18, padding: '12px 16px', display: 'flex', gap: 4,
-      }}>
-        {[0, 1, 2].map(i => (
-          <span key={i} className="typing-dot" style={{
-            width: 6, height: 6, borderRadius: '50%', background: '#9CA0A8',
-            animationDelay: `${i * 0.15}s`,
-          }}/>
-        ))}
       </div>
     </div>
   );
