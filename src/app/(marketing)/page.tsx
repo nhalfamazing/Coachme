@@ -168,7 +168,8 @@ function saveThreads(threads) {
 function makeThreadId(athleteId, coachId) { return `${athleteId}::${coachId}`; }
 function athleteSnapshot(a) {
   return {
-    id: a.id, name: a.name, initials: a.initials, sport: a.sport,
+    id: a.id, name: a.name, firstName: a.firstName || null,
+    initials: a.initials, sport: a.sport,
     position: a.position, age: a.age ?? null, city: a.city,
     stats: Array.isArray(a.stats) ? a.stats : [],
   };
@@ -236,14 +237,18 @@ function Avatar({ photo, initials, size = 48, color = '#C5FF3D', square = false,
 
 function CoverPhoto({ src, height = 120, overlay, color = '#C5FF3D', children, blur = 0 }) {
   const [failed, setFailed] = useState(false);
+  // No src at all (e.g. a form-signup coach with no cover photo) gets the
+  // same branded gradient fallback as a broken image, instead of a
+  // transparent block that leaves a visible seam.
+  const showFallback = !src || failed;
   return (
     <div style={{
       height, position: 'relative', overflow: 'hidden',
-      background: failed
+      background: showFallback
         ? `linear-gradient(135deg, ${color}30 0%, #0F0F14 80%), repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.02) 10px, rgba(255,255,255,0.02) 20px)`
         : 'transparent',
     }}>
-      {!failed && (
+      {!showFallback && (
         <img src={src} alt="" referrerPolicy="no-referrer" loading="eager"
           onError={() => setFailed(true)}
           style={{
@@ -1535,16 +1540,22 @@ function TrainersView({ onOpenTrainer, athlete, trainers = TRAINERS }) {
         ))}
       </div>
 
-      <div style={{ padding: '0 16px 8px' }}>
-        <SectionLabel>FEATURED &middot; FORMER PROS</SectionLabel>
-      </div>
-      <div style={{ display: 'flex', gap: 12, overflowX: 'auto', padding: '12px 16px 16px' }} className="phone-scroll">
-        {formerPros.map(t => <TrainerCardFeatured key={t.id} trainer={t} onClick={() => onOpenTrainer(t.id)}/>)}
-      </div>
+      {formerPros.length > 0 && (
+        <>
+          <div style={{ padding: '0 16px 8px' }}>
+            <SectionLabel>FEATURED &middot; FORMER PROS</SectionLabel>
+          </div>
+          <div style={{ display: 'flex', gap: 12, overflowX: 'auto', padding: '12px 16px 16px' }} className="phone-scroll">
+            {formerPros.map(t => <TrainerCardFeatured key={t.id} trainer={t} onClick={() => onOpenTrainer(t.id)}/>)}
+          </div>
+        </>
+      )}
 
-      <div style={{ padding: '0 16px 8px' }}>
-        <SectionLabel>ALL TRAINERS</SectionLabel>
-      </div>
+      {others.length > 0 && (
+        <div style={{ padding: '0 16px 8px' }}>
+          <SectionLabel>ALL TRAINERS</SectionLabel>
+        </div>
+      )}
       <div style={{ padding: '12px 16px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
         {others.map(t => <TrainerRow key={t.id} trainer={t} onClick={() => onOpenTrainer(t.id)}/>)}
       </div>

@@ -343,6 +343,11 @@ function ConversationView({ coach, thread, onBack, onReply, onCall }) {
     setInput("");
   };
 
+  // Prefer the real first name; older threads only have the abbreviated
+  // display name ("A. Rivera"), so fall back to the full display name
+  // rather than a bare initial.
+  const athleteFirst = athlete.firstName || (athlete.name && athlete.name.length > 3 ? athlete.name : null) || "athlete";
+
   return (
     <div style={{ maxWidth: 720, margin: "0 auto", height: "100vh", display: "flex", flexDirection: "column" }}>
       {/* Header */}
@@ -412,7 +417,7 @@ function ConversationView({ coach, thread, onBack, onReply, onCall }) {
         {messages.length === 0 ? (
           <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center", padding: 40 }}>
             <div className="body" style={{ fontSize: 13, color: "#9CA0A8", maxWidth: 260, lineHeight: 1.5 }}>
-              No messages yet. Say hi to {athlete.name?.split(" ")[0]} and start coaching.
+              No messages yet. Say hi to {athleteFirst} and start coaching.
             </div>
           </div>
         ) : (
@@ -445,7 +450,7 @@ function ConversationView({ coach, thread, onBack, onReply, onCall }) {
         <input
           value={input} onChange={e => setInput(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter") send(); }}
-          placeholder={`Message ${athlete.name?.split(" ")[0] || "athlete"}...`}
+          placeholder={`Message ${athleteFirst}...`}
           className="body"
           style={{
             flex: 1, background: "#18181C", border: "1px solid #2A2A30",
