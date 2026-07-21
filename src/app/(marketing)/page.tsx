@@ -357,14 +357,17 @@ export default function CoachMeApp() {
   // A signed-out athlete stays saved on the device so Log in can restore them.
   const [savedAthlete, setSavedAthlete] = useState(null);
 
-  // Restore a previously created athlete so the app remembers you. If they
-  // signed out, keep the profile around for the Log in button instead.
+  // Whether the saved athlete gets a one-tap Continue button on the
+  // landing page. Opening the app ALWAYS shows the landing page first;
+  // nobody is teleported into the middle of the app.
+  const [canResume, setCanResume] = useState(false);
+
   useEffect(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('coachme_athlete') || 'null');
       if (saved && saved.id) {
-        if (localStorage.getItem('coachme_signed_out') === '1') setSavedAthlete(saved);
-        else setAthlete(saved);
+        setSavedAthlete(saved);
+        setCanResume(localStorage.getItem('coachme_signed_out') !== '1');
       }
     } catch {}
   }, []);
@@ -394,6 +397,7 @@ export default function CoachMeApp() {
   const signOut = () => {
     try { localStorage.setItem('coachme_signed_out', '1'); } catch {}
     setSavedAthlete(athlete);
+    setCanResume(false);
     setAthlete(null);
     setTab('profile');
     setTrainerOpen(null);
@@ -701,7 +705,7 @@ export default function CoachMeApp() {
         </div>
 
         {!athlete ? (
-          <SignUpFlow onComplete={completeSignup} savedAthlete={savedAthlete} onLogin={loginSavedAthlete} onCodeLogin={completeSignup} />
+          <SignUpFlow onComplete={completeSignup} savedAthlete={savedAthlete} onLogin={loginSavedAthlete} onCodeLogin={completeSignup} canResume={canResume} />
         ) : (
           <>
             <div className="phone-scroll" style={{ flex: 1, overflow: 'auto', position: 'relative' }}>
@@ -772,7 +776,7 @@ export default function CoachMeApp() {
 /* ============================================================
    SIGN UP FLOW
    ============================================================ */
-function SignUpFlow({ onComplete, savedAthlete, onLogin, onCodeLogin }) {
+function SignUpFlow({ onComplete, savedAthlete, onLogin, onCodeLogin, canResume }) {
   const [step, setStep] = useState(0);
   const [form, setForm] = useState({
     firstName: '', lastName: '',
@@ -829,7 +833,7 @@ function SignUpFlow({ onComplete, savedAthlete, onLogin, onCodeLogin }) {
 
   return (
     <div className="fade-in" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      {step === 0 && <SUWelcome onNext={next} savedAthlete={savedAthlete} onLogin={onLogin} onCodeLogin={onCodeLogin}/>}
+      {step === 0 && <SUWelcome onNext={next} savedAthlete={savedAthlete} onLogin={onLogin} onCodeLogin={onCodeLogin} canResume={canResume}/>}
       {step === 1 && <SUStep title="Who are you?" sub="The basics. We'll fill in the rest." idx={1} total={totalSteps - 1}
         canContinue={nameValid} onNext={next} onBack={back}>
         <SUInput label="FIRST NAME" placeholder="Noah" value={form.firstName} onChange={v => upd('firstName', v)} autoFocus/>
@@ -927,8 +931,9 @@ function SignUpFlow({ onComplete, savedAthlete, onLogin, onCodeLogin }) {
   );
 }
 
-function SUWelcome({ onNext, savedAthlete, onLogin, onCodeLogin }) {
+function SUWelcome({ onNext, savedAthlete, onLogin, onCodeLogin, canResume }) {
   const [loginOpen, setLoginOpen] = useState(false);
+  const showContinue = canResume && savedAthlete;
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
       <CoverPhoto src={BASEBALL_BANNER} height={300}
@@ -971,10 +976,24 @@ function SUWelcome({ onNext, savedAthlete, onLogin, onCodeLogin }) {
           ))}
         </div>
 
+        {showContinue && (
+          <button onClick={onLogin} style={{
+            width: '100%', background: '#C5FF3D', color: '#000', border: 'none',
+            padding: '16px 20px', borderRadius: 999, fontWeight: 700, fontSize: 15, cursor: 'pointer',
+            display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 18,
+          }} className="body">
+            Continue as {savedAthlete.firstName || savedAthlete.name} <ArrowRight size={16}/>
+          </button>
+        )}
+
         <button onClick={onNext} style={{
-          width: '100%', background: '#C5FF3D', color: '#000', border: 'none',
+          width: '100%',
+          background: showContinue ? 'transparent' : '#C5FF3D',
+          color: showContinue ? '#F4F4F5' : '#000',
+          border: showContinue ? '1px solid #3A3A42' : 'none',
           padding: '16px 20px', borderRadius: 999, fontWeight: 700, fontSize: 15, cursor: 'pointer',
-          display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 18,
+          display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8,
+          marginTop: showContinue ? 10 : 18,
         }} className="body">
           Get started <ArrowRight size={16}/>
         </button>
