@@ -189,6 +189,21 @@ function pushAthleteMessage(athlete, coachId, coachName, text) {
   t.updatedAt = Date.now();
   saveThreads(threads);
 }
+// Directory of every athlete who has signed up in this browser's app.
+// The Coach Console browses this list so coaches can find kids to train
+// and message them first. Moves to Supabase in Phase 1.
+function registerAthlete(a) {
+  try {
+    const raw = JSON.parse(localStorage.getItem('coachme_athletes') || '[]');
+    const list = Array.isArray(raw) ? raw : [];
+    const snap = { ...athleteSnapshot(a), registeredAt: Date.now() };
+    const i = list.findIndex(x => x.id === a.id);
+    if (i >= 0) list[i] = { ...list[i], ...snap };
+    else list.push(snap);
+    localStorage.setItem('coachme_athletes', JSON.stringify(list));
+  } catch {}
+}
+
 /* CoachMe code: the athlete's profile packed into a portable string so
    they can log in on another device without a backend. Messages, feed
    posts, and workouts stay device-local until the Phase 1 backend gives
@@ -326,6 +341,11 @@ export default function CoachMeApp() {
     } catch {}
   };
 
+  // Keep this athlete listed in the shared directory coaches browse.
+  useEffect(() => {
+    if (athlete) registerAthlete(athlete);
+  }, [athlete]);
+
   const loginSavedAthlete = () => {
     if (!savedAthlete) return;
     setAthlete(savedAthlete);
@@ -410,6 +430,35 @@ export default function CoachMeApp() {
       ));
     } catch {}
   }, [athlete, conversations, tab]);
+
+  // On login or reload, pull this athlete's threads into the Messages tab
+  // so coach messages (including brand-new "I want to coach you" intros)
+  // are waiting for them with an unread badge.
+  useEffect(() => {
+    if (!athlete) return;
+    try {
+      const threads = loadThreads().filter(t => typeof t.id === 'string' && t.id.startsWith(`${athlete.id}::`));
+      if (!threads.length) return;
+      setConversations(prev => {
+        const next = { ...prev };
+        threads.forEach(t => {
+          const messages = t.messages.map(m => ({
+            id: m.id,
+            from: m.from === 'athlete' ? 'me' : 'trainer',
+            text: m.text,
+            ts: new Date(m.ts).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
+          }));
+          let unread = 0;
+          for (let i = messages.length - 1; i >= 0; i--) {
+            if (messages[i].from === 'trainer') unread++;
+            else break;
+          }
+          next[t.coachId] = { trainerId: t.coachId, online: false, unread, messages };
+        });
+        return next;
+      });
+    } catch {}
+  }, [athlete]);
 
   const switchTab = (t) => {
     if (t === tab) return;
@@ -526,12 +575,15 @@ export default function CoachMeApp() {
             ts: new Date(m.ts).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
           }));
           const existing = prev[t.coachId];
-          const last = messages[messages.length - 1];
-          const isReplyFromCoach = last && last.from === 'trainer' && chatOpen !== t.coachId;
+          let unread = 0;
+          for (let i = messages.length - 1; i >= 0; i--) {
+            if (messages[i].from === 'trainer') unread++;
+            else break;
+          }
           next[t.coachId] = {
             trainerId: t.coachId,
             online: existing?.online ?? false,
-            unread: chatOpen === t.coachId ? 0 : (isReplyFromCoach ? (existing?.unread || 0) + 1 : (existing?.unread || 0)),
+            unread: chatOpen === t.coachId ? 0 : unread,
             messages,
           };
         });

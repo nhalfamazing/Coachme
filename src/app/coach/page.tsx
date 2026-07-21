@@ -54,6 +54,26 @@ function pushCoachReply(threadId, text) {
   t.updatedAt = Date.now();
   saveThreads(threads);
 }
+// Every athlete who signs up in the app registers here. Coaches browse
+// this to find kids to train and can open the first conversation.
+function loadAthleteDirectory() {
+  try {
+    const d = JSON.parse(localStorage.getItem("coachme_athletes") || "[]");
+    return Array.isArray(d) ? d : [];
+  } catch { return []; }
+}
+// Coach-initiated conversations: create the thread if it does not exist.
+function ensureThread(coach, athleteSnap) {
+  const threads = loadThreads();
+  const id = `${athleteSnap.id}::${coach.id}`;
+  let t = threads.find(x => x.id === id);
+  if (!t) {
+    t = { id, coachId: coach.id, coachName: coach.name, athlete: athleteSnap, messages: [], updatedAt: Date.now() };
+    threads.push(t);
+    saveThreads(threads);
+  }
+  return id;
+}
 function timeAgo(ts) {
   if (!ts) return "";
   const s = Math.floor((Date.now() - ts) / 1000);
@@ -126,6 +146,7 @@ export default function CoachConsole() {
   const [coach, setCoachState] = useState(null);
   const [coaches, setCoaches] = useState([]);
   const [threads, setThreads] = useState([]);
+  const [directory, setDirectory] = useState([]);
   const [ready, setReady] = useState(false);
   const [view, setView] = useState("overview");
   const [openThreadId, setOpenThreadId] = useState(null);
@@ -143,6 +164,7 @@ export default function CoachConsole() {
     const allCoaches = loadCoaches();
     setCoaches(allCoaches);
     setThreads(loadThreads());
+    setDirectory(loadAthleteDirectory());
     try {
       const savedRaw = sessionStorage.getItem("coachme_active_coach");
       if (savedRaw) {
@@ -159,6 +181,7 @@ export default function CoachConsole() {
     const handler = (e) => {
       if (e.key === "coachme_threads") setThreads(loadThreads());
       if (e.key === "coachme_coaches") setCoaches(loadCoaches());
+      if (e.key === "coachme_athletes") setDirectory(loadAthleteDirectory());
     };
     window.addEventListener("storage", handler);
     return () => window.removeEventListener("storage", handler);
@@ -182,6 +205,14 @@ export default function CoachConsole() {
     setView("messages");
   };
 
+  // Coach picks a kid from the directory and starts the conversation.
+  const messageAthlete = (athleteSnap) => {
+    const id = ensureThread(coach, athleteSnap);
+    refresh();
+    setOpenThreadId(id);
+    setView("messages");
+  };
+
   return (
     <div className="body" style={{ background: C.bg, minHeight: "100vh", color: C.text }}>
       <style>{pageStyles}</style>
@@ -197,7 +228,7 @@ export default function CoachConsole() {
           needsReplyCount={myThreads.filter(needsReply).length}
         >
           {view === "overview" && (
-            <OverviewView coach={coach} threads={myThreads} onOpenThread={goToThread} onGoRoster={() => setView("roster")}/>
+            <OverviewView coach={coach} threads={myThreads} directoryCount={directory.length} onOpenThread={goToThread} onGoAthletes={() => setView("roster")}/>
           )}
           {view === "messages" && (
             openThread ? (
@@ -212,7 +243,7 @@ export default function CoachConsole() {
             )
           )}
           {view === "roster" && (
-            <RosterView threads={myThreads} onMessage={goToThread}/>
+            <AthletesView threads={myThreads} directory={directory} onOpenThread={goToThread} onStart={messageAthlete}/>
           )}
           {view === "profile" && (
             <MyProfileView coach={coach}/>
@@ -316,7 +347,7 @@ function Shell({ coach, view, setView, onSwitch, needsReplyCount, children }) {
   const NAV = [
     { id: "overview", label: "Overview", icon: Home },
     { id: "messages", label: "Messages", icon: MessageCircle, badge: needsReplyCount },
-    { id: "roster", label: "Roster", icon: Users },
+    { id: "roster", label: "Athletes", icon: Users },
     { id: "profile", label: "My Profile", icon: User },
   ];
 
@@ -434,7 +465,7 @@ function Shell({ coach, view, setView, onSwitch, needsReplyCount, children }) {
 /* ============================================================
    OVERVIEW
    ============================================================ */
-function OverviewView({ coach, threads, onOpenThread, onGoRoster }) {
+function OverviewView({ coach, threads, directoryCount = 0, onOpenThread, onGoAthletes }) {
   const replyQueue = threads.filter(needsReply);
   const allMessages = threads
     .flatMap(t => t.messages.map(m => ({ ...m, athlete: t.athlete, threadId: t.id })))
@@ -451,19 +482,48 @@ function OverviewView({ coach, threads, onOpenThread, onGoRoster }) {
       </div>
 
       <div className="cc-tiles" style={{ marginBottom: 26 }}>
-        <Tile icon={<Users size={15} color={C.accent}/>} value={threads.length} label="ATHLETES"/>
+        <Tile icon={<Users size={15} color={C.accent}/>} value={threads.length} label="MY ATHLETES"/>
         <Tile
           icon={<Inbox size={15} color={replyQueue.length > 0 ? C.amber : C.accent}/>}
           value={replyQueue.length} label="NEED A REPLY"
           highlight={replyQueue.length > 0 ? C.amber : null}
         />
-        <Tile icon={<Calendar size={15} color={C.accent}/>} value={0} label="SESSIONS BOOKED"/>
+        <Tile
+          icon={<User size={15} color={C.green}/>}
+          value={directoryCount} label="KIDS ON COACHME"
+          highlight={directoryCount > threads.length ? C.green : null}
+        />
         <Tile
           icon={<Clock size={15} color={C.amber}/>}
           value="PENDING" label="VERIFICATION" small
           highlight={C.amber}
         />
       </div>
+
+      {directoryCount > threads.length && (
+        <button onClick={onGoAthletes} className="body" style={{
+          width: "100%", textAlign: "left", cursor: "pointer",
+          background: "rgba(52,211,153,0.07)", border: "1px solid rgba(52,211,153,0.35)",
+          borderRadius: 14, padding: "14px 16px", marginBottom: 26,
+          display: "flex", alignItems: "center", gap: 14, color: C.text,
+        }}>
+          <div style={{
+            width: 40, height: 40, borderRadius: 10, background: "rgba(52,211,153,0.12)",
+            border: "1px solid rgba(52,211,153,0.35)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+          }}>
+            <Users size={18} color={C.green}/>
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 700 }}>
+              {directoryCount - threads.length} athlete{directoryCount - threads.length !== 1 ? "s" : ""} on CoachMe you have not talked to yet
+            </div>
+            <div style={{ fontSize: 12.5, color: C.muted, marginTop: 2 }}>
+              Browse their profiles and send the first message. Great coaches recruit.
+            </div>
+          </div>
+          <ArrowRight size={15} color={C.green}/>
+        </button>
+      )}
 
       <SectionHead>REPLY QUEUE</SectionHead>
       {replyQueue.length === 0 ? (
@@ -550,12 +610,12 @@ function OverviewView({ coach, threads, onOpenThread, onGoRoster }) {
 
       <SectionHead>QUICK ACTIONS</SectionHead>
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-        <button onClick={onGoRoster} className="body" style={{
+        <button onClick={onGoAthletes} className="body" style={{
           background: C.accentDim, border: `1px solid ${C.accentBorder}`, color: C.accent,
           padding: "11px 18px", borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: "pointer",
           display: "flex", alignItems: "center", gap: 8,
         }}>
-          <Users size={14}/> View athlete roster
+          <Users size={14}/> Find athletes to coach
         </button>
         <a href="/" target="_blank" rel="noopener" className="body" style={{
           background: "transparent", border: `1px solid ${C.border}`, color: C.muted,
@@ -674,6 +734,13 @@ function InboxView({ threads, onOpen }) {
   );
 }
 
+const QUICK_OPENERS = [
+  "I would like to be your coach.",
+  "What position do you play?",
+  "When do you usually train?",
+  "What are you working on right now?",
+];
+
 function ConversationView({ thread, onBack, onReply, onCall }) {
   const [input, setInput] = useState("");
   const [showStats, setShowStats] = useState(false);
@@ -760,9 +827,22 @@ function ConversationView({ thread, onBack, onReply, onCall }) {
         display: "flex", flexDirection: "column", gap: 8,
       }}>
         {messages.length === 0 ? (
-          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center", padding: 40 }}>
-            <div style={{ fontSize: 13, color: C.muted, maxWidth: 280, lineHeight: 1.5 }}>
-              No messages yet. Say hi to {first} and start coaching.
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: 30 }}>
+            <Avatar initials={athlete.initials || "?"} size={64}/>
+            <div style={{ fontSize: 15, fontWeight: 700, marginTop: 14 }}>{athlete.name}</div>
+            <div style={{ fontSize: 13, color: C.muted, maxWidth: 300, lineHeight: 1.5, marginTop: 6, marginBottom: 18 }}>
+              Send {first} the first message. Tap a starter or write your own.
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%", maxWidth: 340 }}>
+              {QUICK_OPENERS.map((q, i) => (
+                <button key={i} onClick={() => onReply(q)} className="body" style={{
+                  background: C.accentDim, border: `1px solid ${C.accentBorder}`, color: C.accent,
+                  padding: "11px 16px", borderRadius: 10, fontSize: 13, fontWeight: 600,
+                  cursor: "pointer", textAlign: "left",
+                }}>
+                  {q}
+                </button>
+              ))}
             </div>
           </div>
         ) : (
@@ -822,95 +902,151 @@ function ConversationView({ thread, onBack, onReply, onCall }) {
 /* ============================================================
    ROSTER
    ============================================================ */
-function RosterView({ threads, onMessage }) {
+function AthleteCard({ athlete: a, statusBadge, actionLabel, onAction, accentColor = C.accent }) {
+  const accentDim = accentColor === C.green ? "rgba(52,211,153,0.1)" : C.accentDim;
+  const accentBorder = accentColor === C.green ? "rgba(52,211,153,0.4)" : C.accentBorder;
+  return (
+    <div style={{
+      background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, padding: 16,
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+        <Avatar initials={a.initials || "?"} size={46} square color={accentColor}/>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 15, fontWeight: 700 }}>{a.name}</span>
+            {statusBadge}
+          </div>
+          <div className="mono" style={{ fontSize: 9, color: C.muted, letterSpacing: "0.05em", marginTop: 3 }}>
+            {(a.sport || "").toUpperCase()}
+            {a.position ? ` · ${a.position.toUpperCase()}` : ""}
+            {a.age ? ` · AGE ${a.age}` : ""}
+          </div>
+          {a.city && (
+            <div className="mono" style={{ fontSize: 9, color: C.faint, marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}>
+              <MapPin size={9}/>{a.city.toUpperCase()}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {a.stats && a.stats.length > 0 ? (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 12 }}>
+          {a.stats.map((s, i) => {
+            const v = VERIFY_META[s.verified] || VERIFY_META.self;
+            return (
+              <div key={i} style={{
+                background: C.panelUp, border: `1px solid ${C.border}`, borderRadius: 9, padding: "8px 10px",
+              }}>
+                <div className="mono" style={{ fontSize: 8, color: C.muted, letterSpacing: "0.08em", textTransform: "uppercase" }}>{s.label}</div>
+                <div className="display" style={{ fontSize: 19, lineHeight: 1, marginTop: 3 }}>
+                  {s.value}<span className="mono" style={{ fontSize: 8.5, color: C.muted, marginLeft: 2 }}>{s.unit}</span>
+                </div>
+                <div className="mono" style={{ fontSize: 7, color: v.color, letterSpacing: "0.06em", marginTop: 3, fontWeight: 700 }}>{v.label}</div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div style={{
+          background: C.panelUp, border: `1px dashed ${C.border}`, borderRadius: 9,
+          padding: "10px 12px", marginBottom: 12, fontSize: 11.5, color: C.muted, lineHeight: 1.4,
+        }}>
+          No stats logged yet. Verify their numbers at your next session.
+        </div>
+      )}
+
+      <button onClick={onAction} className="body" style={{
+        width: "100%", background: accentDim, border: `1px solid ${accentBorder}`,
+        color: accentColor, padding: "9px 14px", borderRadius: 9, fontWeight: 700,
+        fontSize: 12.5, cursor: "pointer",
+        display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
+      }}>
+        <MessageCircle size={13}/> {actionLabel}
+      </button>
+    </div>
+  );
+}
+
+function AthletesView({ threads, directory, onOpenThread, onStart }) {
+  const myAthleteIds = new Set(threads.map(t => t.athlete?.id).filter(Boolean));
+  const prospects = directory.filter(a => !myAthleteIds.has(a.id));
+
   return (
     <div style={{ padding: "28px 24px 48px", maxWidth: 920, margin: "0 auto" }}>
       <div className="display" style={{ fontSize: 32, lineHeight: 1, textTransform: "uppercase", marginBottom: 4 }}>
-        ATHLETE ROSTER
+        ATHLETES
       </div>
       <div className="mono" style={{ fontSize: 10, color: C.muted, letterSpacing: "0.12em", marginBottom: 22 }}>
-        {threads.length} ATHLETE{threads.length !== 1 ? "S" : ""} TRAINING WITH YOU
+        {threads.length} TRAINING WITH YOU · {prospects.length} MORE ON COACHME
       </div>
 
+      <SectionHead>TRAINING WITH YOU</SectionHead>
       {threads.length === 0 ? (
         <div style={{
           background: C.panel, border: `1px dashed ${C.border}`, borderRadius: 14,
-          padding: 34, textAlign: "center",
+          padding: 24, textAlign: "center", marginBottom: 26,
+        }}>
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>No athletes training with you yet</div>
+          <div style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.5, maxWidth: 380, margin: "0 auto" }}>
+            Message a kid from the list below to start coaching. Once you talk, they move up here.
+          </div>
+        </div>
+      ) : (
+        <div className="cc-roster" style={{ marginBottom: 26 }}>
+          {threads.map(t => (
+            <AthleteCard
+              key={t.id}
+              athlete={t.athlete || {}}
+              statusBadge={
+                <span className="mono" style={{
+                  fontSize: 7.5, color: C.accent, background: C.accentDim,
+                  border: `1px solid ${C.accentBorder}`, borderRadius: 5,
+                  padding: "2px 6px", letterSpacing: "0.08em", fontWeight: 700,
+                }}>YOUR ATHLETE</span>
+              }
+              actionLabel={`Open chat with ${athleteFirstName(t.athlete)}`}
+              onAction={() => onOpenThread(t.id)}
+            />
+          ))}
+        </div>
+      )}
+
+      <SectionHead>FIND NEW ATHLETES</SectionHead>
+      {prospects.length === 0 ? (
+        <div style={{
+          background: C.panel, border: `1px dashed ${C.border}`, borderRadius: 14,
+          padding: 24, textAlign: "center",
         }}>
           <div style={{
-            width: 56, height: 56, borderRadius: 14, margin: "0 auto 14px",
+            width: 50, height: 50, borderRadius: 12, margin: "0 auto 12px",
             background: C.accentDim, border: `1px solid ${C.accentBorder}`,
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>
-            <Users size={24} color={C.accent}/>
+            <Users size={22} color={C.accent}/>
           </div>
-          <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>No athletes yet</div>
-          <div style={{ fontSize: 13, color: C.muted, lineHeight: 1.5, maxWidth: 340, margin: "0 auto" }}>
-            Athletes join your roster when they message you. Their profile and stats show up here automatically.
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>No new athletes right now</div>
+          <div style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.5, maxWidth: 380, margin: "0 auto" }}>
+            Every kid who signs up on CoachMe appears here so you can recruit them. Check back soon.
           </div>
         </div>
       ) : (
         <div className="cc-roster">
-          {threads.map(t => {
-            const a = t.athlete || {};
-            return (
-              <div key={t.id} style={{
-                background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, padding: 16,
-              }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-                  <Avatar initials={a.initials || "?"} size={46} square/>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 15, fontWeight: 700 }}>{a.name}</div>
-                    <div className="mono" style={{ fontSize: 9, color: C.muted, letterSpacing: "0.05em", marginTop: 3, display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
-                      {(a.sport || "").toUpperCase()}
-                      {a.position ? ` · ${a.position.toUpperCase()}` : ""}
-                      {a.age ? ` · AGE ${a.age}` : ""}
-                    </div>
-                    {a.city && (
-                      <div className="mono" style={{ fontSize: 9, color: C.faint, marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}>
-                        <MapPin size={9}/>{a.city.toUpperCase()}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {a.stats && a.stats.length > 0 ? (
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 12 }}>
-                    {a.stats.map((s, i) => {
-                      const v = VERIFY_META[s.verified] || VERIFY_META.self;
-                      return (
-                        <div key={i} style={{
-                          background: C.panelUp, border: `1px solid ${C.border}`, borderRadius: 9, padding: "8px 10px",
-                        }}>
-                          <div className="mono" style={{ fontSize: 8, color: C.muted, letterSpacing: "0.08em", textTransform: "uppercase" }}>{s.label}</div>
-                          <div className="display" style={{ fontSize: 19, lineHeight: 1, marginTop: 3 }}>
-                            {s.value}<span className="mono" style={{ fontSize: 8.5, color: C.muted, marginLeft: 2 }}>{s.unit}</span>
-                          </div>
-                          <div className="mono" style={{ fontSize: 7, color: v.color, letterSpacing: "0.06em", marginTop: 3, fontWeight: 700 }}>{v.label}</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div style={{
-                    background: C.panelUp, border: `1px dashed ${C.border}`, borderRadius: 9,
-                    padding: "10px 12px", marginBottom: 12, fontSize: 11.5, color: C.muted, lineHeight: 1.4,
-                  }}>
-                    No stats logged yet. Verify their numbers at your next session.
-                  </div>
-                )}
-
-                <button onClick={() => onMessage(t.id)} className="body" style={{
-                  width: "100%", background: C.accentDim, border: `1px solid ${C.accentBorder}`,
-                  color: C.accent, padding: "9px 14px", borderRadius: 9, fontWeight: 700,
-                  fontSize: 12.5, cursor: "pointer",
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
-                }}>
-                  <MessageCircle size={13}/> Message {athleteFirstName(a)}
-                </button>
-              </div>
-            );
-          })}
+          {prospects.map(a => (
+            <AthleteCard
+              key={a.id}
+              athlete={a}
+              accentColor={C.green}
+              statusBadge={
+                <span className="mono" style={{
+                  fontSize: 7.5, color: C.green, background: "rgba(52,211,153,0.1)",
+                  border: "1px solid rgba(52,211,153,0.4)", borderRadius: 5,
+                  padding: "2px 6px", letterSpacing: "0.08em", fontWeight: 700,
+                }}>NEW ON COACHME</span>
+              }
+              actionLabel={`Message ${athleteFirstName(a)}`}
+              onAction={() => onStart(a)}
+            />
+          ))}
         </div>
       )}
     </div>
