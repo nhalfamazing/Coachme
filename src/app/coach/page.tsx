@@ -293,12 +293,16 @@ function CoachPicker({ coaches, onSelect }) {
   const submitCode = () => {
     const c = decodeCoachCode(code);
     if (!c) {
-      setCodeError("That code is not valid. Coach codes start with CH1-. Copy the whole thing from My Profile on your other device.");
+      setCodeError("That code is not valid. Coach codes start with CH1-. Copy the whole thing from your console on your other device.");
       return;
     }
     setCodeError("");
-    upsertCoach(c);
-    onSelect(c);
+    // Any code ever issued works: we match by the id inside it. If this
+    // device already knows a fresher version of this coach, prefer that
+    // so an old code never overwrites newer profile info.
+    const local = coaches.find(x => x.id === c.id);
+    if (!local) upsertCoach(c);
+    onSelect(local || c);
   };
 
   return (
@@ -555,6 +559,9 @@ function OverviewView({ coach, threads, directoryCount = 0, onOpenThread, onGoAt
 
   return (
     <div style={{ padding: "28px 24px 48px", maxWidth: 920, margin: "0 auto" }}>
+      {/* The code IS the coach's key. First thing they see, every visit. */}
+      <CodeBanner coach={coach}/>
+
       <div className="mono" style={{ fontSize: 10, color: C.faint, letterSpacing: "0.2em", marginBottom: 8 }}>
         {new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" }).toUpperCase()}
       </div>
@@ -706,6 +713,67 @@ function OverviewView({ coach, threads, directoryCount = 0, onOpenThread, onGoAt
           See the athlete app <ArrowRight size={13}/>
         </a>
       </div>
+    </div>
+  );
+}
+
+function CodeBanner({ coach }) {
+  const [copied, setCopied] = useState(false);
+  const codeStr = encodeCoachCode(coach);
+  if (!codeStr) return null;
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(codeStr);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2200);
+    } catch {
+      if (typeof window !== "undefined") window.prompt("Copy your coach login code:", codeStr);
+    }
+  };
+
+  return (
+    <div style={{
+      background: C.accentDim, border: `1px solid ${C.accentBorder}`, borderRadius: 14,
+      padding: 16, marginBottom: 24,
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+        <KeyIconBox/>
+        <span className="mono" style={{ fontSize: 10, color: C.accent, letterSpacing: "0.18em", fontWeight: 700 }}>
+          YOUR LOGIN CODE
+        </span>
+      </div>
+      <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.5, marginBottom: 10 }}>
+        This code is how you log back in, on this device or any other. Copy it and keep it somewhere safe. It is private: anyone with it can open your console.
+      </div>
+      <div style={{ display: "flex", gap: 8, alignItems: "stretch", flexWrap: "wrap" }}>
+        <div className="mono scroll" style={{
+          flex: 1, minWidth: 220, background: C.bg, border: `1px solid ${C.border}`,
+          borderRadius: 9, padding: "10px 12px", fontSize: 10.5, color: C.muted,
+          whiteSpace: "nowrap", overflowX: "auto",
+        }}>
+          {codeStr}
+        </div>
+        <button onClick={copy} className="body" style={{
+          background: copied ? C.green : C.accent, color: "#04121D", border: "none",
+          padding: "10px 18px", borderRadius: 9, fontWeight: 700, fontSize: 12.5,
+          cursor: "pointer", display: "flex", alignItems: "center", gap: 7, flexShrink: 0,
+          transition: "all 0.15s",
+        }}>
+          {copied ? (<><CheckCircle2 size={14}/> Copied!</>) : "Copy code"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function KeyIconBox() {
+  return (
+    <div style={{
+      width: 22, height: 22, borderRadius: 6, background: "rgba(56,189,248,0.18)",
+      border: `1px solid ${C.accentBorder}`, display: "flex", alignItems: "center", justifyContent: "center",
+    }}>
+      <ArrowRight size={11} color={C.accent}/>
     </div>
   );
 }

@@ -1071,8 +1071,11 @@ function LoginSheet({ savedAthlete, onLogin, onCodeLogin, onSignUp, onClose }) {
     const coach = decodeCoachCode(code);
     if (coach) {
       setCodeError('');
-      upsertCoach(coach);
-      loginAsCoach(coach);
+      // Any code ever issued works (matched by the id inside it). Prefer
+      // this device's fresher record so old codes never overwrite it.
+      const localCoach = loadCoachList().find(c => c.id === coach.id);
+      if (!localCoach) upsertCoach(coach);
+      loginAsCoach(localCoach || coach);
       return;
     }
     setCodeError('That code is not valid. Make sure you copied the whole thing: athlete codes start with CM1-, coach codes with CH1-.');
