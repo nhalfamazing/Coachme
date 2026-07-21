@@ -6,6 +6,7 @@
 // professional tool. Shared data layer is the same localStorage stores.
 
 import { useState, useEffect, useRef } from "react";
+import { cloudEnabled, cloudFetchAll, cloudUpsert } from "@/lib/cloud";
 import {
   Home, MessageCircle, Users, User, Video, Send, ChevronLeft, X,
   ArrowRight, Mic, MicOff, VideoOff, PhoneOff, Camera, MoreHorizontal,
@@ -53,6 +54,8 @@ function pushCoachReply(threadId, text) {
   t.messages.push({ id: Date.now(), from: "coach", text, ts: Date.now() });
   t.updatedAt = Date.now();
   saveThreads(threads);
+  // Share so the athlete gets it on any device.
+  cloudUpsert("threads", t.id, t);
 }
 // Every athlete who signs up in the app registers here. Coaches browse
 // this to find kids to train and can open the first conversation.
@@ -120,6 +123,7 @@ function upsertCoach(c) {
     if (i >= 0) list[i] = { ...list[i], ...c };
     else list.push(c);
     localStorage.setItem("coachme_coaches", JSON.stringify(list));
+    cloudUpsert("coaches", c.id, c);
   } catch {}
 }
 // Coach-initiated conversations: create the thread if it does not exist.
@@ -131,6 +135,7 @@ function ensureThread(coach, athleteSnap) {
     t = { id, coachId: coach.id, coachName: coach.name, athlete: athleteSnap, messages: [], updatedAt: Date.now() };
     threads.push(t);
     saveThreads(threads);
+    cloudUpsert("threads", t.id, t);
   }
   return id;
 }
@@ -246,6 +251,44 @@ export default function CoachConsole() {
     window.addEventListener("storage", handler);
     return () => window.removeEventListener("storage", handler);
   }, []);
+
+  // With the cloud on, pull every athlete (for the directory) and this
+  // coach's conversations from other devices, then keep working locally.
+  useEffect(() => {
+    if (!ready || !coach || !cloudEnabled()) return;
+    let live = true;
+    cloudFetchAll("athletes").then(remote => {
+      if (!live || !Array.isArray(remote) || !remote.length) return;
+      setDirectory(prev => {
+        const map = new Map(prev.map(a => [String(a.id), a]));
+        remote.forEach(a => {
+          if (a && a.id != null && !map.has(String(a.id))) map.set(String(a.id), a);
+        });
+        return [...map.values()];
+      });
+    });
+    cloudFetchAll("threads").then(remote => {
+      if (!live || !Array.isArray(remote) || !remote.length) return;
+      try {
+        const mine = remote.filter(t => t && t.coachId === coach.id && typeof t.id === "string");
+        if (!mine.length) return;
+        const local = loadThreads();
+        const map = new Map(local.map(t => [t.id, t]));
+        let changed = false;
+        mine.forEach(rt => {
+          const lt = map.get(rt.id);
+          if (!lt || (rt.updatedAt || 0) > (lt.updatedAt || 0)) { map.set(rt.id, rt); changed = true; }
+        });
+        if (changed) {
+          saveThreads([...map.values()]);
+          setThreads(loadThreads());
+        }
+      } catch {}
+    });
+    // Make sure this coach exists in the cloud, whichever door they used.
+    cloudUpsert("coaches", coach.id, coach);
+    return () => { live = false; };
+  }, [ready, coach]);
 
   const refresh = () => setThreads(loadThreads());
 

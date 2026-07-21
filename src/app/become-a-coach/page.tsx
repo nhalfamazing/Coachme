@@ -3,6 +3,7 @@
 // @ts-nocheck
 
 import { useState, useId } from "react";
+import { cloudUpsert } from "@/lib/cloud";
 import { ArrowRight, ChevronLeft, CheckCircle2 } from "lucide-react";
 
 const SPORTS = [
@@ -177,6 +178,9 @@ export default function BecomeACoachPage() {
     } catch (e) {
       console.error("Could not save coach submission:", e);
     }
+
+    // Share with every device so athletes anywhere can find this coach.
+    cloudUpsert("coaches", submission.id, submission);
 
     // Sign them straight in so the Console opens without the picker.
     try { sessionStorage.setItem("coachme_active_coach", JSON.stringify(submission)); } catch {}

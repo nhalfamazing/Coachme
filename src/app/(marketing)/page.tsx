@@ -6,6 +6,7 @@
 // follow-up phase.
 
 import { useState, useEffect, useRef } from 'react';
+import { cloudEnabled, cloudFetchAll, cloudUpsert } from '@/lib/cloud';
 import {
   CheckCircle2, MapPin, Video, Send, Calendar as CalIcon, Star,
   TrendingUp, Search, User as UserIcon, MessageCircle,
@@ -192,6 +193,8 @@ function pushAthleteMessage(athlete, coachId, coachName, text) {
   t.messages.push({ id: Date.now(), from: 'athlete', text, ts: Date.now() });
   t.updatedAt = Date.now();
   saveThreads(threads);
+  // Share the conversation so the coach sees it on any device.
+  cloudUpsert('threads', t.id, t);
 }
 // Directory of every athlete who has signed up in this browser's app.
 // The Coach Console browses this list so coaches can find kids to train
@@ -205,6 +208,8 @@ function registerAthlete(a) {
     if (i >= 0) list[i] = { ...list[i], ...snap };
     else list.push(snap);
     localStorage.setItem('coachme_athletes', JSON.stringify(list));
+    // Share with every device so coaches can find them anywhere.
+    cloudUpsert('athletes', a.id, snap);
   } catch {}
 }
 
@@ -227,6 +232,7 @@ function upsertCoach(c) {
     if (i >= 0) list[i] = { ...list[i], ...c };
     else list.push(c);
     localStorage.setItem('coachme_coaches', JSON.stringify(list));
+    cloudUpsert('coaches', c.id, c);
   } catch {}
 }
 // Coach codes (CH1-) mirror athlete codes so coaches can also move
@@ -515,7 +521,29 @@ export default function CoachMeApp() {
     window.addEventListener('storage', handler);
     return () => window.removeEventListener('storage', handler);
   }, []);
-  const allTrainers = [...TRAINERS, ...submittedTrainers];
+
+  // Coaches from the shared cloud, so a trainer who signed up on ANY
+  // device shows in every athlete's Trainers tab. Kept out of
+  // localStorage on purpose: the landing page picker stays device-only.
+  const [cloudTrainers, setCloudTrainers] = useState([]);
+  useEffect(() => {
+    if (!cloudEnabled()) return;
+    let live = true;
+    cloudFetchAll('coaches').then(remote => {
+      if (live && Array.isArray(remote)) {
+        setCloudTrainers(remote.filter(c => c && c.id != null && c.name && c.sport));
+      }
+    });
+    return () => { live = false; };
+  }, [tab]);
+
+  const allTrainers = (() => {
+    const map = new Map();
+    [...TRAINERS, ...submittedTrainers, ...cloudTrainers].forEach(t => {
+      if (t && t.id != null && !map.has(String(t.id))) map.set(String(t.id), t);
+    });
+    return [...map.values()];
+  })();
 
   // Workout log (athlete's daily training). Persisted to localStorage.
   const [workouts, setWorkouts] = useState([]);
@@ -561,31 +589,54 @@ export default function CoachMeApp() {
 
   // On login or reload, pull this athlete's threads into the Messages tab
   // so coach messages (including brand-new "I want to coach you" intros)
-  // are waiting for them with an unread badge.
+  // are waiting for them with an unread badge. With the cloud on, threads
+  // from other devices merge in too.
   useEffect(() => {
     if (!athlete) return;
-    try {
-      const threads = loadThreads().filter(t => typeof t.id === 'string' && t.id.startsWith(`${athlete.id}::`));
-      if (!threads.length) return;
-      setConversations(prev => {
-        const next = { ...prev };
-        threads.forEach(t => {
-          const messages = t.messages.map(m => ({
-            id: m.id,
-            from: m.from === 'athlete' ? 'me' : 'trainer',
-            text: m.text,
-            ts: new Date(m.ts).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
-          }));
-          let unread = 0;
-          for (let i = messages.length - 1; i >= 0; i--) {
-            if (messages[i].from === 'trainer') unread++;
-            else break;
-          }
-          next[t.coachId] = { trainerId: t.coachId, online: false, unread, messages };
+    const hydrate = () => {
+      try {
+        const threads = loadThreads().filter(t => typeof t.id === 'string' && t.id.startsWith(`${athlete.id}::`));
+        if (!threads.length) return;
+        setConversations(prev => {
+          const next = { ...prev };
+          threads.forEach(t => {
+            const messages = t.messages.map(m => ({
+              id: m.id,
+              from: m.from === 'athlete' ? 'me' : 'trainer',
+              text: m.text,
+              ts: new Date(m.ts).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
+            }));
+            let unread = 0;
+            for (let i = messages.length - 1; i >= 0; i--) {
+              if (messages[i].from === 'trainer') unread++;
+              else break;
+            }
+            next[t.coachId] = { trainerId: t.coachId, online: false, unread, messages };
+          });
+          return next;
         });
-        return next;
+      } catch {}
+    };
+    hydrate();
+    if (cloudEnabled()) {
+      cloudFetchAll('threads').then(remote => {
+        try {
+          const mine = (remote || []).filter(t => t && typeof t.id === 'string' && t.id.startsWith(`${athlete.id}::`));
+          if (!mine.length) return;
+          const local = loadThreads();
+          const map = new Map(local.map(t => [t.id, t]));
+          let changed = false;
+          mine.forEach(rt => {
+            const lt = map.get(rt.id);
+            if (!lt || (rt.updatedAt || 0) > (lt.updatedAt || 0)) { map.set(rt.id, rt); changed = true; }
+          });
+          if (changed) {
+            saveThreads([...map.values()]);
+            hydrate();
+          }
+        } catch {}
       });
-    } catch {}
+    }
   }, [athlete]);
 
   const switchTab = (t) => {
@@ -1179,43 +1230,60 @@ function LoginSheet({ savedAthlete, onLogin, onCodeLogin, onSignUp, onClose }) {
     window.location.href = '/coach';
   };
 
-  // Name login: check athletes first; if no athlete matches, check the
-  // coaches and send them to the Coach Console instead.
-  const submitName = () => {
+  // Name login: check athletes first, then coaches, on this device first
+  // and then (if the cloud is on) across every device.
+  const submitName = async () => {
     const norm = (s) => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
     const q = norm(nameInput);
     if (!q) return;
 
-    const dir = loadAthleteDir();
-    const athleteMatches = dir.filter(a => {
+    const matchAthletes = (list) => (list || []).filter(a => {
+      if (!a) return false;
       const full = norm(`${a.firstName || ''} ${a.lastName || ''}`);
       return q === full || q === norm(a.name) || q === norm(a.firstName);
     });
-    if (athleteMatches.length === 1) {
-      setNameError('');
-      onCodeLogin({ level: 1, xp: 0, xpMax: 500, ...athleteMatches[0] });
-      return;
-    }
-    if (athleteMatches.length > 1) {
-      setNameError('More than one athlete here has that name. Type your full name, or use your CoachMe code.');
-      return;
-    }
-
-    const coaches = loadCoachList();
-    const coachMatches = coaches.filter(c =>
-      q === norm(c.name) || q === norm(String(c.name || '').split(' ')[0])
+    const matchCoaches = (list) => (list || []).filter(c =>
+      c && (q === norm(c.name) || q === norm(String(c.name || '').split(' ')[0]))
     );
-    if (coachMatches.length === 1) {
-      setNameError('');
-      loginAsCoach(coachMatches[0]);
-      return;
-    }
-    if (coachMatches.length > 1) {
-      setNameError('More than one coach here has that name. Type your full name, or use your coach code.');
-      return;
+
+    const tryLists = (athletes, coaches) => {
+      const am = matchAthletes(athletes);
+      if (am.length === 1) {
+        setNameError('');
+        onCodeLogin({ level: 1, xp: 0, xpMax: 500, ...am[0] });
+        return 'done';
+      }
+      if (am.length > 1) {
+        setNameError('More than one athlete has that name. Type your full name, or use your CoachMe code.');
+        return 'done';
+      }
+      const cm = matchCoaches(coaches);
+      if (cm.length === 1) {
+        setNameError('');
+        upsertCoach(cm[0]);
+        loginAsCoach(cm[0]);
+        return 'done';
+      }
+      if (cm.length > 1) {
+        setNameError('More than one coach has that name. Type your full name, or use your coach code.');
+        return 'done';
+      }
+      return 'none';
+    };
+
+    if (tryLists(loadAthleteDir(), loadCoachList()) === 'done') return;
+
+    // Nothing on this device: look across all devices via the cloud.
+    if (cloudEnabled()) {
+      setNameError('Looking for you...');
+      const [remoteAthletes, remoteCoaches] = await Promise.all([
+        cloudFetchAll('athletes'),
+        cloudFetchAll('coaches'),
+      ]);
+      if (tryLists(remoteAthletes, remoteCoaches) === 'done') return;
     }
 
-    setNameError('We could not find that name on this device. If you signed up on another device, paste your code below. Otherwise, sign up.');
+    setNameError('We could not find that name. If you signed up on another device, type your code below. Otherwise, sign up.');
   };
 
   const submitCode = () => {
