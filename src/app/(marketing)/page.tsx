@@ -109,7 +109,7 @@ const WORKOUT_TYPES = [
 
 const INTENSITY_LABELS = ['Light', 'Easy', 'Medium', 'Hard', 'All-out'];
 
-// Achievements are checked against derived state — never fake-awarded.
+// Achievements are checked against derived state, never fake-awarded.
 const ACHIEVEMENTS = [
   { id: 'first_workout',  icon: Flame,    label: 'First Workout',     hint: 'Log your first training session.' },
   { id: 'streak_3',       icon: Zap,      label: '3-Day Streak',      hint: 'Train 3 days in a row.' },
@@ -270,18 +270,47 @@ function CoverPhoto({ src, height = 120, overlay, color = '#C5FF3D', children, b
 export default function CoachMeApp() {
   const [athlete, setAthlete] = useState(null);
 
-  // Restore a previously created athlete so the app remembers you.
+  // A signed-out athlete stays saved on the device so Log in can restore them.
+  const [savedAthlete, setSavedAthlete] = useState(null);
+
+  // Restore a previously created athlete so the app remembers you. If they
+  // signed out, keep the profile around for the Log in button instead.
   useEffect(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('coachme_athlete') || 'null');
-      if (saved && saved.id) setAthlete(saved);
+      if (saved && saved.id) {
+        if (localStorage.getItem('coachme_signed_out') === '1') setSavedAthlete(saved);
+        else setAthlete(saved);
+      }
     } catch {}
   }, []);
 
   const completeSignup = (a) => {
     const withId = { id: a.id || Date.now(), ...a };
     setAthlete(withId);
-    try { localStorage.setItem('coachme_athlete', JSON.stringify(withId)); } catch {}
+    setSavedAthlete(null);
+    try {
+      localStorage.setItem('coachme_athlete', JSON.stringify(withId));
+      localStorage.removeItem('coachme_signed_out');
+    } catch {}
+  };
+
+  const loginSavedAthlete = () => {
+    if (!savedAthlete) return;
+    setAthlete(savedAthlete);
+    setSavedAthlete(null);
+    try { localStorage.removeItem('coachme_signed_out'); } catch {}
+  };
+
+  const signOut = () => {
+    try { localStorage.setItem('coachme_signed_out', '1'); } catch {}
+    setSavedAthlete(athlete);
+    setAthlete(null);
+    setTab('profile');
+    setTrainerOpen(null);
+    setChatOpen(null);
+    setCallOpen(null);
+    setBooking(null);
   };
 
   const [tab, setTab] = useState('profile');
@@ -335,6 +364,21 @@ export default function CoachMeApp() {
       setHasPosts(Array.isArray(posts) && posts.length > 0);
     } catch {}
   }, [tab]); // re-check when switching tabs
+
+  // Hydrate "has messaged a coach" from the persisted threads so the
+  // Coached Up achievement stays unlocked across page reloads, not just
+  // while a conversation is open in memory.
+  const [messagedCoachEver, setMessagedCoachEver] = useState(false);
+  useEffect(() => {
+    if (!athlete) { setMessagedCoachEver(false); return; }
+    try {
+      const threads = loadThreads();
+      setMessagedCoachEver(threads.some(t =>
+        typeof t.id === 'string' && t.id.startsWith(`${athlete.id}::`) &&
+        Array.isArray(t.messages) && t.messages.some(m => m.from === 'athlete')
+      ));
+    } catch {}
+  }, [athlete, conversations, tab]);
 
   const switchTab = (t) => {
     if (t === tab) return;
@@ -536,12 +580,12 @@ export default function CoachMeApp() {
         </div>
 
         {!athlete ? (
-          <SignUpFlow onComplete={completeSignup} />
+          <SignUpFlow onComplete={completeSignup} savedAthlete={savedAthlete} onLogin={loginSavedAthlete} />
         ) : (
           <>
             <div className="phone-scroll" style={{ flex: 1, overflow: 'auto', position: 'relative' }}>
               <div className={`tab-fade ${tabAnim ? 'out' : ''}`}>
-                {tab === 'profile' && <ProfileView athlete={athlete} trainerIds={trainerIds} trainers={allTrainers} workouts={workouts} hasPosts={hasPosts} hasMessagedCoach={Object.values(conversations).some(c => c.messages?.some(m => m.from === 'me'))} onOpenTrainer={openTrainer} onGoToTrainers={() => switchTab('trainers')} onOpenChat={openChat} onLogWorkout={() => setLogWorkoutOpen(true)} onRemoveWorkout={removeWorkout} onSignOut={() => { try { localStorage.removeItem('coachme_athlete'); } catch {} setAthlete(null); }}/>}
+                {tab === 'profile' && <ProfileView athlete={athlete} trainerIds={trainerIds} trainers={allTrainers} workouts={workouts} hasPosts={hasPosts} hasMessagedCoach={messagedCoachEver} onOpenTrainer={openTrainer} onGoToTrainers={() => switchTab('trainers')} onOpenChat={openChat} onLogWorkout={() => setLogWorkoutOpen(true)} onRemoveWorkout={removeWorkout} onSignOut={signOut}/>}
                 {tab === 'trainers' && <TrainersView onOpenTrainer={openTrainer} athlete={athlete} trainers={allTrainers}/>}
                 {tab === 'community' && <CommunityView athlete={athlete}/>}
                 {tab === 'messages' && <MessagesView conversations={conversations} trainers={allTrainers} onOpenChat={openChat} onGoToTrainers={() => switchTab('trainers')}/>}
@@ -607,7 +651,7 @@ export default function CoachMeApp() {
 /* ============================================================
    SIGN UP FLOW
    ============================================================ */
-function SignUpFlow({ onComplete }) {
+function SignUpFlow({ onComplete, savedAthlete, onLogin }) {
   const [step, setStep] = useState(0);
   const [form, setForm] = useState({
     firstName: '', lastName: '',
@@ -664,7 +708,7 @@ function SignUpFlow({ onComplete }) {
 
   return (
     <div className="fade-in" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      {step === 0 && <SUWelcome onNext={next}/>}
+      {step === 0 && <SUWelcome onNext={next} savedAthlete={savedAthlete} onLogin={onLogin}/>}
       {step === 1 && <SUStep title="Who are you?" sub="The basics. We'll fill in the rest." idx={1} total={totalSteps - 1}
         canContinue={nameValid} onNext={next} onBack={back}>
         <SUInput label="FIRST NAME" placeholder="Noah" value={form.firstName} onChange={v => upd('firstName', v)} autoFocus/>
@@ -762,7 +806,8 @@ function SignUpFlow({ onComplete }) {
   );
 }
 
-function SUWelcome({ onNext }) {
+function SUWelcome({ onNext, savedAthlete, onLogin }) {
+  const [loginOpen, setLoginOpen] = useState(false);
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
       <CoverPhoto src={BASEBALL_BANNER} height={300}
@@ -813,11 +858,127 @@ function SUWelcome({ onNext }) {
           Get started <ArrowRight size={16}/>
         </button>
 
-        <div className="body" style={{ marginTop: 16, textAlign: 'center', fontSize: 12.5, color: '#5F636B' }}>
-          Are you a coach?{' '}
-          <a href="/become-a-coach" style={{ color: '#C5FF3D', fontWeight: 700, textDecoration: 'none' }}>Join CoachMe</a>
-          {'  ·  '}
-          <a href="/coach" style={{ color: '#C5FF3D', fontWeight: 700, textDecoration: 'none' }}>Coach log in</a>
+        <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+          <button onClick={() => setLoginOpen(true)} className="body" style={{
+            flex: 1, background: 'transparent', color: '#F4F4F5', border: '1px solid #3A3A42',
+            padding: '13px 14px', borderRadius: 999, fontWeight: 600, fontSize: 14, cursor: 'pointer',
+            display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 7,
+          }}>
+            <UserIcon size={15}/> Log in
+          </button>
+          <a href="/become-a-coach" className="body" style={{
+            flex: 1, background: 'rgba(197,255,61,0.07)', color: '#C5FF3D',
+            border: '1px solid rgba(197,255,61,0.45)',
+            padding: '13px 14px', borderRadius: 999, fontWeight: 700, fontSize: 14, textDecoration: 'none',
+            display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 7,
+          }}>
+            <UserPlus size={15}/> Coach sign-up
+          </a>
+        </div>
+      </div>
+
+      {loginOpen && (
+        <LoginSheet
+          savedAthlete={savedAthlete}
+          onLogin={onLogin}
+          onSignUp={() => { setLoginOpen(false); onNext(); }}
+          onClose={() => setLoginOpen(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+function LoginSheet({ savedAthlete, onLogin, onSignUp, onClose }) {
+  return (
+    <div style={{
+      position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)',
+      backdropFilter: 'blur(8px)', zIndex: 60, display: 'flex', alignItems: 'flex-end',
+    }} onClick={onClose}>
+      <div className="slide-up" onClick={e => e.stopPropagation()} style={{
+        width: '100%', background: '#0F0F14', borderTopLeftRadius: 24, borderTopRightRadius: 24,
+        padding: 24, borderTop: '1px solid #2A2A30', position: 'relative',
+      }}>
+        <div style={{ position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)', width: 36, height: 4, background: '#3A3A42', borderRadius: 999 }}/>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, marginTop: 4 }}>
+          <div className="display" style={{ fontSize: 26, lineHeight: 1, textTransform: 'uppercase' }}>
+            LOG <span style={{ color: '#C5FF3D' }}>IN</span>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#5F636B', cursor: 'pointer' }}>
+            <X size={20}/>
+          </button>
+        </div>
+        <div className="body" style={{ fontSize: 12.5, color: '#9CA0A8', lineHeight: 1.5, marginBottom: 18 }}>
+          Accounts live on this device for now. Password login arrives with the Phase 1 backend.
+        </div>
+
+        {savedAthlete ? (
+          <button onClick={onLogin} style={{
+            width: '100%', cursor: 'pointer', textAlign: 'left',
+            background: 'linear-gradient(160deg, rgba(197,255,61,0.08) 0%, #0F0F14 100%)',
+            border: '1px solid rgba(197,255,61,0.4)', borderRadius: 14, padding: 14,
+            display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12,
+          }}>
+            <Avatar initials={savedAthlete.initials} size={46} color="#C5FF3D" square/>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="display" style={{ fontSize: 18, lineHeight: 1, textTransform: 'uppercase', color: '#F4F4F5' }}>
+                Continue as {savedAthlete.name}
+              </div>
+              <div className="mono" style={{ fontSize: 9.5, color: '#9CA0A8', marginTop: 5, letterSpacing: '0.06em' }}>
+                {(savedAthlete.sport || '').toUpperCase()}
+                {savedAthlete.city ? ` · ${savedAthlete.city.toUpperCase()}` : ''}
+              </div>
+            </div>
+            <ArrowRight size={16} color="#C5FF3D"/>
+          </button>
+        ) : (
+          <div style={{
+            padding: 16, borderRadius: 12, background: '#18181C',
+            border: '1px dashed #2A2A30', marginBottom: 12, textAlign: 'center',
+          }}>
+            <div className="display" style={{ fontSize: 16, textTransform: 'uppercase', marginBottom: 4 }}>
+              No athlete profile on this device
+            </div>
+            <div className="body" style={{ fontSize: 12, color: '#9CA0A8', lineHeight: 1.5 }}>
+              Sign up below to create your athlete card.
+            </div>
+          </div>
+        )}
+
+        <button onClick={onSignUp} className="body" style={{
+          width: '100%',
+          background: savedAthlete ? 'transparent' : '#C5FF3D',
+          color: savedAthlete ? '#F4F4F5' : '#000',
+          border: savedAthlete ? '1px solid #3A3A42' : 'none',
+          padding: '13px 16px', borderRadius: 999, fontWeight: 700, fontSize: 14, cursor: 'pointer',
+          display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginBottom: 16,
+        }}>
+          {savedAthlete ? 'Sign up as a different athlete' : 'Sign up as an athlete'} <ArrowRight size={14}/>
+        </button>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+          <span style={{ flex: 1, height: 1, background: '#1F1F25' }}/>
+          <span className="mono" style={{ fontSize: 9, color: '#5F636B', letterSpacing: '0.18em' }}>COACHES</span>
+          <span style={{ flex: 1, height: 1, background: '#1F1F25' }}/>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <a href="/coach" className="body" style={{
+            flex: 1, background: 'transparent', color: '#C5FF3D', textDecoration: 'none',
+            border: '1px solid rgba(197,255,61,0.45)',
+            padding: '12px 14px', borderRadius: 999, fontWeight: 700, fontSize: 13,
+            display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6,
+          }}>
+            Coach log in
+          </a>
+          <a href="/become-a-coach" className="body" style={{
+            flex: 1, background: 'transparent', color: '#F4F4F5', textDecoration: 'none',
+            border: '1px solid #3A3A42',
+            padding: '12px 14px', borderRadius: 999, fontWeight: 600, fontSize: 13,
+            display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6,
+          }}>
+            Coach sign-up
+          </a>
         </div>
       </div>
     </div>
@@ -1265,7 +1426,7 @@ function ProfileView({ athlete, trainerIds, trainers = TRAINERS, workouts = [], 
       {onSignOut && (
         <div style={{ padding: '0 16px 24px', textAlign: 'center' }}>
           <button onClick={() => {
-            if (typeof window !== 'undefined' && window.confirm('Sign out and start over? Your workouts and posts stay on this device.')) {
+            if (typeof window !== 'undefined' && window.confirm('Sign out? Your profile stays saved on this device. Use Log in on the welcome screen to come back.')) {
               onSignOut();
             }
           }} className="mono" style={{
@@ -1591,7 +1752,7 @@ function TrainerCardFeatured({ trainer, onClick }) {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, padding: 12, background: 'rgba(255,255,255,0.025)', borderRadius: 10, marginTop: 14, border: '1px solid rgba(255,255,255,0.04)' }}>
           <Mini num={trainer.athletes || 0} label="ATHLETES"/>
-          <Mini num={trainer.avgGain || '—'} label="AVG GAIN" small/>
+          <Mini num={trainer.avgGain || '-'} label="AVG GAIN" small/>
           <Mini num={trainer.rating ?? 'NEW'} label="RATING" icon={trainer.rating ? <Star size={9} fill="#C5FF3D" color="#C5FF3D"/> : null}/>
         </div>
 
@@ -1752,7 +1913,7 @@ function ChatView({ trainer, conversation, athlete, onClose, onSend, onCall }) {
     if (!t) return;
     onSend(t);
     setInput('');
-    // No fake "trainer is typing" simulation — replies come from the real
+    // No fake "trainer is typing" simulation. Replies come from the real
     // coach on the other end (via /coach), surfaced through the storage sync.
   };
 
@@ -2534,7 +2695,7 @@ function TrainerDetail({ trainer, onClose, onBook, onMessage, onCall }) {
             display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, position: 'relative',
           }}>
             <BigStat num={trainer.athletes || 0} label="ATHLETES"/>
-            <BigStat num={trainer.avgGain || '—'} label="AVG GAIN" small/>
+            <BigStat num={trainer.avgGain || '-'} label="AVG GAIN" small/>
             <BigStat num={trainer.commits || 0} label="D1 COMMITS"/>
           </div>
         </div>
@@ -2650,10 +2811,10 @@ function LogWorkoutModal({ onClose, onSave }) {
       position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)',
       backdropFilter: 'blur(8px)', zIndex: 200, display: 'flex', alignItems: 'flex-end',
     }} onClick={onClose}>
-      <div className="slide-up" onClick={e => e.stopPropagation()} style={{
+      <div className="slide-up phone-scroll" onClick={e => e.stopPropagation()} style={{
         width: '100%', background: '#0F0F14', borderTopLeftRadius: 24, borderTopRightRadius: 24,
         padding: 24, borderTop: '1px solid #2A2A30', position: 'relative', maxHeight: '90vh', overflowY: 'auto',
-      }} className="phone-scroll">
+      }}>
         <div style={{ position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)', width: 36, height: 4, background: '#3A3A42', borderRadius: 999 }}/>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, marginTop: 4 }}>
