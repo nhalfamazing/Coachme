@@ -357,20 +357,37 @@ export default function CoachMeApp() {
   // A signed-out athlete stays saved on the device so Log in can restore them.
   const [savedAthlete, setSavedAthlete] = useState(null);
 
-  // Whether the saved athlete gets a one-tap Continue button on the
-  // landing page. Opening the app ALWAYS shows the landing page first;
-  // nobody is teleported into the middle of the app.
-  const [canResume, setCanResume] = useState(false);
+  // Every profile that has ever logged in on this device, for the
+  // landing page's WHO'S PLAYING picker. Opening the app ALWAYS shows
+  // the landing page first; picking your name is one tap.
+  const [deviceAthletes, setDeviceAthletes] = useState([]);
+  const [deviceCoaches, setDeviceCoaches] = useState([]);
 
   useEffect(() => {
+    if (athlete) return; // only needed while the landing page is showing
     try {
       const saved = JSON.parse(localStorage.getItem('coachme_athlete') || 'null');
-      if (saved && saved.id) {
-        setSavedAthlete(saved);
-        setCanResume(localStorage.getItem('coachme_signed_out') !== '1');
-      }
+      if (saved && saved.id) setSavedAthlete(saved);
+      const dir = loadAthleteDir();
+      const lastId = saved && saved.id;
+      // Last active person first, then most recently joined.
+      const sorted = [...dir].sort((a, b) => {
+        if (a.id === lastId) return -1;
+        if (b.id === lastId) return 1;
+        return (b.registeredAt || 0) - (a.registeredAt || 0);
+      });
+      // Older devices may have a saved athlete not yet in the directory.
+      if (saved && saved.id && !sorted.some(a => a.id === saved.id)) sorted.unshift(saved);
+      setDeviceAthletes(sorted);
+      setDeviceCoaches(loadCoachList());
     } catch {}
-  }, []);
+  }, [athlete]);
+
+  const pickDeviceAthlete = (a) => completeSignup({ level: 1, xp: 0, xpMax: 500, ...a });
+  const pickDeviceCoach = (c) => {
+    try { sessionStorage.setItem('coachme_active_coach', JSON.stringify(c)); } catch {}
+    window.location.href = '/coach';
+  };
 
   const completeSignup = (a) => {
     const withId = { id: a.id || Date.now(), ...a };
@@ -397,7 +414,6 @@ export default function CoachMeApp() {
   const signOut = () => {
     try { localStorage.setItem('coachme_signed_out', '1'); } catch {}
     setSavedAthlete(athlete);
-    setCanResume(false);
     setAthlete(null);
     setTab('profile');
     setTrainerOpen(null);
@@ -713,7 +729,7 @@ export default function CoachMeApp() {
         </div>
 
         {!athlete ? (
-          <SignUpFlow onComplete={completeSignup} savedAthlete={savedAthlete} onLogin={loginSavedAthlete} onCodeLogin={completeSignup} canResume={canResume} />
+          <SignUpFlow onComplete={completeSignup} savedAthlete={savedAthlete} onLogin={loginSavedAthlete} onCodeLogin={completeSignup} deviceAthletes={deviceAthletes} deviceCoaches={deviceCoaches} onPickAthlete={pickDeviceAthlete} onPickCoach={pickDeviceCoach} />
         ) : (
           <>
             <div className="phone-scroll" style={{ flex: 1, overflow: 'auto', position: 'relative' }}>
@@ -784,7 +800,7 @@ export default function CoachMeApp() {
 /* ============================================================
    SIGN UP FLOW
    ============================================================ */
-function SignUpFlow({ onComplete, savedAthlete, onLogin, onCodeLogin, canResume }) {
+function SignUpFlow({ onComplete, savedAthlete, onLogin, onCodeLogin, deviceAthletes, deviceCoaches, onPickAthlete, onPickCoach }) {
   const [step, setStep] = useState(0);
   const [form, setForm] = useState({
     firstName: '', lastName: '',
@@ -841,7 +857,7 @@ function SignUpFlow({ onComplete, savedAthlete, onLogin, onCodeLogin, canResume 
 
   return (
     <div className="fade-in" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      {step === 0 && <SUWelcome onNext={next} savedAthlete={savedAthlete} onLogin={onLogin} onCodeLogin={onCodeLogin} canResume={canResume}/>}
+      {step === 0 && <SUWelcome onNext={next} savedAthlete={savedAthlete} onLogin={onLogin} onCodeLogin={onCodeLogin} deviceAthletes={deviceAthletes} deviceCoaches={deviceCoaches} onPickAthlete={onPickAthlete} onPickCoach={onPickCoach}/>}
       {step === 1 && <SUStep title="Who are you?" sub="The basics. We'll fill in the rest." idx={1} total={totalSteps - 1}
         canContinue={nameValid} onNext={next} onBack={back}>
         <SUInput label="FIRST NAME" placeholder="Noah" value={form.firstName} onChange={v => upd('firstName', v)} autoFocus/>
@@ -939,9 +955,13 @@ function SignUpFlow({ onComplete, savedAthlete, onLogin, onCodeLogin, canResume 
   );
 }
 
-function SUWelcome({ onNext, savedAthlete, onLogin, onCodeLogin, canResume }) {
+function SUWelcome({ onNext, savedAthlete, onLogin, onCodeLogin, deviceAthletes = [], deviceCoaches = [], onPickAthlete, onPickCoach }) {
   const [loginOpen, setLoginOpen] = useState(false);
-  const showContinue = canResume && savedAthlete;
+  const athletesShown = deviceAthletes.slice(0, 3);
+  const coachesShown = deviceCoaches.slice(0, 2);
+  const hasProfiles = athletesShown.length > 0 || coachesShown.length > 0;
+  const hiddenCount = (deviceAthletes.length - athletesShown.length) + (deviceCoaches.length - coachesShown.length);
+  const displayName = (p) => (p.firstName && p.lastName) ? `${p.firstName} ${p.lastName}` : (p.firstName || p.name);
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
       <CoverPhoto src={BASEBALL_BANNER} height={300}
@@ -984,26 +1004,69 @@ function SUWelcome({ onNext, savedAthlete, onLogin, onCodeLogin, canResume }) {
           ))}
         </div>
 
-        {showContinue && (
-          <button onClick={onLogin} style={{
-            width: '100%', background: '#C5FF3D', color: '#000', border: 'none',
-            padding: '16px 20px', borderRadius: 999, fontWeight: 700, fontSize: 15, cursor: 'pointer',
-            display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 18,
-          }} className="body">
-            Continue as {savedAthlete.firstName || savedAthlete.name} <ArrowRight size={16}/>
-          </button>
+        {hasProfiles && (
+          <div style={{ marginTop: 18 }}>
+            <div className="mono" style={{ fontSize: 10, color: '#5F636B', letterSpacing: '0.18em', marginBottom: 8 }}>
+              WHO'S PLAYING?
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {athletesShown.map(a => (
+                <button key={`a-${a.id}`} onClick={() => onPickAthlete(a)} className="body" style={{
+                  width: '100%', cursor: 'pointer', textAlign: 'left',
+                  background: 'rgba(197,255,61,0.07)', border: '1px solid rgba(197,255,61,0.4)',
+                  borderRadius: 14, padding: '10px 12px',
+                  display: 'flex', alignItems: 'center', gap: 11,
+                }}>
+                  <Avatar initials={a.initials} photo={a.photo} size={38} color="#C5FF3D" square/>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#F4F4F5', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {displayName(a)}
+                    </div>
+                    <div className="mono" style={{ fontSize: 9, color: '#9CA0A8', marginTop: 2, letterSpacing: '0.06em' }}>
+                      {(a.sport || '').toUpperCase()}{a.position ? ` · ${a.position.toUpperCase()}` : ''}
+                    </div>
+                  </div>
+                  <ArrowRight size={15} color="#C5FF3D"/>
+                </button>
+              ))}
+              {coachesShown.map(c => (
+                <button key={`c-${c.id}`} onClick={() => onPickCoach(c)} className="body" style={{
+                  width: '100%', cursor: 'pointer', textAlign: 'left',
+                  background: 'rgba(93,169,255,0.07)', border: '1px solid rgba(93,169,255,0.4)',
+                  borderRadius: 14, padding: '10px 12px',
+                  display: 'flex', alignItems: 'center', gap: 11,
+                }}>
+                  <Avatar initials={c.initials} size={38} color="#5DA9FF" square/>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#F4F4F5', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {c.name}
+                    </div>
+                    <div className="mono" style={{ fontSize: 9, color: '#5DA9FF', marginTop: 2, letterSpacing: '0.06em' }}>
+                      COACH{c.sport ? ` · ${c.sport.toUpperCase()}` : ''}
+                    </div>
+                  </div>
+                  <ArrowRight size={15} color="#5DA9FF"/>
+                </button>
+              ))}
+            </div>
+            {hiddenCount > 0 && (
+              <div className="body" style={{ fontSize: 11, color: '#5F636B', marginTop: 8, textAlign: 'center' }}>
+                {hiddenCount} more profile{hiddenCount !== 1 ? 's' : ''} in Log in
+              </div>
+            )}
+          </div>
         )}
 
         <button onClick={onNext} style={{
           width: '100%',
-          background: showContinue ? 'transparent' : '#C5FF3D',
-          color: showContinue ? '#F4F4F5' : '#000',
-          border: showContinue ? '1px solid #3A3A42' : 'none',
+          background: hasProfiles ? 'transparent' : '#C5FF3D',
+          color: hasProfiles ? '#F4F4F5' : '#000',
+          border: hasProfiles ? '1px solid #3A3A42' : 'none',
           padding: '16px 20px', borderRadius: 999, fontWeight: 700, fontSize: 15, cursor: 'pointer',
           display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8,
-          marginTop: showContinue ? 10 : 18,
+          marginTop: hasProfiles ? 10 : 18,
         }} className="body">
-          Get started <ArrowRight size={16}/>
+          {hasProfiles ? 'New here? Get started' : 'Get started'} <ArrowRight size={16}/>
         </button>
 
         <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
