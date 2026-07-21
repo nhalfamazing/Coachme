@@ -863,22 +863,25 @@ function SignUpFlow({ onComplete, savedAthlete, onLogin, onCodeLogin, deviceAthl
         <SUInput label="FIRST NAME" placeholder="Noah" value={form.firstName} onChange={v => upd('firstName', v)} autoFocus/>
         <SUInput label="LAST NAME" placeholder="Scarlett" value={form.lastName} onChange={v => upd('lastName', v)}/>
       </SUStep>}
-      {step === 2 && <SUStep title="What's your sport?" sub="Pick from the list. You can add more sports later." idx={2} total={totalSteps - 1}
+      {step === 2 && <SUStep title="What's your sport?" sub="Pick from the list, or choose Other and type your own." idx={2} total={totalSteps - 1}
         canContinue={sportValid} onNext={next} onBack={back}>
-        <SUSelect
+        <SUSelectOrType
           label="SPORT"
           value={form.sport}
           onChange={v => { upd('sport', v); upd('position', ''); }}
           options={SPORTS.map(s => ({ value: s.name, label: `${s.icon}  ${s.name}` }))}
+          typePlaceholder="What's your sport?"
         />
         {form.sport && (
           POSITIONS_BY_SPORT[form.sport] ? (
-            <SUSelect
+            <SUSelectOrType
+              key={form.sport}
               label="POSITION"
               value={form.position}
               onChange={v => upd('position', v)}
               options={POSITIONS_BY_SPORT[form.sport].map(p => ({ value: p, label: p }))}
               placeholder="Pick your position"
+              typePlaceholder="What position do you play?"
             />
           ) : (
             <SUAutocomplete
@@ -890,12 +893,14 @@ function SignUpFlow({ onComplete, savedAthlete, onLogin, onCodeLogin, deviceAthl
             />
           )
         )}
-        <SUSelect
+        <SUSelectOrType
           label="HOW OLD ARE YOU?"
           value={form.age ? String(form.age) : ''}
           onChange={v => upd('age', v)}
           options={AGES.map(a => ({ value: String(a), label: `${a} years old` }))}
           placeholder="Pick your age"
+          typePlaceholder="Your age"
+          numeric
         />
       </SUStep>}
       {step === 3 && <SUStep title="Where are you?" sub="Helps us match you with local trainers." idx={3} total={totalSteps - 1}
@@ -1447,6 +1452,85 @@ function SUSelect({ label, value, onChange, options, placeholder }) {
         >
           {placeholder && <option value="">{placeholder}</option>}
           {options.map(o => <option key={o.value} value={o.value} style={{ background: '#18181C', color: '#F4F4F5' }}>{o.label}</option>)}
+        </select>
+        <span style={{
+          position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)',
+          pointerEvents: 'none', color: '#9CA0A8',
+        }}>
+          <ChevronRight size={16} style={{ transform: 'rotate(90deg)' }}/>
+        </span>
+      </div>
+    </div>
+  );
+}
+
+const SU_OTHER = '__other__';
+
+// A dropdown that can also be typed in: the list stays, and the last
+// option is "Other (type it in)", which flips the field to a text box
+// with a LIST button to go back.
+function SUSelectOrType({ label, value, onChange, options, placeholder, typePlaceholder, numeric }) {
+  const startInTyping = value !== '' && !options.some(o => o.value === value);
+  const [typing, setTyping] = useState(startInTyping);
+
+  if (typing) {
+    return (
+      <div style={{ marginBottom: 18 }}>
+        <SULabel>{label}</SULabel>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input
+            type={numeric ? 'number' : 'text'}
+            inputMode={numeric ? 'numeric' : 'text'}
+            autoFocus
+            value={value}
+            onChange={e => onChange(e.target.value)}
+            placeholder={typePlaceholder || 'Type your own'}
+            className="body"
+            style={{
+              flex: 1, minWidth: 0, background: '#18181C', border: '1px solid #C5FF3D',
+              borderRadius: 12, padding: '14px 16px', color: '#F4F4F5',
+              fontSize: 15, outline: 'none',
+            }}
+          />
+          <button type="button" onClick={() => { setTyping(false); onChange(''); }} className="mono" style={{
+            background: '#18181C', border: '1px solid #2A2A30', color: '#9CA0A8',
+            borderRadius: 12, padding: '0 14px', fontSize: 10, letterSpacing: '0.1em',
+            cursor: 'pointer', flexShrink: 0, fontWeight: 700,
+          }}>
+            LIST
+          </button>
+        </div>
+        <div className="body" style={{ fontSize: 11, color: '#5F636B', marginTop: 6, lineHeight: 1.5 }}>
+          Typing your own. Tap LIST to pick from the list instead.
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ marginBottom: 18 }}>
+      <SULabel>{label}</SULabel>
+      <div style={{ position: 'relative' }}>
+        <select
+          value={value}
+          onChange={e => {
+            if (e.target.value === SU_OTHER) { setTyping(true); onChange(''); }
+            else onChange(e.target.value);
+          }}
+          className="body"
+          style={{
+            width: '100%', background: '#18181C', border: '1px solid #2A2A30',
+            borderRadius: 12, padding: '14px 40px 14px 16px', color: value ? '#F4F4F5' : '#5F636B',
+            fontSize: 15, outline: 'none', appearance: 'none',
+            WebkitAppearance: 'none', MozAppearance: 'none',
+            cursor: 'pointer', fontFamily: 'inherit',
+          }}
+          onFocus={e => e.currentTarget.style.borderColor = '#C5FF3D'}
+          onBlur={e => e.currentTarget.style.borderColor = '#2A2A30'}
+        >
+          {placeholder && <option value="">{placeholder}</option>}
+          {options.map(o => <option key={o.value} value={o.value} style={{ background: '#18181C', color: '#F4F4F5' }}>{o.label}</option>)}
+          <option value={SU_OTHER} style={{ background: '#18181C', color: '#C5FF3D' }}>Other (type it in)</option>
         </select>
         <span style={{
           position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)',
