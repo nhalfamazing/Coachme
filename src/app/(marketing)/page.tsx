@@ -235,6 +235,31 @@ function upsertCoach(c) {
 function decodeCoachCode(input) {
   try {
     const raw = String(input || '').trim().replace(/\s+/g, '');
+    // New short format: CH2-<id36>.<Name>.<Sport>.<Specialty>.<rate>.<years>.<City>
+    if (raw.toUpperCase().startsWith('CH2-')) {
+      const p = raw.slice(4).split('.');
+      const id = parseInt(p[0], 36);
+      const name = codeDecPart(p[1]);
+      const sport = titleCase(codeDecPart(p[2]));
+      if (!id || !name || !sport) return null;
+      const specialty = codeDecPart(p[3]);
+      const rate = p[4] ? parseFloat(p[4]) : null;
+      const years = p[5] ? parseInt(p[5]) : null;
+      const city = titleCase(codeDecPart(p[6]));
+      const words = name.split(' ');
+      return {
+        id, name, sport,
+        initials: ((words[0]?.[0] || '') + (words[1]?.[0] || words[0]?.[1] || '')).toUpperCase(),
+        specialty, title: specialty,
+        rate, years,
+        location: city || '',
+        photo: null, cover: null, rating: null, reviews: 0, athletes: 0,
+        avgGain: null, commits: 0, modes: ['in_person'],
+        badge: 'NEW COACH', bio: '', color: '#5DA9FF',
+        email: '', phone: '', verified: false,
+      };
+    }
+    // Legacy long format keeps working.
     if (!raw.startsWith('CH1-')) return null;
     const c = JSON.parse(decodeURIComponent(escape(atob(raw.slice(4)))));
     if (!c || !c.id || !c.name || !c.sport) return null;
@@ -246,17 +271,27 @@ function decodeCoachCode(input) {
    they can log in on another device without a backend. Messages, feed
    posts, and workouts stay device-local until the Phase 1 backend gives
    every account real server-side sync. */
+// Compact code helpers: dot-separated fields, spaces become underscores.
+const codeEncPart = (s) => String(s ?? '').replace(/\./g, '').replace(/\s+/g, '_');
+const codeDecPart = (s) => String(s || '').replace(/_/g, ' ').trim();
+const titleCase = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+
+// Short, readable, unique per person: the unique id (base36) plus their
+// own profile facts. Example:
+//   CM2-ABX9F3K.Alex.Rivera.Football.Quarterback.15.Miami.FL
 function encodeAthleteCode(a) {
   try {
-    const payload = JSON.stringify({
-      id: a.id, firstName: a.firstName, lastName: a.lastName,
-      name: a.name, initials: a.initials, sport: a.sport,
-      position: a.position, age: a.age ?? null, city: a.city,
-      state: a.state, location: a.location, banner: a.banner || null,
-      photo: a.photo || null, stats: a.stats || [],
-      level: a.level || 1, xp: a.xp || 0, xpMax: a.xpMax || 500,
-    });
-    return 'CM1-' + btoa(unescape(encodeURIComponent(payload)));
+    const parts = [
+      Number(a.id).toString(36).toUpperCase(),
+      codeEncPart(a.firstName || (a.name || '').split(' ')[0]),
+      codeEncPart(a.lastName || ''),
+      codeEncPart(a.sport || ''),
+      codeEncPart(a.position || ''),
+      a.age ?? '',
+      codeEncPart(a.city || ''),
+      codeEncPart(a.state || ''),
+    ];
+    return 'CM2-' + parts.join('.');
   } catch {
     return null;
   }
@@ -264,6 +299,33 @@ function encodeAthleteCode(a) {
 function decodeAthleteCode(input) {
   try {
     const raw = String(input || '').trim().replace(/\s+/g, '');
+    // New short format.
+    if (raw.toUpperCase().startsWith('CM2-')) {
+      const p = raw.slice(4).split('.');
+      const id = parseInt(p[0], 36);
+      const firstName = titleCase(codeDecPart(p[1]));
+      const sport = titleCase(codeDecPart(p[3]));
+      if (!id || !firstName || !sport) return null;
+      const lastName = titleCase(codeDecPart(p[2]));
+      const position = titleCase(codeDecPart(p[4]));
+      const age = p[5] ? parseInt(p[5]) : null;
+      const city = titleCase(codeDecPart(p[6]));
+      const state = codeDecPart(p[7]).toUpperCase();
+      return {
+        id,
+        firstName,
+        lastName: lastName || null,
+        name: lastName ? `${firstName[0]}. ${lastName}` : firstName,
+        initials: (firstName[0] + (lastName[0] || firstName[1] || '')).toUpperCase(),
+        sport, position: position || '',
+        age: Number.isFinite(age) ? age : null,
+        city, state,
+        location: city ? `${city}${state ? `, ${state}` : ''}` : '',
+        banner: sport === 'Baseball' ? BASEBALL_BANNER : null,
+        photo: null, stats: [], level: 1, xp: 0, xpMax: 500,
+      };
+    }
+    // Legacy long format: every code ever issued keeps working.
     if (!raw.startsWith('CM1-')) return null;
     const a = JSON.parse(decodeURIComponent(escape(atob(raw.slice(4)))));
     if (!a || !a.id || !a.name || !a.sport || !a.initials) return null;
@@ -1173,7 +1235,7 @@ function LoginSheet({ savedAthlete, onLogin, onCodeLogin, onSignUp, onClose }) {
       loginAsCoach(localCoach || coach);
       return;
     }
-    setCodeError('That code is not valid. Make sure you copied the whole thing: athlete codes start with CM1-, coach codes with CH1-.');
+    setCodeError('That code is not valid. Check every letter: athlete codes start with CM2-, coach codes with CH2-. Older long codes work too.');
   };
 
   return (
@@ -1294,7 +1356,7 @@ function LoginSheet({ savedAthlete, onLogin, onCodeLogin, onSignUp, onClose }) {
         <textarea
           value={code}
           onChange={e => { setCode(e.target.value); if (codeError) setCodeError(''); }}
-          placeholder="Paste your code (athletes: CM1-, coaches: CH1-)"
+          placeholder="Type your code (athletes: CM2-, coaches: CH2-)"
           rows={2}
           className="mono"
           style={{
@@ -2008,17 +2070,29 @@ function AccountCard({ athlete }) {
     }
   };
 
+  const codeStr = encodeAthleteCode(athlete);
+
   return (
     <div style={{
       background: 'linear-gradient(160deg, #1A1A20 0%, #0F0F14 100%)',
       border: '1px solid #2A2A30', borderRadius: 14, padding: 16,
     }}>
       <div className="display" style={{ fontSize: 18, lineHeight: 1, textTransform: 'uppercase', marginBottom: 6 }}>
-        TAKE YOUR PROFILE ANYWHERE
+        YOUR COACHME CODE
       </div>
       <div className="body" style={{ fontSize: 12, color: '#9CA0A8', lineHeight: 1.55, marginBottom: 12 }}>
-        Copy your CoachMe code, then paste it into Log in on any other device to bring your profile with you. Keep it private: anyone with your code can load your profile.
+        Type this code into Log in on any other device and your profile comes with you. Keep it private: anyone with your code can load your profile.
       </div>
+      {codeStr && (
+        <div className="mono" style={{
+          background: '#0A0A0B', border: '1px solid rgba(197,255,61,0.4)',
+          borderRadius: 12, padding: '12px 14px', marginBottom: 10,
+          fontSize: 13, color: '#C5FF3D', lineHeight: 1.6,
+          wordBreak: 'break-all', textAlign: 'center', userSelect: 'all',
+        }}>
+          {codeStr}
+        </div>
+      )}
       <button onClick={copy} className="body" style={{
         width: '100%',
         background: copied ? 'rgba(197,255,61,0.12)' : '#18181C',
@@ -2030,10 +2104,10 @@ function AccountCard({ athlete }) {
       }}>
         {copied ? (
           <>
-            <CheckCircle2 size={14}/> Copied! Paste it on your other device
+            <CheckCircle2 size={14}/> Copied!
           </>
         ) : (
-          'Copy my CoachMe code'
+          'Copy code'
         )}
       </button>
     </div>

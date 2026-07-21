@@ -89,10 +89,22 @@ export default function BecomeACoachPage() {
   const [submittedCoach, setSubmittedCoach] = useState(null);
   const [codeCopied, setCodeCopied] = useState(false);
 
-  // Same CH1- format the Coach Console shows; either source logs them in.
+  // Same short CH2- format the Coach Console shows; either source logs
+  // them in. Short and readable so it can be written down or typed.
   const coachCode = submittedCoach
     ? (() => {
-        try { return "CH1-" + btoa(unescape(encodeURIComponent(JSON.stringify(submittedCoach)))); }
+        try {
+          const enc = (s) => String(s ?? "").replace(/\./g, "").replace(/\s+/g, "_");
+          return "CH2-" + [
+            Number(submittedCoach.id).toString(36).toUpperCase(),
+            enc(submittedCoach.name),
+            enc(submittedCoach.sport),
+            enc(submittedCoach.specialty || ""),
+            submittedCoach.rate ?? "",
+            submittedCoach.years ?? "",
+            enc(String(submittedCoach.location || "").split(",")[0]),
+          ].join(".");
+        }
         catch { return null; }
       })()
     : null;
@@ -208,14 +220,15 @@ export default function BecomeACoachPage() {
               <div style={{ fontSize: 13, color: "#D4D6DA", lineHeight: 1.55, marginBottom: 12 }}>
                 This code is how you log in to your coach console on this device or any other. Copy it now and keep it private: anyone with it can open your console.
               </div>
+              <div className="mono" style={{
+                background: "#0A0A0B", border: "1px solid rgba(197,255,61,0.4)",
+                borderRadius: 10, padding: "12px 14px", marginBottom: 10,
+                fontSize: 14, color: "#C5FF3D", lineHeight: 1.6,
+                wordBreak: "break-all", textAlign: "center", userSelect: "all",
+              }}>
+                {coachCode}
+              </div>
               <div style={{ display: "flex", gap: 8, alignItems: "stretch", flexWrap: "wrap" }}>
-                <div className="mono" style={{
-                  flex: 1, minWidth: 200, background: "#0A0A0B", border: "1px solid #2A2A30",
-                  borderRadius: 10, padding: "10px 12px", fontSize: 10.5, color: "#9CA0A8",
-                  whiteSpace: "nowrap", overflowX: "auto",
-                }}>
-                  {coachCode}
-                </div>
                 <button onClick={copyCode} className="body" style={{
                   background: codeCopied ? "#34D399" : "#C5FF3D", color: "#000", border: "none",
                   padding: "10px 18px", borderRadius: 10, fontWeight: 700, fontSize: 13,

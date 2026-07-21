@@ -62,16 +62,51 @@ function loadAthleteDirectory() {
     return Array.isArray(d) ? d : [];
   } catch { return []; }
 }
-// Coach codes (CH1-) let a coach carry their console to another device,
-// mirroring the athlete CoachMe code (CM1-).
+// Short, readable coach codes: unique id (base36) plus their own facts.
+// Example: CH2-ABX9F3K.Sam_Cooper.Football.Quarterback_mechanics.80.7.Miami
+const codeEncPart = (s) => String(s ?? "").replace(/\./g, "").replace(/\s+/g, "_");
+const codeDecPart = (s) => String(s || "").replace(/_/g, " ").trim();
+const titleCase = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+
 function encodeCoachCode(c) {
   try {
-    return "CH1-" + btoa(unescape(encodeURIComponent(JSON.stringify(c))));
+    const parts = [
+      Number(c.id).toString(36).toUpperCase(),
+      codeEncPart(c.name),
+      codeEncPart(c.sport),
+      codeEncPart(c.specialty || c.title || ""),
+      c.rate ?? "",
+      c.years ?? "",
+      codeEncPart(String(c.location || "").split(",")[0]),
+    ];
+    return "CH2-" + parts.join(".");
   } catch { return null; }
 }
 function decodeCoachCode(input) {
   try {
     const raw = String(input || "").trim().replace(/\s+/g, "");
+    if (raw.toUpperCase().startsWith("CH2-")) {
+      const p = raw.slice(4).split(".");
+      const id = parseInt(p[0], 36);
+      const name = codeDecPart(p[1]);
+      const sport = titleCase(codeDecPart(p[2]));
+      if (!id || !name || !sport) return null;
+      const specialty = codeDecPart(p[3]);
+      const words = name.split(" ");
+      return {
+        id, name, sport,
+        initials: ((words[0]?.[0] || "") + (words[1]?.[0] || words[0]?.[1] || "")).toUpperCase(),
+        specialty, title: specialty,
+        rate: p[4] ? parseFloat(p[4]) : null,
+        years: p[5] ? parseInt(p[5]) : null,
+        location: titleCase(codeDecPart(p[6])) || "",
+        photo: null, cover: null, rating: null, reviews: 0, athletes: 0,
+        avgGain: null, commits: 0, modes: ["in_person"],
+        badge: "NEW COACH", bio: "", color: "#5DA9FF",
+        email: "", phone: "", verified: false,
+      };
+    }
+    // Legacy long codes keep working forever.
     if (!raw.startsWith("CH1-")) return null;
     const c = JSON.parse(decodeURIComponent(escape(atob(raw.slice(4)))));
     if (!c || !c.id || !c.name || !c.sport) return null;
@@ -293,7 +328,7 @@ function CoachPicker({ coaches, onSelect }) {
   const submitCode = () => {
     const c = decodeCoachCode(code);
     if (!c) {
-      setCodeError("That code is not valid. Coach codes start with CH1-. Copy the whole thing from your console on your other device.");
+      setCodeError("That code is not valid. Check every letter: coach codes start with CH2-. Older long CH1- codes work too.");
       return;
     }
     setCodeError("");
@@ -388,7 +423,7 @@ function CoachPicker({ coaches, onSelect }) {
       <textarea
         value={code}
         onChange={e => { setCode(e.target.value); if (codeError) setCodeError(""); }}
-        placeholder="Paste your coach code (starts with CH1-)"
+        placeholder="Type your coach code (starts with CH2-)"
         rows={2}
         className="mono"
         style={{
@@ -744,25 +779,24 @@ function CodeBanner({ coach }) {
         </span>
       </div>
       <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.5, marginBottom: 10 }}>
-        This code is how you log back in, on this device or any other. Copy it and keep it somewhere safe. It is private: anyone with it can open your console.
+        This is your code. Type it into Coach log in on any other device and your console opens there. Keep it private: anyone with it can open your console.
       </div>
-      <div style={{ display: "flex", gap: 8, alignItems: "stretch", flexWrap: "wrap" }}>
-        <div className="mono scroll" style={{
-          flex: 1, minWidth: 220, background: C.bg, border: `1px solid ${C.border}`,
-          borderRadius: 9, padding: "10px 12px", fontSize: 10.5, color: C.muted,
-          whiteSpace: "nowrap", overflowX: "auto",
-        }}>
-          {codeStr}
-        </div>
-        <button onClick={copy} className="body" style={{
-          background: copied ? C.green : C.accent, color: "#04121D", border: "none",
-          padding: "10px 18px", borderRadius: 9, fontWeight: 700, fontSize: 12.5,
-          cursor: "pointer", display: "flex", alignItems: "center", gap: 7, flexShrink: 0,
-          transition: "all 0.15s",
-        }}>
-          {copied ? (<><CheckCircle2 size={14}/> Copied!</>) : "Copy code"}
-        </button>
+      <div className="mono" style={{
+        background: C.bg, border: `1px solid ${C.accentBorder}`,
+        borderRadius: 10, padding: "12px 14px", marginBottom: 10,
+        fontSize: 14, color: C.accent, lineHeight: 1.6,
+        wordBreak: "break-all", textAlign: "center", userSelect: "all",
+      }}>
+        {codeStr}
       </div>
+      <button onClick={copy} className="body" style={{
+        background: copied ? C.green : C.accent, color: "#04121D", border: "none",
+        padding: "10px 18px", borderRadius: 9, fontWeight: 700, fontSize: 12.5,
+        cursor: "pointer", display: "flex", alignItems: "center", gap: 7,
+        transition: "all 0.15s",
+      }}>
+        {copied ? (<><CheckCircle2 size={14}/> Copied!</>) : "Copy code"}
+      </button>
     </div>
   );
 }
