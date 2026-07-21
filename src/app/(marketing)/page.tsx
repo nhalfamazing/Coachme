@@ -418,16 +418,24 @@ export default function CoachMeApp() {
   const [chatOpen, setChatOpen] = useState(null);
   const [callOpen, setCallOpen] = useState(null);
 
-  // Coaches who signed themselves up via /become-a-coach. Stored locally
-  // for now; this will move to Supabase in Phase 1.
+  // Coaches who signed themselves up via /become-a-coach. A coach only
+  // needs to have signed up ONCE to appear for athletes; they do not
+  // need to be logged in. Refreshes on tab switches and live when a
+  // coach signs up in another tab.
   const [submittedTrainers, setSubmittedTrainers] = useState([]);
-  useEffect(() => {
+  const refreshCoaches = () => {
     try {
       const saved = JSON.parse(localStorage.getItem('coachme_coaches') || '[]');
       setSubmittedTrainers(Array.isArray(saved) ? saved : []);
     } catch {
       setSubmittedTrainers([]);
     }
+  };
+  useEffect(() => { refreshCoaches(); }, [tab]);
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'coachme_coaches') refreshCoaches(); };
+    window.addEventListener('storage', handler);
+    return () => window.removeEventListener('storage', handler);
   }, []);
   const allTrainers = [...TRAINERS, ...submittedTrainers];
 
@@ -1944,7 +1952,7 @@ function SectionLabel({ children }) {
   );
 }
 
-function TrainerRow({ trainer, onClick }) {
+function TrainerRow({ trainer, onClick, showSport }) {
   return (
     <button onClick={onClick} style={{
       width: '100%', textAlign: 'left', cursor: 'pointer',
@@ -1960,7 +1968,7 @@ function TrainerRow({ trainer, onClick }) {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div className="display" style={{ fontSize: 19, lineHeight: 1, textTransform: 'uppercase' }}>{trainer.name}</div>
         <div className="mono" style={{ fontSize: 10, color: '#9CA0A8', marginTop: 4, letterSpacing: '0.04em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {trainer.title.toUpperCase()}
+          {showSport && trainer.sport ? `${trainer.sport.toUpperCase()} · ` : ''}{(trainer.title || '').toUpperCase()}
         </div>
       </div>
       <ChevronRight size={18} color="#5F636B"/>
@@ -1975,10 +1983,13 @@ function TrainersView({ onOpenTrainer, athlete, trainers = TRAINERS }) {
   // Only show trainers verified for this athlete's sport. No cross-sport
   // padding, no fabricated rosters.
   const sportTrainers = trainers.filter(t => t.sport === athlete.sport);
+  // Coaches from other sports still show, in their own section: a coach
+  // only has to sign up once to be visible to every athlete.
+  const otherSportTrainers = trainers.filter(t => t.sport !== athlete.sport);
   const formerPros = sportTrainers.filter(t => t.badge === 'FORMER PRO');
   const others = sportTrainers.filter(t => t.badge !== 'FORMER PRO');
 
-  if (sportTrainers.length === 0) {
+  if (sportTrainers.length === 0 && otherSportTrainers.length === 0) {
     return (
       <div style={{ padding: '12px 0 24px' }}>
         <div style={{ padding: '0 16px 12px' }}>
@@ -2068,6 +2079,30 @@ function TrainersView({ onOpenTrainer, athlete, trainers = TRAINERS }) {
       <div style={{ padding: '12px 16px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
         {others.map(t => <TrainerRow key={t.id} trainer={t} onClick={() => onOpenTrainer(t.id)}/>)}
       </div>
+
+      {sportTrainers.length === 0 && (
+        <div style={{ padding: '0 16px 12px' }}>
+          <div style={{
+            background: 'rgba(255,255,255,0.03)', border: '1px dashed #2A2A30',
+            borderRadius: 12, padding: '12px 14px',
+          }}>
+            <div className="body" style={{ fontSize: 12.5, color: '#9CA0A8', lineHeight: 1.5 }}>
+              No {athlete.sport.toLowerCase()} trainers yet, but these coaches are on CoachMe. Tap one to say hi.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {otherSportTrainers.length > 0 && (
+        <>
+          <div style={{ padding: '0 16px 8px' }}>
+            <SectionLabel>COACHES IN OTHER SPORTS</SectionLabel>
+          </div>
+          <div style={{ padding: '12px 16px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {otherSportTrainers.map(t => <TrainerRow key={t.id} trainer={t} showSport onClick={() => onOpenTrainer(t.id)}/>)}
+          </div>
+        </>
+      )}
     </div>
   );
 }
