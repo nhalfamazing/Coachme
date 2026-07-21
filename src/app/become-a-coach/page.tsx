@@ -86,6 +86,27 @@ export default function BecomeACoachPage() {
     formerPro: false,
   });
   const [error, setError] = useState("");
+  const [submittedCoach, setSubmittedCoach] = useState(null);
+  const [codeCopied, setCodeCopied] = useState(false);
+
+  // Same CH1- format the Coach Console shows; either source logs them in.
+  const coachCode = submittedCoach
+    ? (() => {
+        try { return "CH1-" + btoa(unescape(encodeURIComponent(JSON.stringify(submittedCoach)))); }
+        catch { return null; }
+      })()
+    : null;
+
+  const copyCode = async () => {
+    if (!coachCode) return;
+    try {
+      await navigator.clipboard.writeText(coachCode);
+      setCodeCopied(true);
+      setTimeout(() => setCodeCopied(false), 2200);
+    } catch {
+      if (typeof window !== "undefined") window.prompt("Copy your coach login code:", coachCode);
+    }
+  };
 
   const upd = (field, value) => setForm(f => ({ ...f, [field]: value }));
 
@@ -145,6 +166,10 @@ export default function BecomeACoachPage() {
       console.error("Could not save coach submission:", e);
     }
 
+    // Sign them straight in so the Console opens without the picker.
+    try { sessionStorage.setItem("coachme_active_coach", JSON.stringify(submission)); } catch {}
+
+    setSubmittedCoach(submission);
     setStep(1);
   };
 
@@ -168,9 +193,41 @@ export default function BecomeACoachPage() {
           <div className="display" style={{ fontSize: 44, lineHeight: 1, marginBottom: 12, textTransform: "uppercase" }}>
             APPLICATION RECEIVED
           </div>
-          <div style={{ fontSize: 15, color: "#9CA0A8", lineHeight: 1.6, marginBottom: 30, maxWidth: 440, margin: "0 auto 30px" }}>
+          <div style={{ fontSize: 15, color: "#9CA0A8", lineHeight: 1.6, marginBottom: 26, maxWidth: 440, margin: "0 auto 26px" }}>
             Thanks for applying to CoachMe, {form.firstName}. We review every coach personally. Expect a verification email at <strong style={{ color: "#F4F4F5" }}>{form.email}</strong> within 1-2 business days.
           </div>
+
+          {coachCode && (
+            <div style={{
+              padding: "18px 20px", borderRadius: 14, textAlign: "left", marginBottom: 26,
+              background: "rgba(197,255,61,0.07)", border: "1px solid rgba(197,255,61,0.45)",
+            }}>
+              <div className="mono" style={{ fontSize: 10.5, color: "#C5FF3D", letterSpacing: "0.18em", marginBottom: 6, fontWeight: 700 }}>
+                YOUR LOGIN CODE - SAVE THIS FIRST
+              </div>
+              <div style={{ fontSize: 13, color: "#D4D6DA", lineHeight: 1.55, marginBottom: 12 }}>
+                This code is how you log in to your coach console on this device or any other. Copy it now and keep it private: anyone with it can open your console.
+              </div>
+              <div style={{ display: "flex", gap: 8, alignItems: "stretch", flexWrap: "wrap" }}>
+                <div className="mono" style={{
+                  flex: 1, minWidth: 200, background: "#0A0A0B", border: "1px solid #2A2A30",
+                  borderRadius: 10, padding: "10px 12px", fontSize: 10.5, color: "#9CA0A8",
+                  whiteSpace: "nowrap", overflowX: "auto",
+                }}>
+                  {coachCode}
+                </div>
+                <button onClick={copyCode} className="body" style={{
+                  background: codeCopied ? "#34D399" : "#C5FF3D", color: "#000", border: "none",
+                  padding: "10px 18px", borderRadius: 10, fontWeight: 700, fontSize: 13,
+                  cursor: "pointer", flexShrink: 0, display: "flex", alignItems: "center", gap: 7,
+                  transition: "all 0.15s",
+                }}>
+                  {codeCopied ? (<><CheckCircle2 size={14}/> Copied!</>) : "Copy code"}
+                </button>
+              </div>
+            </div>
+          )}
+
           <div style={{
             display: "inline-block", padding: "16px 24px", borderRadius: 12,
             background: "#18181C", border: "1px solid #2A2A30", textAlign: "left", marginBottom: 30,
@@ -179,8 +236,8 @@ export default function BecomeACoachPage() {
               WHAT HAPPENS NEXT
             </div>
             <div style={{ fontSize: 13, color: "#D4D6DA", lineHeight: 1.7 }}>
-              1. We verify your coaching background<br />
-              2. You set up your full profile and calendar<br />
+              1. Save your login code above<br />
+              2. We verify your coaching background<br />
               3. Athletes in {form.sport.toLowerCase()} start finding you
             </div>
           </div>
