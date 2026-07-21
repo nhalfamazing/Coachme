@@ -169,8 +169,12 @@ function makeThreadId(athleteId, coachId) { return `${athleteId}::${coachId}`; }
 function athleteSnapshot(a) {
   return {
     id: a.id, name: a.name, firstName: a.firstName || null,
+    lastName: a.lastName || null,
     initials: a.initials, sport: a.sport,
     position: a.position, age: a.age ?? null, city: a.city,
+    state: a.state || null, location: a.location || null,
+    banner: a.banner || null, photo: a.photo || null,
+    level: a.level || 1, xp: a.xp || 0, xpMax: a.xpMax || 500,
     stats: Array.isArray(a.stats) ? a.stats : [],
   };
 }
@@ -202,6 +206,40 @@ function registerAthlete(a) {
     else list.push(snap);
     localStorage.setItem('coachme_athletes', JSON.stringify(list));
   } catch {}
+}
+
+function loadAthleteDir() {
+  try {
+    const d = JSON.parse(localStorage.getItem('coachme_athletes') || '[]');
+    return Array.isArray(d) ? d : [];
+  } catch { return []; }
+}
+function loadCoachList() {
+  try {
+    const c = JSON.parse(localStorage.getItem('coachme_coaches') || '[]');
+    return Array.isArray(c) ? c : [];
+  } catch { return []; }
+}
+function upsertCoach(c) {
+  try {
+    const list = loadCoachList();
+    const i = list.findIndex(x => x.id === c.id);
+    if (i >= 0) list[i] = { ...list[i], ...c };
+    else list.push(c);
+    localStorage.setItem('coachme_coaches', JSON.stringify(list));
+  } catch {}
+}
+// Coach codes (CH1-) mirror athlete codes so coaches can also move
+// between devices. Decoded coaches are upserted into this device's
+// coach list, then the Coach Console is opened with them active.
+function decodeCoachCode(input) {
+  try {
+    const raw = String(input || '').trim().replace(/\s+/g, '');
+    if (!raw.startsWith('CH1-')) return null;
+    const c = JSON.parse(decodeURIComponent(escape(atob(raw.slice(4)))));
+    if (!c || !c.id || !c.name || !c.sport) return null;
+    return c;
+  } catch { return null; }
 }
 
 /* CoachMe code: the athlete's profile packed into a portable string so
@@ -974,17 +1012,70 @@ function SUWelcome({ onNext, savedAthlete, onLogin, onCodeLogin }) {
 }
 
 function LoginSheet({ savedAthlete, onLogin, onCodeLogin, onSignUp, onClose }) {
+  const [nameInput, setNameInput] = useState('');
+  const [nameError, setNameError] = useState('');
   const [code, setCode] = useState('');
   const [codeError, setCodeError] = useState('');
 
-  const submitCode = () => {
-    const decoded = decodeAthleteCode(code);
-    if (!decoded) {
-      setCodeError('That code is not valid. Make sure you copied the whole thing, starting with CM1-.');
+  const loginAsCoach = (coach) => {
+    try { sessionStorage.setItem('coachme_active_coach', JSON.stringify(coach)); } catch {}
+    window.location.href = '/coach';
+  };
+
+  // Name login: check athletes first; if no athlete matches, check the
+  // coaches and send them to the Coach Console instead.
+  const submitName = () => {
+    const norm = (s) => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    const q = norm(nameInput);
+    if (!q) return;
+
+    const dir = loadAthleteDir();
+    const athleteMatches = dir.filter(a => {
+      const full = norm(`${a.firstName || ''} ${a.lastName || ''}`);
+      return q === full || q === norm(a.name) || q === norm(a.firstName);
+    });
+    if (athleteMatches.length === 1) {
+      setNameError('');
+      onCodeLogin({ level: 1, xp: 0, xpMax: 500, ...athleteMatches[0] });
       return;
     }
-    setCodeError('');
-    onCodeLogin(decoded);
+    if (athleteMatches.length > 1) {
+      setNameError('More than one athlete here has that name. Type your full name, or use your CoachMe code.');
+      return;
+    }
+
+    const coaches = loadCoachList();
+    const coachMatches = coaches.filter(c =>
+      q === norm(c.name) || q === norm(String(c.name || '').split(' ')[0])
+    );
+    if (coachMatches.length === 1) {
+      setNameError('');
+      loginAsCoach(coachMatches[0]);
+      return;
+    }
+    if (coachMatches.length > 1) {
+      setNameError('More than one coach here has that name. Type your full name, or use your coach code.');
+      return;
+    }
+
+    setNameError('We could not find that name on this device. If you signed up on another device, paste your code below. Otherwise, sign up.');
+  };
+
+  const submitCode = () => {
+    const athlete = decodeAthleteCode(code);
+    if (athlete) {
+      setCodeError('');
+      onCodeLogin(athlete);
+      return;
+    }
+    const coach = decodeCoachCode(code);
+    if (coach) {
+      setCodeError('');
+      upsertCoach(coach);
+      loginAsCoach(coach);
+      return;
+    }
+    setCodeError('That code is not valid. Make sure you copied the whole thing: athlete codes start with CM1-, coach codes with CH1-.');
   };
 
   return (
@@ -992,9 +1083,10 @@ function LoginSheet({ savedAthlete, onLogin, onCodeLogin, onSignUp, onClose }) {
       position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)',
       backdropFilter: 'blur(8px)', zIndex: 60, display: 'flex', alignItems: 'flex-end',
     }} onClick={onClose}>
-      <div className="slide-up" onClick={e => e.stopPropagation()} style={{
+      <div className="slide-up phone-scroll" onClick={e => e.stopPropagation()} style={{
         width: '100%', background: '#0F0F14', borderTopLeftRadius: 24, borderTopRightRadius: 24,
         padding: 24, borderTop: '1px solid #2A2A30', position: 'relative',
+        maxHeight: '92%', overflowY: 'auto',
       }}>
         <div style={{ position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)', width: 36, height: 4, background: '#3A3A42', borderRadius: 999 }}/>
 
@@ -1043,15 +1135,57 @@ function LoginSheet({ savedAthlete, onLogin, onCodeLogin, onSignUp, onClose }) {
           </div>
         )}
 
+        <div className="mono" style={{ fontSize: 9, color: '#5F636B', letterSpacing: '0.18em', marginBottom: 8 }}>
+          LOG IN WITH YOUR NAME
+        </div>
+        <input
+          value={nameInput}
+          onChange={e => { setNameInput(e.target.value); if (nameError) setNameError(''); }}
+          onKeyDown={e => { if (e.key === 'Enter') submitName(); }}
+          placeholder="First and last name"
+          className="body"
+          style={{
+            width: '100%', background: '#18181C', border: '1px solid #2A2A30',
+            borderRadius: 12, padding: '12px 14px', color: '#F4F4F5',
+            fontSize: 14, outline: 'none', marginBottom: 8,
+          }}
+          onFocus={e => e.currentTarget.style.borderColor = '#C5FF3D'}
+          onBlur={e => e.currentTarget.style.borderColor = '#2A2A30'}
+        />
+        {nameError && (
+          <div className="body" style={{
+            padding: '9px 12px', borderRadius: 10, marginBottom: 8,
+            background: 'rgba(255,68,68,0.1)', border: '1px solid rgba(255,68,68,0.4)',
+            color: '#FF8888', fontSize: 12, lineHeight: 1.4,
+          }}>
+            {nameError}
+          </div>
+        )}
+        <button onClick={submitName} disabled={!nameInput.trim()} className="body" style={{
+          width: '100%',
+          background: nameInput.trim() ? '#C5FF3D' : 'transparent',
+          color: nameInput.trim() ? '#000' : '#5F636B',
+          border: nameInput.trim() ? 'none' : '1px solid #2A2A30',
+          padding: '12px 16px', borderRadius: 999, fontWeight: 700, fontSize: 13,
+          cursor: nameInput.trim() ? 'pointer' : 'not-allowed',
+          display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginBottom: 16,
+          transition: 'all 0.15s',
+        }}>
+          Log in with my name <ArrowRight size={14}/>
+        </button>
+        <div className="body" style={{ fontSize: 11, color: '#5F636B', lineHeight: 1.5, marginBottom: 16, textAlign: 'center' }}>
+          Works for athletes and coaches. Athletes open the app; coaches go to the Coach Console.
+        </div>
+
         <button onClick={onSignUp} className="body" style={{
           width: '100%',
-          background: savedAthlete ? 'transparent' : '#C5FF3D',
-          color: savedAthlete ? '#F4F4F5' : '#000',
-          border: savedAthlete ? '1px solid #3A3A42' : 'none',
+          background: 'transparent',
+          color: '#F4F4F5',
+          border: '1px solid #3A3A42',
           padding: '13px 16px', borderRadius: 999, fontWeight: 700, fontSize: 14, cursor: 'pointer',
           display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginBottom: 16,
         }}>
-          {savedAthlete ? 'Sign up as a different athlete' : 'Sign up as an athlete'} <ArrowRight size={14}/>
+          {savedAthlete ? 'Sign up as a different athlete' : 'New here? Sign up as an athlete'} <ArrowRight size={14}/>
         </button>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
@@ -1062,7 +1196,7 @@ function LoginSheet({ savedAthlete, onLogin, onCodeLogin, onSignUp, onClose }) {
         <textarea
           value={code}
           onChange={e => { setCode(e.target.value); if (codeError) setCodeError(''); }}
-          placeholder="Paste your CoachMe code (starts with CM1-)"
+          placeholder="Paste your code (athletes: CM1-, coaches: CH1-)"
           rows={2}
           className="mono"
           style={{

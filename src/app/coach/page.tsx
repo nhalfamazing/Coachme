@@ -62,6 +62,31 @@ function loadAthleteDirectory() {
     return Array.isArray(d) ? d : [];
   } catch { return []; }
 }
+// Coach codes (CH1-) let a coach carry their console to another device,
+// mirroring the athlete CoachMe code (CM1-).
+function encodeCoachCode(c) {
+  try {
+    return "CH1-" + btoa(unescape(encodeURIComponent(JSON.stringify(c))));
+  } catch { return null; }
+}
+function decodeCoachCode(input) {
+  try {
+    const raw = String(input || "").trim().replace(/\s+/g, "");
+    if (!raw.startsWith("CH1-")) return null;
+    const c = JSON.parse(decodeURIComponent(escape(atob(raw.slice(4)))));
+    if (!c || !c.id || !c.name || !c.sport) return null;
+    return c;
+  } catch { return null; }
+}
+function upsertCoach(c) {
+  try {
+    const list = loadCoaches();
+    const i = list.findIndex(x => x.id === c.id);
+    if (i >= 0) list[i] = { ...list[i], ...c };
+    else list.push(c);
+    localStorage.setItem("coachme_coaches", JSON.stringify(list));
+  } catch {}
+}
 // Coach-initiated conversations: create the thread if it does not exist.
 function ensureThread(coach, athleteSnap) {
   const threads = loadThreads();
@@ -262,6 +287,20 @@ export default function CoachConsole() {
    PICKER (coach "login")
    ============================================================ */
 function CoachPicker({ coaches, onSelect }) {
+  const [code, setCode] = useState("");
+  const [codeError, setCodeError] = useState("");
+
+  const submitCode = () => {
+    const c = decodeCoachCode(code);
+    if (!c) {
+      setCodeError("That code is not valid. Coach codes start with CH1-. Copy the whole thing from My Profile on your other device.");
+      return;
+    }
+    setCodeError("");
+    upsertCoach(c);
+    onSelect(c);
+  };
+
   return (
     <div style={{ maxWidth: 620, margin: "0 auto", padding: "56px 24px" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
@@ -336,6 +375,48 @@ function CoachPicker({ coaches, onSelect }) {
           </div>
         </>
       )}
+
+      <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "26px 0 12px" }}>
+        <span style={{ flex: 1, height: 1, background: C.border }}/>
+        <span className="mono" style={{ fontSize: 9, color: C.faint, letterSpacing: "0.18em" }}>COMING FROM ANOTHER DEVICE?</span>
+        <span style={{ flex: 1, height: 1, background: C.border }}/>
+      </div>
+      <textarea
+        value={code}
+        onChange={e => { setCode(e.target.value); if (codeError) setCodeError(""); }}
+        placeholder="Paste your coach code (starts with CH1-)"
+        rows={2}
+        className="mono"
+        style={{
+          width: "100%", background: C.panel, border: `1px solid ${C.border}`,
+          borderRadius: 10, padding: "11px 13px", color: C.text,
+          fontSize: 11, outline: "none", resize: "none", marginBottom: 8,
+          fontFamily: "inherit", lineHeight: 1.5,
+        }}
+        onFocus={e => e.currentTarget.style.borderColor = C.accent}
+        onBlur={e => e.currentTarget.style.borderColor = C.border}
+      />
+      {codeError && (
+        <div style={{
+          padding: "9px 12px", borderRadius: 10, marginBottom: 8,
+          background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.4)",
+          color: C.red, fontSize: 12, lineHeight: 1.4,
+        }}>
+          {codeError}
+        </div>
+      )}
+      <button onClick={submitCode} disabled={!code.trim()} className="body" style={{
+        width: "100%",
+        background: code.trim() ? C.accentDim : "transparent",
+        color: code.trim() ? C.accent : C.faint,
+        border: code.trim() ? `1px solid ${C.accentBorder}` : `1px solid ${C.border}`,
+        padding: "11px 16px", borderRadius: 10, fontWeight: 700, fontSize: 13,
+        cursor: code.trim() ? "pointer" : "not-allowed",
+        display: "flex", justifyContent: "center", alignItems: "center", gap: 8,
+        transition: "all 0.15s",
+      }}>
+        Log in with my coach code <ArrowRight size={14}/>
+      </button>
     </div>
   );
 }
@@ -1118,6 +1199,8 @@ function MyProfileView({ coach }) {
         )}
       </div>
 
+      <CoachCodeCard coach={coach}/>
+
       <div style={{
         background: C.panel, border: `1px dashed ${C.border}`, borderRadius: 12,
         padding: "14px 16px", fontSize: 12.5, color: C.muted, lineHeight: 1.55,
@@ -1126,6 +1209,50 @@ function MyProfileView({ coach }) {
         <a href="/become-a-coach" style={{ color: C.accent, textDecoration: "none", fontWeight: 700 }}>/become-a-coach</a>{" "}
         if something needs to change.
       </div>
+    </div>
+  );
+}
+
+function CoachCodeCard({ coach }) {
+  const [copied, setCopied] = useState(false);
+
+  const copy = async () => {
+    const codeStr = encodeCoachCode(coach);
+    if (!codeStr) return;
+    try {
+      await navigator.clipboard.writeText(codeStr);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2200);
+    } catch {
+      if (typeof window !== "undefined") window.prompt("Copy your coach code:", codeStr);
+    }
+  };
+
+  return (
+    <div style={{
+      background: C.panel, border: `1px solid ${C.border}`, borderRadius: 16, padding: 18, marginBottom: 18,
+    }}>
+      <div style={{ fontSize: 14.5, fontWeight: 800, marginBottom: 6 }}>Take your console anywhere</div>
+      <div style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.55, marginBottom: 12 }}>
+        Copy your coach code, then paste it into Log in on any other device to open your console there. Keep it private: anyone with your code can act as you.
+      </div>
+      <button onClick={copy} className="body" style={{
+        width: "100%",
+        background: copied ? "rgba(52,211,153,0.1)" : C.accentDim,
+        color: copied ? C.green : C.accent,
+        border: copied ? "1px solid rgba(52,211,153,0.4)" : `1px solid ${C.accentBorder}`,
+        padding: "11px 16px", borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: "pointer",
+        display: "flex", justifyContent: "center", alignItems: "center", gap: 8,
+        transition: "all 0.15s",
+      }}>
+        {copied ? (
+          <>
+            <CheckCircle2 size={14}/> Copied! Paste it on your other device
+          </>
+        ) : (
+          "Copy my coach code"
+        )}
+      </button>
     </div>
   );
 }
