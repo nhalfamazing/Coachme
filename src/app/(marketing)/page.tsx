@@ -189,6 +189,37 @@ function pushAthleteMessage(athlete, coachId, coachName, text) {
   t.updatedAt = Date.now();
   saveThreads(threads);
 }
+/* CoachMe code: the athlete's profile packed into a portable string so
+   they can log in on another device without a backend. Messages, feed
+   posts, and workouts stay device-local until the Phase 1 backend gives
+   every account real server-side sync. */
+function encodeAthleteCode(a) {
+  try {
+    const payload = JSON.stringify({
+      id: a.id, firstName: a.firstName, lastName: a.lastName,
+      name: a.name, initials: a.initials, sport: a.sport,
+      position: a.position, age: a.age ?? null, city: a.city,
+      state: a.state, location: a.location, banner: a.banner || null,
+      photo: a.photo || null, stats: a.stats || [],
+      level: a.level || 1, xp: a.xp || 0, xpMax: a.xpMax || 500,
+    });
+    return 'CM1-' + btoa(unescape(encodeURIComponent(payload)));
+  } catch {
+    return null;
+  }
+}
+function decodeAthleteCode(input) {
+  try {
+    const raw = String(input || '').trim().replace(/\s+/g, '');
+    if (!raw.startsWith('CM1-')) return null;
+    const a = JSON.parse(decodeURIComponent(escape(atob(raw.slice(4)))));
+    if (!a || !a.id || !a.name || !a.sport || !a.initials) return null;
+    return a;
+  } catch {
+    return null;
+  }
+}
+
 // Convert a stored thread's messages into the athlete UI's shape.
 function threadToConversation(athleteId, coachId) {
   const threads = loadThreads();
@@ -580,7 +611,7 @@ export default function CoachMeApp() {
         </div>
 
         {!athlete ? (
-          <SignUpFlow onComplete={completeSignup} savedAthlete={savedAthlete} onLogin={loginSavedAthlete} />
+          <SignUpFlow onComplete={completeSignup} savedAthlete={savedAthlete} onLogin={loginSavedAthlete} onCodeLogin={completeSignup} />
         ) : (
           <>
             <div className="phone-scroll" style={{ flex: 1, overflow: 'auto', position: 'relative' }}>
@@ -651,7 +682,7 @@ export default function CoachMeApp() {
 /* ============================================================
    SIGN UP FLOW
    ============================================================ */
-function SignUpFlow({ onComplete, savedAthlete, onLogin }) {
+function SignUpFlow({ onComplete, savedAthlete, onLogin, onCodeLogin }) {
   const [step, setStep] = useState(0);
   const [form, setForm] = useState({
     firstName: '', lastName: '',
@@ -708,7 +739,7 @@ function SignUpFlow({ onComplete, savedAthlete, onLogin }) {
 
   return (
     <div className="fade-in" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      {step === 0 && <SUWelcome onNext={next} savedAthlete={savedAthlete} onLogin={onLogin}/>}
+      {step === 0 && <SUWelcome onNext={next} savedAthlete={savedAthlete} onLogin={onLogin} onCodeLogin={onCodeLogin}/>}
       {step === 1 && <SUStep title="Who are you?" sub="The basics. We'll fill in the rest." idx={1} total={totalSteps - 1}
         canContinue={nameValid} onNext={next} onBack={back}>
         <SUInput label="FIRST NAME" placeholder="Noah" value={form.firstName} onChange={v => upd('firstName', v)} autoFocus/>
@@ -806,7 +837,7 @@ function SignUpFlow({ onComplete, savedAthlete, onLogin }) {
   );
 }
 
-function SUWelcome({ onNext, savedAthlete, onLogin }) {
+function SUWelcome({ onNext, savedAthlete, onLogin, onCodeLogin }) {
   const [loginOpen, setLoginOpen] = useState(false);
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
@@ -881,6 +912,7 @@ function SUWelcome({ onNext, savedAthlete, onLogin }) {
         <LoginSheet
           savedAthlete={savedAthlete}
           onLogin={onLogin}
+          onCodeLogin={onCodeLogin}
           onSignUp={() => { setLoginOpen(false); onNext(); }}
           onClose={() => setLoginOpen(false)}
         />
@@ -889,7 +921,20 @@ function SUWelcome({ onNext, savedAthlete, onLogin }) {
   );
 }
 
-function LoginSheet({ savedAthlete, onLogin, onSignUp, onClose }) {
+function LoginSheet({ savedAthlete, onLogin, onCodeLogin, onSignUp, onClose }) {
+  const [code, setCode] = useState('');
+  const [codeError, setCodeError] = useState('');
+
+  const submitCode = () => {
+    const decoded = decodeAthleteCode(code);
+    if (!decoded) {
+      setCodeError('That code is not valid. Make sure you copied the whole thing, starting with CM1-.');
+      return;
+    }
+    setCodeError('');
+    onCodeLogin(decoded);
+  };
+
   return (
     <div style={{
       position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)',
@@ -910,7 +955,7 @@ function LoginSheet({ savedAthlete, onLogin, onSignUp, onClose }) {
           </button>
         </div>
         <div className="body" style={{ fontSize: 12.5, color: '#9CA0A8', lineHeight: 1.5, marginBottom: 18 }}>
-          Accounts live on this device for now. Password login arrives with the Phase 1 backend.
+          Use your CoachMe code to bring your profile to any device. Full password accounts arrive with the Phase 1 backend.
         </div>
 
         {savedAthlete ? (
@@ -955,6 +1000,48 @@ function LoginSheet({ savedAthlete, onLogin, onSignUp, onClose }) {
           display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginBottom: 16,
         }}>
           {savedAthlete ? 'Sign up as a different athlete' : 'Sign up as an athlete'} <ArrowRight size={14}/>
+        </button>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+          <span style={{ flex: 1, height: 1, background: '#1F1F25' }}/>
+          <span className="mono" style={{ fontSize: 9, color: '#5F636B', letterSpacing: '0.18em' }}>COMING FROM ANOTHER DEVICE?</span>
+          <span style={{ flex: 1, height: 1, background: '#1F1F25' }}/>
+        </div>
+        <textarea
+          value={code}
+          onChange={e => { setCode(e.target.value); if (codeError) setCodeError(''); }}
+          placeholder="Paste your CoachMe code (starts with CM1-)"
+          rows={2}
+          className="mono"
+          style={{
+            width: '100%', background: '#18181C', border: '1px solid #2A2A30',
+            borderRadius: 12, padding: '11px 13px', color: '#F4F4F5',
+            fontSize: 11, outline: 'none', resize: 'none', marginBottom: 8,
+            fontFamily: 'inherit', lineHeight: 1.5,
+          }}
+          onFocus={e => e.currentTarget.style.borderColor = '#C5FF3D'}
+          onBlur={e => e.currentTarget.style.borderColor = '#2A2A30'}
+        />
+        {codeError && (
+          <div className="body" style={{
+            padding: '9px 12px', borderRadius: 10, marginBottom: 8,
+            background: 'rgba(255,68,68,0.1)', border: '1px solid rgba(255,68,68,0.4)',
+            color: '#FF8888', fontSize: 12, lineHeight: 1.4,
+          }}>
+            {codeError}
+          </div>
+        )}
+        <button onClick={submitCode} disabled={!code.trim()} className="body" style={{
+          width: '100%',
+          background: code.trim() ? 'rgba(197,255,61,0.1)' : 'transparent',
+          color: code.trim() ? '#C5FF3D' : '#5F636B',
+          border: code.trim() ? '1px solid rgba(197,255,61,0.45)' : '1px solid #2A2A30',
+          padding: '12px 16px', borderRadius: 999, fontWeight: 700, fontSize: 13,
+          cursor: code.trim() ? 'pointer' : 'not-allowed',
+          display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginBottom: 16,
+          transition: 'all 0.15s',
+        }}>
+          Log in with my code <ArrowRight size={14}/>
         </button>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
@@ -1422,6 +1509,11 @@ function ProfileView({ athlete, trainerIds, trainers = TRAINERS, workouts = [], 
         </div>
       </div>
 
+      {/* Account portability */}
+      <div style={{ padding: '0 16px 12px' }}>
+        <AccountCard athlete={athlete}/>
+      </div>
+
       {/* Sign out (also clears the saved athlete so the welcome screen shows again) */}
       {onSignOut && (
         <div style={{ padding: '0 16px 24px', textAlign: 'center' }}>
@@ -1533,6 +1625,54 @@ function AchievementCard({ achievement, earned }) {
         <div className="display" style={{ fontSize: 14, lineHeight: 1, textTransform: 'uppercase', color: earned ? '#F4F4F5' : '#9CA0A8' }}>{achievement.label}</div>
         <div className="body" style={{ fontSize: 10.5, color: '#5F636B', marginTop: 3, lineHeight: 1.4 }}>{achievement.hint}</div>
       </div>
+    </div>
+  );
+}
+
+function AccountCard({ athlete }) {
+  const [copied, setCopied] = useState(false);
+
+  const copy = async () => {
+    const codeStr = encodeAthleteCode(athlete);
+    if (!codeStr) return;
+    try {
+      await navigator.clipboard.writeText(codeStr);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2200);
+    } catch {
+      // Clipboard can be blocked; fall back to a copyable prompt.
+      if (typeof window !== 'undefined') window.prompt('Copy your CoachMe code:', codeStr);
+    }
+  };
+
+  return (
+    <div style={{
+      background: 'linear-gradient(160deg, #1A1A20 0%, #0F0F14 100%)',
+      border: '1px solid #2A2A30', borderRadius: 14, padding: 16,
+    }}>
+      <div className="display" style={{ fontSize: 18, lineHeight: 1, textTransform: 'uppercase', marginBottom: 6 }}>
+        TAKE YOUR PROFILE ANYWHERE
+      </div>
+      <div className="body" style={{ fontSize: 12, color: '#9CA0A8', lineHeight: 1.55, marginBottom: 12 }}>
+        Copy your CoachMe code, then paste it into Log in on any other device to bring your profile with you. Keep it private: anyone with your code can load your profile.
+      </div>
+      <button onClick={copy} className="body" style={{
+        width: '100%',
+        background: copied ? 'rgba(197,255,61,0.12)' : '#18181C',
+        color: copied ? '#C5FF3D' : '#F4F4F5',
+        border: copied ? '1px solid #C5FF3D' : '1px solid #3A3A42',
+        padding: '11px 16px', borderRadius: 999, fontWeight: 700, fontSize: 13, cursor: 'pointer',
+        display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8,
+        transition: 'all 0.15s',
+      }}>
+        {copied ? (
+          <>
+            <CheckCircle2 size={14}/> Copied! Paste it on your other device
+          </>
+        ) : (
+          'Copy my CoachMe code'
+        )}
+      </button>
     </div>
   );
 }
