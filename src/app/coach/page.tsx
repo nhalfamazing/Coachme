@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { cloudEnabled, cloudFetchAll, cloudUpsert } from "@/lib/cloud";
+import { generateCoachCode, decodeAnyCode } from "@/lib/codes";
 import {
   Home, MessageCircle, Users, User, Video, Send, ChevronLeft, X,
   ArrowRight, Mic, MicOff, VideoOff, PhoneOff, Camera, MoreHorizontal,
@@ -67,55 +68,8 @@ function loadAthleteDirectory() {
 }
 // Short, readable coach codes: unique id (base36) plus their own facts.
 // Example: CH2-ABX9F3K.Sam_Cooper.Football.Quarterback_mechanics.80.7.Miami
-const codeEncPart = (s) => String(s ?? "").replace(/\./g, "").replace(/\s+/g, "_");
-const codeDecPart = (s) => String(s || "").replace(/_/g, " ").trim();
-const titleCase = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
-
-function encodeCoachCode(c) {
-  try {
-    const parts = [
-      Number(c.id).toString(36).toUpperCase(),
-      codeEncPart(c.name),
-      codeEncPart(c.sport),
-      codeEncPart(c.specialty || c.title || ""),
-      c.rate ?? "",
-      c.years ?? "",
-      codeEncPart(String(c.location || "").split(",")[0]),
-    ];
-    return "CH2-" + parts.join(".");
-  } catch { return null; }
-}
-function decodeCoachCode(input) {
-  try {
-    const raw = String(input || "").trim().replace(/\s+/g, "");
-    if (raw.toUpperCase().startsWith("CH2-")) {
-      const p = raw.slice(4).split(".");
-      const id = parseInt(p[0], 36);
-      const name = codeDecPart(p[1]);
-      const sport = titleCase(codeDecPart(p[2]));
-      if (!id || !name || !sport) return null;
-      const specialty = codeDecPart(p[3]);
-      const words = name.split(" ");
-      return {
-        id, name, sport,
-        initials: ((words[0]?.[0] || "") + (words[1]?.[0] || words[0]?.[1] || "")).toUpperCase(),
-        specialty, title: specialty,
-        rate: p[4] ? parseFloat(p[4]) : null,
-        years: p[5] ? parseInt(p[5]) : null,
-        location: titleCase(codeDecPart(p[6])) || "",
-        photo: null, cover: null, rating: null, reviews: 0, athletes: 0,
-        avgGain: null, commits: 0, modes: ["in_person"],
-        badge: "NEW COACH", bio: "", color: "#5DA9FF",
-        email: "", phone: "", verified: false,
-      };
-    }
-    // Legacy long codes keep working forever.
-    if (!raw.startsWith("CH1-")) return null;
-    const c = JSON.parse(decodeURIComponent(escape(atob(raw.slice(4)))));
-    if (!c || !c.id || !c.name || !c.sport) return null;
-    return c;
-  } catch { return null; }
-}
+// 3-word login codes live in src/lib/codes.ts (sam-coach-tiger style).
+// Old CH1-/CH2- codes still decode there.
 function upsertCoach(c) {
   try {
     const list = loadCoaches();
@@ -224,6 +178,17 @@ export default function CoachConsole() {
       else sessionStorage.removeItem("coachme_active_coach");
     } catch {}
   };
+
+  // Backfill: coaches created before 3-word codes existed get one the
+  // next time they open the console, and it sticks everywhere.
+  useEffect(() => {
+    if (!coach || coach.code) return;
+    const code = generateCoachCode(coach, loadCoaches().map(x => x.code));
+    if (!code) return;
+    const withCode = { ...coach, code };
+    upsertCoach(withCode);
+    setCoach(withCode);
+  }, [coach]);
 
   useEffect(() => {
     const allCoaches = loadCoaches();
@@ -369,18 +334,19 @@ function CoachPicker({ coaches, onSelect }) {
   const [codeError, setCodeError] = useState("");
 
   const submitCode = () => {
-    const c = decodeCoachCode(code);
-    if (!c) {
-      setCodeError("That code is not valid. Check every letter: coach codes start with CH2-. Older long CH1- codes work too.");
+    const res = decodeAnyCode(code, { athletes: [], coaches });
+    if (!res || res.type !== "coach") {
+      setCodeError(res && res.type === "athlete"
+        ? "That looks like an athlete code. Coach codes have the word coach in the middle, like sam-coach-tiger."
+        : "That code is not right. It is three short words with dashes, like sam-coach-tiger. Check every word.");
       return;
     }
     setCodeError("");
-    // Any code ever issued works: we match by the id inside it. If this
-    // device already knows a fresher version of this coach, prefer that
-    // so an old code never overwrites newer profile info.
-    const local = coaches.find(x => x.id === c.id);
-    if (!local) upsertCoach(c);
-    onSelect(local || c);
+    // Any code ever issued works. If this device already knows a fresher
+    // version of this coach, prefer that record.
+    const local = coaches.find(x => x.id === res.profile.id);
+    if (!local) upsertCoach(res.profile);
+    onSelect(local || res.profile);
   };
 
   return (
@@ -466,7 +432,7 @@ function CoachPicker({ coaches, onSelect }) {
       <textarea
         value={code}
         onChange={e => { setCode(e.target.value); if (codeError) setCodeError(""); }}
-        placeholder="Type your coach code (starts with CH2-)"
+        placeholder="Type your 3 words, like sam-coach-tiger"
         rows={2}
         className="mono"
         style={{
@@ -797,7 +763,7 @@ function OverviewView({ coach, threads, directoryCount = 0, onOpenThread, onGoAt
 
 function CodeBanner({ coach }) {
   const [copied, setCopied] = useState(false);
-  const codeStr = encodeCoachCode(coach);
+  const codeStr = coach.code || generateCoachCode(coach) || '';
   if (!codeStr) return null;
 
   const copy = async () => {
@@ -818,17 +784,18 @@ function CodeBanner({ coach }) {
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
         <KeyIconBox/>
         <span className="mono" style={{ fontSize: 10, color: C.accent, letterSpacing: "0.18em", fontWeight: 700 }}>
-          YOUR LOGIN CODE
+          YOUR 3-WORD LOGIN CODE
         </span>
       </div>
       <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.5, marginBottom: 10 }}>
-        This is your code. Type it into Coach log in on any other device and your console opens there. Keep it private: anyone with it can open your console.
+        These three words are your login. Type them into Coach log in on any other device and your console opens there. Keep them private.
       </div>
       <div className="mono" style={{
         background: C.bg, border: `1px solid ${C.accentBorder}`,
-        borderRadius: 10, padding: "12px 14px", marginBottom: 10,
-        fontSize: 14, color: C.accent, lineHeight: 1.6,
-        wordBreak: "break-all", textAlign: "center", userSelect: "all",
+        borderRadius: 10, padding: "14px", marginBottom: 10,
+        fontSize: 18, fontWeight: 700, color: C.accent, lineHeight: 1.5,
+        wordBreak: "break-word", textAlign: "center", userSelect: "all",
+        letterSpacing: "0.03em",
       }}>
         {codeStr}
       </div>
@@ -1360,9 +1327,9 @@ function MyProfileView({ coach }) {
 
 function CoachCodeCard({ coach }) {
   const [copied, setCopied] = useState(false);
+  const codeStr = coach.code || generateCoachCode(coach) || '';
 
   const copy = async () => {
-    const codeStr = encodeCoachCode(coach);
     if (!codeStr) return;
     try {
       await navigator.clipboard.writeText(codeStr);
@@ -1379,8 +1346,18 @@ function CoachCodeCard({ coach }) {
     }}>
       <div style={{ fontSize: 14.5, fontWeight: 800, marginBottom: 6 }}>Take your console anywhere</div>
       <div style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.55, marginBottom: 12 }}>
-        Copy your coach code, then paste it into Log in on any other device to open your console there. Keep it private: anyone with your code can act as you.
+        These three words are your login on any device. Keep them private: anyone with your code can act as you.
       </div>
+      {codeStr && (
+        <div className="mono" style={{
+          background: C.bg, border: `1px solid ${C.accentBorder}`,
+          borderRadius: 10, padding: "13px", marginBottom: 12,
+          fontSize: 16, fontWeight: 700, color: C.accent, lineHeight: 1.5,
+          wordBreak: "break-word", textAlign: "center", userSelect: "all",
+        }}>
+          {codeStr}
+        </div>
+      )}
       <button onClick={copy} className="body" style={{
         width: "100%",
         background: copied ? "rgba(52,211,153,0.1)" : C.accentDim,

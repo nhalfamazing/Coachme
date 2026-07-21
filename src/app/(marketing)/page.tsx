@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { cloudEnabled, cloudFetchAll, cloudUpsert } from '@/lib/cloud';
+import { generateAthleteCode, decodeAnyCode } from '@/lib/codes';
 import {
   CheckCircle2, MapPin, Video, Send, Calendar as CalIcon, Star,
   TrendingUp, Search, User as UserIcon, MessageCircle,
@@ -170,7 +171,7 @@ function makeThreadId(athleteId, coachId) { return `${athleteId}::${coachId}`; }
 function athleteSnapshot(a) {
   return {
     id: a.id, name: a.name, firstName: a.firstName || null,
-    lastName: a.lastName || null,
+    lastName: a.lastName || null, code: a.code || null,
     initials: a.initials, sport: a.sport,
     position: a.position, age: a.age ?? null, city: a.city,
     state: a.state || null, location: a.location || null,
@@ -235,111 +236,9 @@ function upsertCoach(c) {
     cloudUpsert('coaches', c.id, c);
   } catch {}
 }
-// Coach codes (CH1-) mirror athlete codes so coaches can also move
-// between devices. Decoded coaches are upserted into this device's
-// coach list, then the Coach Console is opened with them active.
-function decodeCoachCode(input) {
-  try {
-    const raw = String(input || '').trim().replace(/\s+/g, '');
-    // New short format: CH2-<id36>.<Name>.<Sport>.<Specialty>.<rate>.<years>.<City>
-    if (raw.toUpperCase().startsWith('CH2-')) {
-      const p = raw.slice(4).split('.');
-      const id = parseInt(p[0], 36);
-      const name = codeDecPart(p[1]);
-      const sport = titleCase(codeDecPart(p[2]));
-      if (!id || !name || !sport) return null;
-      const specialty = codeDecPart(p[3]);
-      const rate = p[4] ? parseFloat(p[4]) : null;
-      const years = p[5] ? parseInt(p[5]) : null;
-      const city = titleCase(codeDecPart(p[6]));
-      const words = name.split(' ');
-      return {
-        id, name, sport,
-        initials: ((words[0]?.[0] || '') + (words[1]?.[0] || words[0]?.[1] || '')).toUpperCase(),
-        specialty, title: specialty,
-        rate, years,
-        location: city || '',
-        photo: null, cover: null, rating: null, reviews: 0, athletes: 0,
-        avgGain: null, commits: 0, modes: ['in_person'],
-        badge: 'NEW COACH', bio: '', color: '#5DA9FF',
-        email: '', phone: '', verified: false,
-      };
-    }
-    // Legacy long format keeps working.
-    if (!raw.startsWith('CH1-')) return null;
-    const c = JSON.parse(decodeURIComponent(escape(atob(raw.slice(4)))));
-    if (!c || !c.id || !c.name || !c.sport) return null;
-    return c;
-  } catch { return null; }
-}
-
-/* CoachMe code: the athlete's profile packed into a portable string so
-   they can log in on another device without a backend. Messages, feed
-   posts, and workouts stay device-local until the Phase 1 backend gives
-   every account real server-side sync. */
-// Compact code helpers: dot-separated fields, spaces become underscores.
-const codeEncPart = (s) => String(s ?? '').replace(/\./g, '').replace(/\s+/g, '_');
-const codeDecPart = (s) => String(s || '').replace(/_/g, ' ').trim();
-const titleCase = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
-
-// Short, readable, unique per person: the unique id (base36) plus their
-// own profile facts. Example:
-//   CM2-ABX9F3K.Alex.Rivera.Football.Quarterback.15.Miami.FL
-function encodeAthleteCode(a) {
-  try {
-    const parts = [
-      Number(a.id).toString(36).toUpperCase(),
-      codeEncPart(a.firstName || (a.name || '').split(' ')[0]),
-      codeEncPart(a.lastName || ''),
-      codeEncPart(a.sport || ''),
-      codeEncPart(a.position || ''),
-      a.age ?? '',
-      codeEncPart(a.city || ''),
-      codeEncPart(a.state || ''),
-    ];
-    return 'CM2-' + parts.join('.');
-  } catch {
-    return null;
-  }
-}
-function decodeAthleteCode(input) {
-  try {
-    const raw = String(input || '').trim().replace(/\s+/g, '');
-    // New short format.
-    if (raw.toUpperCase().startsWith('CM2-')) {
-      const p = raw.slice(4).split('.');
-      const id = parseInt(p[0], 36);
-      const firstName = titleCase(codeDecPart(p[1]));
-      const sport = titleCase(codeDecPart(p[3]));
-      if (!id || !firstName || !sport) return null;
-      const lastName = titleCase(codeDecPart(p[2]));
-      const position = titleCase(codeDecPart(p[4]));
-      const age = p[5] ? parseInt(p[5]) : null;
-      const city = titleCase(codeDecPart(p[6]));
-      const state = codeDecPart(p[7]).toUpperCase();
-      return {
-        id,
-        firstName,
-        lastName: lastName || null,
-        name: lastName ? `${firstName[0]}. ${lastName}` : firstName,
-        initials: (firstName[0] + (lastName[0] || firstName[1] || '')).toUpperCase(),
-        sport, position: position || '',
-        age: Number.isFinite(age) ? age : null,
-        city, state,
-        location: city ? `${city}${state ? `, ${state}` : ''}` : '',
-        banner: sport === 'Baseball' ? BASEBALL_BANNER : null,
-        photo: null, stats: [], level: 1, xp: 0, xpMax: 500,
-      };
-    }
-    // Legacy long format: every code ever issued keeps working.
-    if (!raw.startsWith('CM1-')) return null;
-    const a = JSON.parse(decodeURIComponent(escape(atob(raw.slice(4)))));
-    if (!a || !a.id || !a.name || !a.sport || !a.initials) return null;
-    return a;
-  } catch {
-    return null;
-  }
-}
+// Login codes now live in src/lib/codes.ts: three short words per person
+// (athletes: alex-tiger-moon, coaches: sam-coach-tiger). Old CM1/CM2/CH1/
+// CH2 codes still decode there so nobody gets locked out.
 
 // Convert a stored thread's messages into the athlete UI's shape.
 function threadToConversation(athleteId, coachId) {
@@ -459,6 +358,11 @@ export default function CoachMeApp() {
 
   const completeSignup = (a) => {
     const withId = { id: a.id || Date.now(), ...a };
+    // Issue their 3-word login code the moment the account exists, and
+    // remember it on the profile forever.
+    if (!withId.code) {
+      withId.code = generateAthleteCode(withId, loadAthleteDir().map(x => x.code));
+    }
     setAthlete(withId);
     setSavedAthlete(null);
     try {
@@ -470,6 +374,16 @@ export default function CoachMeApp() {
   // Keep this athlete listed in the shared directory coaches browse.
   useEffect(() => {
     if (athlete) registerAthlete(athlete);
+  }, [athlete]);
+
+  // Backfill: athletes created before 3-word codes existed get one the
+  // next time they open the app, and it sticks.
+  useEffect(() => {
+    if (!athlete || athlete.code) return;
+    const withCode = { ...athlete, code: generateAthleteCode(athlete, loadAthleteDir().map(x => x.code)) };
+    if (!withCode.code) return;
+    setAthlete(withCode);
+    try { localStorage.setItem('coachme_athlete', JSON.stringify(withCode)); } catch {}
   }, [athlete]);
 
   const loginSavedAthlete = () => {
@@ -1287,23 +1201,21 @@ function LoginSheet({ savedAthlete, onLogin, onCodeLogin, onSignUp, onClose }) {
   };
 
   const submitCode = () => {
-    const athlete = decodeAthleteCode(code);
-    if (athlete) {
-      setCodeError('');
-      onCodeLogin(athlete);
+    // Local profiles win (exact restore); otherwise the three words
+    // rebuild a working profile. Old long codes still decode.
+    const res = decodeAnyCode(code, { athletes: loadAthleteDir(), coaches: loadCoachList() });
+    if (!res) {
+      setCodeError('That code is not right. It is three short words with dashes, like alex-tiger-moon. Check every word.');
       return;
     }
-    const coach = decodeCoachCode(code);
-    if (coach) {
-      setCodeError('');
-      // Any code ever issued works (matched by the id inside it). Prefer
-      // this device's fresher record so old codes never overwrite it.
-      const localCoach = loadCoachList().find(c => c.id === coach.id);
-      if (!localCoach) upsertCoach(coach);
-      loginAsCoach(localCoach || coach);
+    setCodeError('');
+    if (res.type === 'athlete') {
+      onCodeLogin(res.profile);
       return;
     }
-    setCodeError('That code is not valid. Check every letter: athlete codes start with CM2-, coach codes with CH2-. Older long codes work too.');
+    const localCoach = loadCoachList().find(c => c.id === res.profile.id);
+    if (!localCoach) upsertCoach(res.profile);
+    loginAsCoach(localCoach || res.profile);
   };
 
   return (
@@ -1424,7 +1336,7 @@ function LoginSheet({ savedAthlete, onLogin, onCodeLogin, onSignUp, onClose }) {
         <textarea
           value={code}
           onChange={e => { setCode(e.target.value); if (codeError) setCodeError(''); }}
-          placeholder="Type your code (athletes: CM2-, coaches: CH2-)"
+          placeholder="Type your 3 words, like alex-tiger-moon"
           rows={2}
           className="mono"
           style={{
@@ -2125,8 +2037,9 @@ function AchievementCard({ achievement, earned }) {
 function AccountCard({ athlete }) {
   const [copied, setCopied] = useState(false);
 
+  const codeStr = athlete.code || generateAthleteCode(athlete) || '';
+
   const copy = async () => {
-    const codeStr = encodeAthleteCode(athlete);
     if (!codeStr) return;
     try {
       await navigator.clipboard.writeText(codeStr);
@@ -2138,25 +2051,24 @@ function AccountCard({ athlete }) {
     }
   };
 
-  const codeStr = encodeAthleteCode(athlete);
-
   return (
     <div style={{
       background: 'linear-gradient(160deg, #1A1A20 0%, #0F0F14 100%)',
       border: '1px solid #2A2A30', borderRadius: 14, padding: 16,
     }}>
       <div className="display" style={{ fontSize: 18, lineHeight: 1, textTransform: 'uppercase', marginBottom: 6 }}>
-        YOUR COACHME CODE
+        YOUR 3-WORD CODE
       </div>
       <div className="body" style={{ fontSize: 12, color: '#9CA0A8', lineHeight: 1.55, marginBottom: 12 }}>
-        Type this code into Log in on any other device and your profile comes with you. Keep it private: anyone with your code can load your profile.
+        These three words are your login. Type them into Log in on any other device and your profile comes with you. Keep them private.
       </div>
       {codeStr && (
         <div className="mono" style={{
           background: '#0A0A0B', border: '1px solid rgba(197,255,61,0.4)',
-          borderRadius: 12, padding: '12px 14px', marginBottom: 10,
-          fontSize: 13, color: '#C5FF3D', lineHeight: 1.6,
-          wordBreak: 'break-all', textAlign: 'center', userSelect: 'all',
+          borderRadius: 12, padding: '14px 14px', marginBottom: 10,
+          fontSize: 17, fontWeight: 700, color: '#C5FF3D', lineHeight: 1.5,
+          wordBreak: 'break-word', textAlign: 'center', userSelect: 'all',
+          letterSpacing: '0.03em',
         }}>
           {codeStr}
         </div>

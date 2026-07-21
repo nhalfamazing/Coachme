@@ -4,6 +4,7 @@
 
 import { useState, useId } from "react";
 import { cloudUpsert } from "@/lib/cloud";
+import { generateCoachCode } from "@/lib/codes";
 import { ArrowRight, ChevronLeft, CheckCircle2 } from "lucide-react";
 
 const SPORTS = [
@@ -90,25 +91,9 @@ export default function BecomeACoachPage() {
   const [submittedCoach, setSubmittedCoach] = useState(null);
   const [codeCopied, setCodeCopied] = useState(false);
 
-  // Same short CH2- format the Coach Console shows; either source logs
-  // them in. Short and readable so it can be written down or typed.
-  const coachCode = submittedCoach
-    ? (() => {
-        try {
-          const enc = (s) => String(s ?? "").replace(/\./g, "").replace(/\s+/g, "_");
-          return "CH2-" + [
-            Number(submittedCoach.id).toString(36).toUpperCase(),
-            enc(submittedCoach.name),
-            enc(submittedCoach.sport),
-            enc(submittedCoach.specialty || ""),
-            submittedCoach.rate ?? "",
-            submittedCoach.years ?? "",
-            enc(String(submittedCoach.location || "").split(",")[0]),
-          ].join(".");
-        }
-        catch { return null; }
-      })()
-    : null;
+  // Their 3-word login code (sam-coach-tiger style), issued at signup
+  // and stored on the profile forever.
+  const coachCode = submittedCoach ? submittedCoach.code : null;
 
   const copyCode = async () => {
     if (!coachCode) return;
@@ -170,6 +155,12 @@ export default function BecomeACoachPage() {
       submittedAt: new Date().toISOString(),
       verified: false,
     };
+    try {
+      const others = JSON.parse(localStorage.getItem("coachme_coaches") || "[]");
+      submission.code = generateCoachCode(submission, others.map(c => c && c.code));
+    } catch {
+      submission.code = generateCoachCode(submission);
+    }
 
     try {
       const existing = JSON.parse(localStorage.getItem("coachme_coaches") || "[]");
@@ -219,16 +210,16 @@ export default function BecomeACoachPage() {
               background: "rgba(197,255,61,0.07)", border: "1px solid rgba(197,255,61,0.45)",
             }}>
               <div className="mono" style={{ fontSize: 10.5, color: "#C5FF3D", letterSpacing: "0.18em", marginBottom: 6, fontWeight: 700 }}>
-                YOUR LOGIN CODE - SAVE THIS FIRST
+                YOUR 3-WORD LOGIN CODE - SAVE IT
               </div>
               <div style={{ fontSize: 13, color: "#D4D6DA", lineHeight: 1.55, marginBottom: 12 }}>
-                This code is how you log in to your coach console on this device or any other. Copy it now and keep it private: anyone with it can open your console.
+                These three words are how you log in to your coach console on this device or any other. Write them down or copy them, and keep them private.
               </div>
               <div className="mono" style={{
                 background: "#0A0A0B", border: "1px solid rgba(197,255,61,0.4)",
                 borderRadius: 10, padding: "12px 14px", marginBottom: 10,
-                fontSize: 14, color: "#C5FF3D", lineHeight: 1.6,
-                wordBreak: "break-all", textAlign: "center", userSelect: "all",
+                fontSize: 18, fontWeight: 700, color: "#C5FF3D", lineHeight: 1.5,
+                wordBreak: "break-word", textAlign: "center", userSelect: "all",
               }}>
                 {coachCode}
               </div>
