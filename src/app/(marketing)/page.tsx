@@ -1071,7 +1071,7 @@ function SUWelcome({ onNext, savedAthlete, onLogin, onCodeLogin, deviceAthletes 
           display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8,
           marginTop: hasProfiles ? 10 : 18,
         }} className="body">
-          {hasProfiles ? 'New here? Get started' : 'Get started'} <ArrowRight size={16}/>
+          {hasProfiles ? 'New here? Get started' : 'Sign up as athlete'} <ArrowRight size={16}/>
         </button>
 
         <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
@@ -1088,7 +1088,7 @@ function SUWelcome({ onNext, savedAthlete, onLogin, onCodeLogin, deviceAthletes 
             padding: '13px 14px', borderRadius: 999, fontWeight: 700, fontSize: 14, textDecoration: 'none',
             display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 7,
           }}>
-            <UserPlus size={15}/> Coach sign-up
+            <UserPlus size={15}/> Sign up as coach
           </a>
         </div>
       </div>
