@@ -99,6 +99,56 @@ const BASEBALL_STAT_DEFS = [
   { key: 'popTime', label: 'Pop Time', unit: 's', placeholder: '2.20' },
 ];
 
+/* Drill Library: AI-generated coach clips (made with the founder's
+   Higgsfield account; same coach character in every clip). Each drill
+   has an intro (coach speaks) and a demo (slow textbook rep). Streamed
+   from the generation CDN so the repo and deploys stay light. Clearly
+   labeled as AI in the UI. */
+const DRILL_CDN = 'https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/';
+const DRILL_POSTERS = {
+  Basketball: DRILL_CDN + 'hf_20260723_003605_9fbc7e25-4227-468f-a09a-e6658825dba0.png',
+  Soccer: DRILL_CDN + 'hf_20260723_005814_88206a71-adb4-4295-9ccb-66f72ce85f79.png',
+  Baseball: DRILL_CDN + 'hf_20260723_005819_0cc507c8-0f65-4461-9fb9-0f4c32f908a7.png',
+};
+const DRILLS = [
+  {
+    id: 'bb-crossover', sport: 'Basketball', title: 'Crossover Dribble',
+    cue: 'Stay low, keep the ball below your knees, snap it across your body.',
+    intro: DRILL_CDN + 'hf_20260723_005010_50b1a8b7-176c-4769-83a5-84d548b43193.mp4',
+    demo: DRILL_CDN + 'hf_20260723_005024_03687e08-51b3-46c7-971c-db1eb40f0885.mp4',
+  },
+  {
+    id: 'bb-form-shooting', sport: 'Basketball', title: 'Form Shooting',
+    cue: 'One hand, perfect release, hold your follow-through.',
+    intro: DRILL_CDN + 'hf_20260723_010030_c8f4cc7c-f80c-45f3-bfdd-696672975daa.mp4',
+    demo: DRILL_CDN + 'hf_20260723_010037_17fbac40-451b-4456-9aa1-b3bb3021ac4a.mp4',
+  },
+  {
+    id: 'so-inside-pass', sport: 'Soccer', title: 'Inside-Foot Pass',
+    cue: 'Plant foot points at your target, strike the middle of the ball, firm ankle.',
+    intro: DRILL_CDN + 'hf_20260723_010043_7e65c1db-3c44-4bc2-b5d6-942ad083bdcd.mp4',
+    demo: DRILL_CDN + 'hf_20260723_010051_03fe3035-a7ea-417f-97cc-d79481d65ed3.mp4',
+  },
+  {
+    id: 'so-first-touch', sport: 'Soccer', title: 'First Touch',
+    cue: 'Meet the ball, cushion it soft, push it one step into space.',
+    intro: DRILL_CDN + 'hf_20260723_010057_6bcc39f8-5cd0-4edf-a583-6e80f501016a.mp4',
+    demo: DRILL_CDN + 'hf_20260723_010102_d75cd1f4-7c2c-42cf-8ba6-cf114d704b62.mp4',
+  },
+  {
+    id: 'ba-tee-work', sport: 'Baseball', title: 'Tee Work',
+    cue: 'Balanced stance, short stride, hands take the barrel straight to the ball.',
+    intro: DRILL_CDN + 'hf_20260723_010109_4cb2b3ae-97a2-427f-91a0-656b2dad870f.mp4',
+    demo: DRILL_CDN + 'hf_20260723_010115_b6969706-8ef9-4e7e-b75d-94a6110f73bf.mp4',
+  },
+  {
+    id: 'ba-ready-position', sport: 'Baseball', title: 'Fielding Ready Position',
+    cue: 'Feet wide, butt down, glove out front where you can see it.',
+    intro: DRILL_CDN + 'hf_20260723_010121_3000a2d9-82c3-4a3b-938b-5695173150b5.mp4',
+    demo: DRILL_CDN + 'hf_20260723_010128_fb22663c-6dce-4d51-ab3a-5a1fd1cb8dd5.mp4',
+  },
+];
+
 const WORKOUT_TYPES = [
   { key: 'practice',     label: 'Practice',         color: '#C5FF3D' },
   { key: 'strength',     label: 'Strength',         color: '#FF6B3D' },
@@ -462,6 +512,7 @@ export default function CoachMeApp() {
   // Workout log (athlete's daily training). Persisted to localStorage.
   const [workouts, setWorkouts] = useState([]);
   const [logWorkoutOpen, setLogWorkoutOpen] = useState(false);
+  const [drillOpen, setDrillOpen] = useState(null);
   useEffect(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('coachme_workouts') || '[]');
@@ -785,7 +836,7 @@ export default function CoachMeApp() {
             <div className="phone-scroll" style={{ flex: 1, overflow: 'auto', position: 'relative' }}>
               <div className={`tab-fade ${tabAnim ? 'out' : ''}`}>
                 {tab === 'profile' && <ProfileView athlete={athlete} trainerIds={trainerIds} trainers={allTrainers} workouts={workouts} hasPosts={hasPosts} hasMessagedCoach={messagedCoachEver} onOpenTrainer={openTrainer} onGoToTrainers={() => switchTab('trainers')} onOpenChat={openChat} onLogWorkout={() => setLogWorkoutOpen(true)} onRemoveWorkout={removeWorkout} onSignOut={signOut}/>}
-                {tab === 'trainers' && <TrainersView onOpenTrainer={openTrainer} athlete={athlete} trainers={allTrainers}/>}
+                {tab === 'trainers' && <TrainersView onOpenTrainer={openTrainer} athlete={athlete} trainers={allTrainers} onOpenDrill={setDrillOpen}/>}
                 {tab === 'community' && <CommunityView athlete={athlete}/>}
                 {tab === 'messages' && <MessagesView conversations={conversations} trainers={allTrainers} onOpenChat={openChat} onGoToTrainers={() => switchTab('trainers')}/>}
                 {tab === 'sessions' && <SessionsView sessions={sessions} trainers={allTrainers} onOpenTrainer={openTrainer} onGoToTrainers={() => switchTab('trainers')}/>}
@@ -833,6 +884,10 @@ export default function CoachMeApp() {
             )}
 
             {confirmed && <Celebration />}
+
+            {drillOpen && (
+              <DrillSheet drill={drillOpen} onClose={() => setDrillOpen(null)}/>
+            )}
 
             {logWorkoutOpen && (
               <LogWorkoutModal
@@ -2203,7 +2258,7 @@ function TrainerRow({ trainer, onClick, showSport }) {
 /* ============================================================
    TRAINERS VIEW
    ============================================================ */
-function TrainersView({ onOpenTrainer, athlete, trainers = TRAINERS }) {
+function TrainersView({ onOpenTrainer, athlete, trainers = TRAINERS, onOpenDrill }) {
   // Only show trainers verified for this athlete's sport. No cross-sport
   // padding, no fabricated rosters.
   const sportTrainers = trainers.filter(t => t.sport === athlete.sport);
@@ -2222,7 +2277,10 @@ function TrainersView({ onOpenTrainer, athlete, trainers = TRAINERS }) {
             {athlete.sport.toUpperCase()} &middot; {athlete.city.toUpperCase()}
           </div>
         </div>
-        <div style={{ padding: '40px 16px 0', textAlign: 'center' }}>
+
+        <DrillLibrary athleteSport={athlete.sport} onOpenDrill={onOpenDrill}/>
+
+        <div style={{ padding: '24px 16px 0', textAlign: 'center' }}>
           <div style={{
             width: 80, height: 80, borderRadius: 20,
             background: 'linear-gradient(135deg, rgba(197,255,61,0.1) 0%, rgba(197,255,61,0.02) 100%)',
@@ -2260,6 +2318,10 @@ function TrainersView({ onOpenTrainer, athlete, trainers = TRAINERS }) {
         <div className="mono" style={{ fontSize: 11, color: '#9CA0A8', letterSpacing: '0.08em' }}>
           {sportTrainers.length} TRAINER{sportTrainers.length !== 1 ? 'S' : ''} &middot; {athlete.sport.toUpperCase()} &middot; {athlete.city.toUpperCase()}
         </div>
+      </div>
+
+      <div style={{ paddingTop: 8 }}>
+        <DrillLibrary athleteSport={athlete.sport} onOpenDrill={onOpenDrill}/>
       </div>
 
       <div style={{ padding: '16px 16px 8px' }}>
@@ -2377,6 +2439,130 @@ function Mini({ num, label, small, icon }) {
     <div style={{ textAlign: 'center' }}>
       <div className="display" style={{ fontSize: small ? 14 : 18, lineHeight: 1, color: '#C5FF3D', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3 }}>{icon}{num}</div>
       <div className="mono" style={{ fontSize: 8, color: '#5F636B', letterSpacing: '0.1em', marginTop: 4 }}>{label}</div>
+    </div>
+  );
+}
+
+/* ============================================================
+   DRILL LIBRARY (AI coach clips)
+   ============================================================ */
+function DrillLibrary({ athleteSport, onOpenDrill }) {
+  // The athlete's own sport first, then everything else.
+  const mine = DRILLS.filter(d => d.sport === athleteSport);
+  const rest = DRILLS.filter(d => d.sport !== athleteSport);
+  const ordered = [...mine, ...rest];
+
+  return (
+    <>
+      <div style={{ padding: '0 16px 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <SectionLabel>DRILL LIBRARY</SectionLabel>
+        <span className="mono" style={{
+          fontSize: 8.5, padding: '3px 8px', borderRadius: 4,
+          background: 'rgba(197,255,61,0.12)', border: '1px solid rgba(197,255,61,0.4)',
+          color: '#C5FF3D', fontWeight: 700, letterSpacing: '0.12em',
+        }}>AI COACH</span>
+      </div>
+      <div style={{ display: 'flex', gap: 10, overflowX: 'auto', padding: '10px 16px 18px' }} className="phone-scroll">
+        {ordered.map(d => (
+          <button key={d.id} onClick={() => onOpenDrill(d)} style={{
+            minWidth: 168, maxWidth: 168, textAlign: 'left', cursor: 'pointer', padding: 0,
+            background: '#0F0F14', border: d.sport === athleteSport ? '1px solid rgba(197,255,61,0.45)' : '1px solid #2A2A30',
+            borderRadius: 14, overflow: 'hidden', flexShrink: 0,
+          }}>
+            <div style={{ height: 84, position: 'relative', overflow: 'hidden' }}>
+              <img src={DRILL_POSTERS[d.sport]} alt="" referrerPolicy="no-referrer" loading="lazy"
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}/>
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(15,15,20,0.05) 0%, rgba(15,15,20,0.85) 100%)' }}/>
+              <div style={{
+                position: 'absolute', bottom: 6, left: 8, display: 'flex', alignItems: 'center', gap: 5,
+              }}>
+                <span style={{
+                  width: 22, height: 22, borderRadius: '50%', background: 'rgba(197,255,61,0.9)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Video size={11} color="#000"/>
+                </span>
+                <span className="mono" style={{ fontSize: 8, color: '#D4D6DA', letterSpacing: '0.1em', fontWeight: 700 }}>
+                  INTRO + DEMO
+                </span>
+              </div>
+            </div>
+            <div style={{ padding: '9px 10px 11px' }}>
+              <div className="display" style={{ fontSize: 15, lineHeight: 1.05, textTransform: 'uppercase', color: '#F4F4F5' }}>{d.title}</div>
+              <div className="mono" style={{ fontSize: 8.5, color: d.sport === athleteSport ? '#C5FF3D' : '#5F636B', letterSpacing: '0.1em', marginTop: 4 }}>
+                {d.sport.toUpperCase()}{d.sport === athleteSport ? ' · FOR YOU' : ''}
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function DrillSheet({ drill, onClose }) {
+  return (
+    <div style={{
+      position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)',
+      backdropFilter: 'blur(8px)', zIndex: 210, display: 'flex', alignItems: 'flex-end',
+    }} onClick={onClose}>
+      <div className="slide-up phone-scroll" onClick={e => e.stopPropagation()} style={{
+        width: '100%', background: '#0F0F14', borderTopLeftRadius: 24, borderTopRightRadius: 24,
+        padding: 20, borderTop: '1px solid #2A2A30', position: 'relative',
+        maxHeight: '92%', overflowY: 'auto',
+      }}>
+        <div style={{ position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)', width: 36, height: 4, background: '#3A3A42', borderRadius: 999 }}/>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4, marginTop: 6 }}>
+          <div>
+            <div className="display" style={{ fontSize: 24, lineHeight: 1, textTransform: 'uppercase' }}>
+              {drill.title}
+            </div>
+            <div className="mono" style={{ fontSize: 9.5, color: '#9CA0A8', letterSpacing: '0.1em', marginTop: 5 }}>
+              {drill.sport.toUpperCase()} · COACH CLIP
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#5F636B', cursor: 'pointer', padding: 4 }}>
+            <X size={20}/>
+          </button>
+        </div>
+
+        <div className="body" style={{ fontSize: 13, color: '#D4D6DA', lineHeight: 1.5, margin: '10px 0 16px' }}>
+          {drill.cue}
+        </div>
+
+        <div className="mono" style={{ fontSize: 10, color: '#9CA0A8', letterSpacing: '0.14em', marginBottom: 8 }}>
+          1 · COACH INTRO <span style={{ color: '#5F636B' }}>(sound on)</span>
+        </div>
+        <video
+          src={drill.intro} poster={DRILL_POSTERS[drill.sport]}
+          controls playsInline preload="metadata"
+          style={{ width: '100%', borderRadius: 12, background: '#000', marginBottom: 16, display: 'block' }}
+        />
+
+        <div className="mono" style={{ fontSize: 10, color: '#9CA0A8', letterSpacing: '0.14em', marginBottom: 8 }}>
+          2 · WATCH THE DEMO <span style={{ color: '#5F636B' }}>(slow rep, copy it)</span>
+        </div>
+        <video
+          src={drill.demo} poster={DRILL_POSTERS[drill.sport]}
+          controls playsInline loop preload="metadata"
+          style={{ width: '100%', borderRadius: 12, background: '#000', marginBottom: 14, display: 'block' }}
+        />
+
+        <div style={{
+          padding: '9px 12px', borderRadius: 10,
+          background: 'rgba(197,255,61,0.06)', border: '1px solid rgba(197,255,61,0.25)',
+          display: 'flex', alignItems: 'center', gap: 8,
+        }}>
+          <span className="mono" style={{
+            fontSize: 8, padding: '3px 7px', borderRadius: 4, flexShrink: 0,
+            background: '#C5FF3D', color: '#000', fontWeight: 700, letterSpacing: '0.12em',
+          }}>AI</span>
+          <span className="body" style={{ fontSize: 11, color: '#9CA0A8', lineHeight: 1.45 }}>
+            This coach is AI-generated for the demo. Real verified coaches review all drills before launch.
+          </span>
+        </div>
+      </div>
     </div>
   );
 }
