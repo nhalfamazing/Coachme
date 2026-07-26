@@ -769,9 +769,11 @@ export default function CoachMeApp() {
       border-radius: 40px; border: 8px solid #18181C;
       box-shadow: 0 30px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
     }
-    /* Real phones: drop the fake frame, go true full-screen and edge to
-       edge, respect the notch, pin the nav, no fake status bar. */
-    @media (max-width: 560px) {
+    /* Real phones only (<=480px): drop the fake frame, go true
+       full-screen edge to edge, respect the notch, pin the nav, no fake
+       status bar. Anything wider (laptops, iPads, narrow desktop
+       windows, scaled displays) keeps the framed presentation. */
+    @media (max-width: 480px) {
       body { padding: 0 !important; }
       .phone-stage { padding: 0; }
       .phone {
@@ -2414,7 +2416,7 @@ function TrainerCardFeatured({ trainer, onClick }) {
         </div>
       </CoverPhoto>
 
-      <div style={{ padding: '0 18px 18px', marginTop: -28, position: 'relative' }}>
+      <div style={{ padding: '0 18px 18px', marginTop: -28, position: 'relative', zIndex: 3 }}>
         <Avatar photo={trainer.photo} initials={trainer.initials} size={56} color={trainer.color} square ring/>
         <div className="display" style={{ fontSize: 22, lineHeight: 1, textTransform: 'uppercase', marginTop: 10 }}>{trainer.name}</div>
         <div className="mono" style={{ fontSize: 10, color: '#9CA0A8', marginTop: 4, letterSpacing: '0.06em' }}>{trainer.specialty.toUpperCase()}</div>
@@ -3436,11 +3438,11 @@ function TrainerDetail({ trainer, onClose, onBook, onMessage, onCall }) {
             </div>
           </CoverPhoto>
 
-          <div style={{ padding: '0 20px', marginTop: -55, position: 'relative' }}>
+          <div style={{ padding: '0 20px', marginTop: -55, position: 'relative', zIndex: 3 }}>
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: 14 }}>
               <Avatar photo={trainer.photo} initials={trainer.initials} size={96} square color={trainer.color} ring/>
               <div style={{ flex: 1, paddingBottom: 8 }}>
-                <div className="display" style={{ fontSize: 30, lineHeight: 1, textTransform: 'uppercase' }}>{trainer.name}</div>
+                <div className="display" style={{ fontSize: 30, lineHeight: 1, textTransform: 'uppercase', color: '#F4F4F5', textShadow: '0 1px 14px rgba(0,0,0,0.85)' }}>{trainer.name}</div>
                 <div className="mono" style={{ fontSize: 11, color: '#9CA0A8', marginTop: 6, letterSpacing: '0.05em' }}>
                   {trainer.title.toUpperCase()} &middot; {trainer.years}YR
                 </div>
