@@ -706,10 +706,35 @@ export default function CoachMeApp() {
     .display { font-family: var(--font-display), 'Bebas Neue', sans-serif; letter-spacing: 0.005em; }
     .body { font-family: var(--font-body), 'Manrope', system-ui, sans-serif; }
     .mono { font-family: var(--font-mono), 'JetBrains Mono', monospace; }
-    .phone { -webkit-font-smoothing: antialiased; }
+    .phone { -webkit-font-smoothing: antialiased; touch-action: manipulation; }
     .phone *::selection { background: #C5FF3D; color: #000; }
     .phone-scroll::-webkit-scrollbar { display: none; }
-    .phone-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+    .phone-scroll { -ms-overflow-style: none; scrollbar-width: none; overscroll-behavior: contain; }
+
+    /* Laptops, iPads, big screens: the app sits in a pretty phone frame. */
+    .phone-stage { padding: 20px 12px; }
+    .phone {
+      max-width: 420px; min-height: 820px;
+      border-radius: 40px; border: 8px solid #18181C;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
+    }
+    /* Real phones: drop the fake frame, go true full-screen and edge to
+       edge, respect the notch, pin the nav, no fake status bar. */
+    @media (max-width: 560px) {
+      body { padding: 0 !important; }
+      .phone-stage { padding: 0; }
+      .phone {
+        max-width: none;
+        min-height: 100vh; min-height: 100dvh;
+        height: 100vh; height: 100dvh;
+        border-radius: 0; border: none; box-shadow: none;
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+      }
+      .phone-statusbar { display: none; }
+      /* 16px inputs stop iPhones from zooming in on every field. */
+      .phone input, .phone select, .phone textarea { font-size: 16px !important; }
+    }
     @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
@@ -735,17 +760,15 @@ export default function CoachMeApp() {
   `;
 
   return (
-    <div style={{ background: '#000', minHeight: '100vh', display: 'flex', justifyContent: 'center', padding: '20px 12px', fontFamily: 'system-ui' }}>
+    <div className="phone-stage" style={{ background: '#000', minHeight: '100vh', display: 'flex', justifyContent: 'center', fontFamily: 'system-ui' }}>
       <style>{phoneStyles}</style>
 
       <div className="phone" style={{
-        width: '100%', maxWidth: 420, minHeight: 820, background: '#0A0A0B',
-        borderRadius: 40, border: '8px solid #18181C',
-        boxShadow: '0 30px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04)',
+        width: '100%', background: '#0A0A0B',
         position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column',
         color: '#F4F4F5',
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 24px 8px', fontSize: 13, fontWeight: 600 }} className="mono">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 24px 8px', fontSize: 13, fontWeight: 600 }} className="mono phone-statusbar">
           <span>9:41</span>
           <div style={{ width: 60, height: 18, background: '#000', borderRadius: 12 }}/>
           <span style={{ display: 'flex', gap: 4, alignItems: 'center' }}>

@@ -583,7 +583,7 @@ function Shell({ coach, view, setView, onSwitch, needsReplyCount, children }) {
           </button>
         </aside>
 
-        <main className="scroll" style={{ flex: 1, minWidth: 0, overflowY: "auto", height: "100%", maxHeight: "100vh" }}>
+        <main className="scroll" style={{ flex: 1, minWidth: 0, overflowY: "auto", height: "100%", maxHeight: "100dvh" }}>
           {children}
         </main>
       </div>
@@ -955,7 +955,7 @@ function ConversationView({ thread, onBack, onReply, onCall }) {
   const first = athleteFirstName(athlete);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100vh", maxWidth: 920, margin: "0 auto" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100dvh", maxWidth: 920, margin: "0 auto" }}>
       <div style={{
         display: "flex", alignItems: "center", gap: 10, padding: "14px 16px",
         borderBottom: `1px solid ${C.border}`, background: "rgba(8,13,20,0.95)",
