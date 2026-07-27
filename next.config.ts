@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
   turbopack: {
@@ -11,4 +12,9 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  // Keep builds quiet on machines without Sentry credentials (no org,
+  // project, or auth token configured yet — source map upload is skipped).
+  silent: true,
+  telemetry: false,
+});

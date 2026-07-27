@@ -203,6 +203,42 @@ function countThisWeek(workouts) {
 }
 
 /* ============================================================
+   PER-ATHLETE WORKOUT STORAGE
+   Workouts live under 'coachme_workouts::<athleteId>' so two kids
+   sharing one browser get separate logs, streaks, and achievements.
+   The pre-namespacing shared key 'coachme_workouts' is claimed once
+   by the first athlete to log in after this shipped.
+   ============================================================ */
+const LEGACY_WORKOUTS_KEY = 'coachme_workouts';
+function workoutsKey(athleteId) { return `coachme_workouts::${athleteId}`; }
+
+function loadWorkoutsFor(athleteId) {
+  try {
+    const saved = JSON.parse(localStorage.getItem(workoutsKey(athleteId)) || '[]');
+    return Array.isArray(saved) ? saved : [];
+  } catch { return []; }
+}
+
+// One-time claim of the legacy shared log: copy it to the active
+// athlete's namespaced key, then prepend a {migrated: true} marker to
+// the legacy key so no other athlete on the device claims it too. The
+// legacy key is intentionally NOT deleted — a second profile on the
+// device may need its entries manually attributed later.
+function migrateLegacyWorkouts(athleteId) {
+  try {
+    const raw = localStorage.getItem(LEGACY_WORKOUTS_KEY);
+    if (raw == null) return;
+    if (localStorage.getItem(workoutsKey(athleteId)) != null) return;
+    let legacy;
+    try { legacy = JSON.parse(raw); } catch { return; }
+    if (!Array.isArray(legacy)) return;
+    if (legacy.some(w => w && w.migrated === true)) return;
+    localStorage.setItem(workoutsKey(athleteId), JSON.stringify(legacy));
+    localStorage.setItem(LEGACY_WORKOUTS_KEY, JSON.stringify([{ migrated: true }, ...legacy]));
+  } catch {}
+}
+
+/* ============================================================
    SHARED MESSAGE THREADS (athlete <-> coach)
    Single source of truth in localStorage 'coachme_threads', read and
    written by BOTH the athlete app and the coach dashboard at /coach.
@@ -513,29 +549,34 @@ export default function CoachMeApp() {
   const [workouts, setWorkouts] = useState([]);
   const [logWorkoutOpen, setLogWorkoutOpen] = useState(false);
   const [drillOpen, setDrillOpen] = useState(null);
+  // Load on login/resume, keyed to the active athlete. Runs the one-time
+  // legacy-key migration first so a pre-namespacing log is claimed by the
+  // first athlete to sign in, and only them.
   useEffect(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem('coachme_workouts') || '[]');
-      setWorkouts(Array.isArray(saved) ? saved : []);
-    } catch {
-      setWorkouts([]);
-    }
-  }, []);
+    if (!athlete) { setWorkouts([]); return; }
+    migrateLegacyWorkouts(athlete.id);
+    setWorkouts(loadWorkoutsFor(athlete.id));
+  }, [athlete?.id]);
   const saveWorkouts = (next) => {
+    if (!athlete) return;
     setWorkouts(next);
-    try { localStorage.setItem('coachme_workouts', JSON.stringify(next)); } catch {}
+    try { localStorage.setItem(workoutsKey(athlete.id), JSON.stringify(next)); } catch {}
   };
   const addWorkout = (w) => saveWorkouts([{ id: Date.now(), ...w }, ...workouts]);
   const removeWorkout = (id) => saveWorkouts(workouts.filter(w => w.id !== id));
 
   // Detect what the athlete has done so achievements can unlock honestly.
+  // The feed is shared across athletes on the device, so First Post only
+  // counts posts THIS athlete authored. Legacy posts with no authorId
+  // stay unattributed and count for nobody.
   const [hasPosts, setHasPosts] = useState(false);
   useEffect(() => {
+    if (!athlete) { setHasPosts(false); return; }
     try {
       const posts = JSON.parse(localStorage.getItem('coachme_posts') || '[]');
-      setHasPosts(Array.isArray(posts) && posts.length > 0);
+      setHasPosts(Array.isArray(posts) && posts.some(p => p && p.authorId === athlete.id));
     } catch {}
-  }, [tab]); // re-check when switching tabs
+  }, [tab, athlete?.id]); // re-check when switching tabs
 
   // Hydrate "has messaged a coach" from the persisted threads so the
   // Coached Up achievement stays unlocked across page reloads, not just
@@ -3182,6 +3223,9 @@ function CommunityView({ athlete }) {
     if (!text) return;
     const post = {
       id: Date.now(),
+      // The feed is shared by every athlete on the device; authorId is
+      // what scopes delete-own and the First Post achievement.
+      authorId: athlete.id,
       author: {
         name: athlete.name,
         initials: athlete.initials,
@@ -3283,15 +3327,18 @@ function CommunityView({ athlete }) {
         </div>
       ) : (
         <div style={{ padding: '0 12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {posts.map(p => <PostCard key={p.id} post={p} currentName={athlete.name} onLike={() => toggleLike(p.id)} onDelete={() => remove(p.id)}/>)}
+          {posts.map(p => <PostCard key={p.id} post={p} currentId={athlete.id} onLike={() => toggleLike(p.id)} onDelete={() => remove(p.id)}/>)}
         </div>
       )}
     </div>
   );
 }
 
-function PostCard({ post, currentName, onLike, onDelete }) {
-  const mine = post.author?.name === currentName;
+function PostCard({ post, currentId, onLike, onDelete }) {
+  // Delete only shows on posts this athlete authored. Matching by id, not
+  // name: names collide across profiles, and legacy posts with no
+  // authorId belong to nobody.
+  const mine = post.authorId != null && post.authorId === currentId;
   const ago = timeAgo(post.ts);
   return (
     <div style={{
