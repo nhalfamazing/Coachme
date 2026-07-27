@@ -6,8 +6,9 @@
 // follow-up phase.
 
 import { useState, useEffect, useRef } from 'react';
-import { cloudEnabled, cloudFetchAll, cloudUpsert } from '@/lib/cloud';
+import * as sync from '@/lib/sync';
 import { generateAthleteCode, decodeAnyCode } from '@/lib/codes';
+import { DRILLS } from '@/lib/drills';
 import {
   CheckCircle2, MapPin, Video, Send, Calendar as CalIcon, Star,
   TrendingUp, Search, User as UserIcon, MessageCircle,
@@ -99,55 +100,8 @@ const BASEBALL_STAT_DEFS = [
   { key: 'popTime', label: 'Pop Time', unit: 's', placeholder: '2.20' },
 ];
 
-/* Drill Library: AI-generated coach clips (made with the founder's
-   Higgsfield account; same coach character in every clip). Each drill
-   has an intro (coach speaks) and a demo (slow textbook rep). Streamed
-   from the generation CDN so the repo and deploys stay light. Clearly
-   labeled as AI in the UI. */
-const DRILL_CDN = 'https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/';
-const DRILL_POSTERS = {
-  Basketball: DRILL_CDN + 'hf_20260723_003605_9fbc7e25-4227-468f-a09a-e6658825dba0.png',
-  Soccer: DRILL_CDN + 'hf_20260723_005814_88206a71-adb4-4295-9ccb-66f72ce85f79.png',
-  Baseball: DRILL_CDN + 'hf_20260723_005819_0cc507c8-0f65-4461-9fb9-0f4c32f908a7.png',
-};
-const DRILLS = [
-  {
-    id: 'bb-crossover', sport: 'Basketball', title: 'Crossover Dribble',
-    cue: 'Stay low, keep the ball below your knees, snap it across your body.',
-    intro: DRILL_CDN + 'hf_20260723_005010_50b1a8b7-176c-4769-83a5-84d548b43193.mp4',
-    demo: DRILL_CDN + 'hf_20260723_005024_03687e08-51b3-46c7-971c-db1eb40f0885.mp4',
-  },
-  {
-    id: 'bb-form-shooting', sport: 'Basketball', title: 'Form Shooting',
-    cue: 'One hand, perfect release, hold your follow-through.',
-    intro: DRILL_CDN + 'hf_20260723_010030_c8f4cc7c-f80c-45f3-bfdd-696672975daa.mp4',
-    demo: DRILL_CDN + 'hf_20260723_010037_17fbac40-451b-4456-9aa1-b3bb3021ac4a.mp4',
-  },
-  {
-    id: 'so-inside-pass', sport: 'Soccer', title: 'Inside-Foot Pass',
-    cue: 'Plant foot points at your target, strike the middle of the ball, firm ankle.',
-    intro: DRILL_CDN + 'hf_20260723_010043_7e65c1db-3c44-4bc2-b5d6-942ad083bdcd.mp4',
-    demo: DRILL_CDN + 'hf_20260723_010051_03fe3035-a7ea-417f-97cc-d79481d65ed3.mp4',
-  },
-  {
-    id: 'so-first-touch', sport: 'Soccer', title: 'First Touch',
-    cue: 'Meet the ball, cushion it soft, push it one step into space.',
-    intro: DRILL_CDN + 'hf_20260723_010057_6bcc39f8-5cd0-4edf-a583-6e80f501016a.mp4',
-    demo: DRILL_CDN + 'hf_20260723_010102_d75cd1f4-7c2c-42cf-8ba6-cf114d704b62.mp4',
-  },
-  {
-    id: 'ba-tee-work', sport: 'Baseball', title: 'Tee Work',
-    cue: 'Balanced stance, short stride, hands take the barrel straight to the ball.',
-    intro: DRILL_CDN + 'hf_20260723_010109_4cb2b3ae-97a2-427f-91a0-656b2dad870f.mp4',
-    demo: DRILL_CDN + 'hf_20260723_010115_b6969706-8ef9-4e7e-b75d-94a6110f73bf.mp4',
-  },
-  {
-    id: 'ba-ready-position', sport: 'Baseball', title: 'Fielding Ready Position',
-    cue: 'Feet wide, butt down, glove out front where you can see it.',
-    intro: DRILL_CDN + 'hf_20260723_010121_3000a2d9-82c3-4a3b-938b-5695173150b5.mp4',
-    demo: DRILL_CDN + 'hf_20260723_010128_fb22663c-6dce-4d51-ab3a-5a1fd1cb8dd5.mp4',
-  },
-];
+/* Drill Library data now lives in src/lib/drills.ts (typed, shared with
+   scripts/mirror-drills.mjs). Each asset carries { cdn, blob } URLs. */
 
 const WORKOUT_TYPES = [
   { key: 'practice',     label: 'Practice',         color: '#C5FF3D' },
@@ -280,8 +234,7 @@ function pushAthleteMessage(athlete, coachId, coachName, text) {
   t.messages.push({ id: Date.now(), from: 'athlete', text, ts: Date.now() });
   t.updatedAt = Date.now();
   saveThreads(threads);
-  // Share the conversation so the coach sees it on any device.
-  cloudUpsert('threads', t.id, t);
+  // The server copy is pushed by sync.sendMessage at the call site.
 }
 // Directory of every athlete who has signed up in this browser's app.
 // The Coach Console browses this list so coaches can find kids to train
@@ -296,7 +249,7 @@ function registerAthlete(a) {
     else list.push(snap);
     localStorage.setItem('coachme_athletes', JSON.stringify(list));
     // Share with every device so coaches can find them anywhere.
-    cloudUpsert('athletes', a.id, snap);
+    sync.registerProfile(snap, 'athlete');
   } catch {}
 }
 
@@ -319,7 +272,7 @@ function upsertCoach(c) {
     if (i >= 0) list[i] = { ...list[i], ...c };
     else list.push(c);
     localStorage.setItem('coachme_coaches', JSON.stringify(list));
-    cloudUpsert('coaches', c.id, c);
+    sync.registerProfile(c, 'coach');
   } catch {}
 }
 // Login codes now live in src/lib/codes.ts: three short words per person
@@ -522,14 +475,14 @@ export default function CoachMeApp() {
     return () => window.removeEventListener('storage', handler);
   }, []);
 
-  // Coaches from the shared cloud, so a trainer who signed up on ANY
-  // device shows in every athlete's Trainers tab. Kept out of
-  // localStorage on purpose: the landing page picker stays device-only.
+  // Coaches from the server registry, so a trainer who signed up on ANY
+  // device shows in every athlete's Trainers tab. sync.fetchCoaches also
+  // merges them into coachme_coaches (offline cache); it returns null
+  // when the cloud is disabled and the app stays device-local.
   const [cloudTrainers, setCloudTrainers] = useState([]);
   useEffect(() => {
-    if (!cloudEnabled()) return;
     let live = true;
-    cloudFetchAll('coaches').then(remote => {
+    sync.fetchCoaches().then(remote => {
       if (live && Array.isArray(remote)) {
         setCloudTrainers(remote.filter(c => c && c.id != null && c.name && c.sport));
       }
@@ -556,13 +509,33 @@ export default function CoachMeApp() {
     if (!athlete) { setWorkouts([]); return; }
     migrateLegacyWorkouts(athlete.id);
     setWorkouts(loadWorkoutsFor(athlete.id));
+    // Pull this athlete's server log too (merged into the same local key),
+    // so a device switch brings their history with them.
+    if (athlete.code) {
+      let live = true;
+      sync.fetchWorkouts(athlete.code, athlete.id).then(merged => {
+        if (live && merged) setWorkouts(merged);
+      });
+      return () => { live = false; };
+    }
   }, [athlete?.id]);
   const saveWorkouts = (next) => {
     if (!athlete) return;
     setWorkouts(next);
     try { localStorage.setItem(workoutsKey(athlete.id), JSON.stringify(next)); } catch {}
   };
-  const addWorkout = (w) => saveWorkouts([{ id: Date.now(), ...w }, ...workouts]);
+  const addWorkout = (w) => {
+    const entry = { id: Date.now(), ...w };
+    saveWorkouts([entry, ...workouts]);
+    if (athlete && athlete.code) {
+      sync.logWorkout({
+        athleteCode: athlete.code, athleteAppId: athlete.id, localId: entry.id,
+        type: entry.type, durationMin: entry.duration ?? null,
+        intensity: entry.intensity ?? null, notes: entry.notes ?? null,
+        performedAt: new Date(entry.date || Date.now()).toISOString(),
+      });
+    }
+  };
   const removeWorkout = (id) => saveWorkouts(workouts.filter(w => w.id !== id));
 
   // Detect what the athlete has done so achievements can unlock honestly.
@@ -624,24 +597,18 @@ export default function CoachMeApp() {
       } catch {}
     };
     hydrate();
-    if (cloudEnabled()) {
-      cloudFetchAll('threads').then(remote => {
+    // Server sync: one-time import of this device's pre-cloud history,
+    // retry of queued offline writes, then pull threads from the server
+    // (sync merges them into coachme_threads) and re-hydrate.
+    if (athlete.code) {
+      (async () => {
         try {
-          const mine = (remote || []).filter(t => t && typeof t.id === 'string' && t.id.startsWith(`${athlete.id}::`));
-          if (!mine.length) return;
-          const local = loadThreads();
-          const map = new Map(local.map(t => [t.id, t]));
-          let changed = false;
-          mine.forEach(rt => {
-            const lt = map.get(rt.id);
-            if (!lt || (rt.updatedAt || 0) > (lt.updatedAt || 0)) { map.set(rt.id, rt); changed = true; }
-          });
-          if (changed) {
-            saveThreads([...map.values()]);
-            hydrate();
-          }
+          await sync.importOnFirstConnect(athlete, 'athlete');
+          await sync.flushPendingSync();
+          const merged = await sync.fetchThreads(athlete.code);
+          if (merged) hydrate();
         } catch {}
-      });
+      })();
     }
   }, [athlete]);
 
@@ -738,9 +705,52 @@ export default function CoachMeApp() {
     if (athlete) {
       const coach = allTrainers.find(t => t.id === trainerId);
       pushAthleteMessage(athlete, trainerId, coach?.name || 'Coach', text);
+      // Push to the server so the coach gets it on ANY device. Queued for
+      // retry automatically when offline or the cloud is disabled.
+      if (athlete.code && coach?.code) {
+        sync.sendMessage({
+          athleteCode: athlete.code, coachCode: coach.code,
+          senderCode: athlete.code, body: text,
+          legacyKey: makeThreadId(athlete.id, trainerId),
+        });
+      }
     }
     // Real replies come from the coach on the other end (via /coach). No fake auto-reply.
   };
+
+  // Cross-device replies: while a conversation is open, poll the server
+  // thread every 5 seconds (no client-side supabase, no Realtime — plain
+  // polling against our API is enough for this phase).
+  useEffect(() => {
+    if (!chatOpen || !athlete || !athlete.code) return;
+    const coach = allTrainers.find(t => t.id === chatOpen);
+    if (!coach?.code) return;
+    let live = true;
+    const poll = async () => {
+      const rec = await sync.openThread({
+        athleteCode: athlete.code, coachCode: coach.code,
+        legacyKey: makeThreadId(athlete.id, chatOpen),
+      });
+      if (!live || !rec) return;
+      const messages = rec.messages.map(m => ({
+        id: m.id,
+        from: m.from === 'athlete' ? 'me' : 'trainer',
+        text: m.text,
+        ts: new Date(m.ts).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
+      }));
+      setConversations(prev => {
+        const existing = prev[chatOpen];
+        if (existing && existing.messages.length >= messages.length) return prev;
+        return {
+          ...prev,
+          [chatOpen]: { trainerId: chatOpen, online: existing?.online ?? false, unread: 0, messages },
+        };
+      });
+    };
+    poll();
+    const timer = setInterval(poll, 5000);
+    return () => { live = false; clearInterval(timer); };
+  }, [chatOpen, athlete]);
 
   // Live sync: when the coach replies in another tab, refresh every
   // conversation for this athlete (not just the open chat) so the
@@ -1308,22 +1318,36 @@ function LoginSheet({ savedAthlete, onLogin, onCodeLogin, onSignUp, onClose }) {
 
     if (tryLists(loadAthleteDir(), loadCoachList()) === 'done') return;
 
-    // Nothing on this device: look across all devices via the cloud.
-    if (cloudEnabled()) {
-      setNameError('Looking for you...');
-      const [remoteAthletes, remoteCoaches] = await Promise.all([
-        cloudFetchAll('athletes'),
-        cloudFetchAll('coaches'),
-      ]);
-      if (tryLists(remoteAthletes, remoteCoaches) === 'done') return;
-    }
+    // Nothing on this device: look across everyone on CoachMe via the
+    // server registries (they also refresh the local cache).
+    setNameError('Looking for you...');
+    const [remoteAthletes, remoteCoaches] = await Promise.all([
+      sync.fetchAthletes(),
+      sync.fetchCoaches(),
+    ]);
+    if ((remoteAthletes || remoteCoaches) && tryLists(remoteAthletes || [], remoteCoaches || []) === 'done') return;
 
     setNameError('We could not find that name. If you signed up on another device, type your code below. Otherwise, sign up.');
   };
 
-  const submitCode = () => {
-    // Local profiles win (exact restore); otherwise the three words
-    // rebuild a working profile. Old long codes still decode.
+  const submitCode = async () => {
+    // Server first: real cross-device login pulls the exact profile from
+    // CoachMe. Offline (or unknown code) falls back to the local decoder:
+    // local profiles restore exactly, otherwise the three words rebuild a
+    // working profile. Old long codes still decode.
+    const remote = await sync.loginByCode(code);
+    if (remote) {
+      setCodeError('');
+      if (remote.role === 'athlete' && remote.athlete) {
+        onCodeLogin(remote.athlete);
+        return;
+      }
+      if (remote.role === 'coach' && remote.coach) {
+        const localCoach = loadCoachList().find(c => c.code === remote.coach.code);
+        loginAsCoach(localCoach ? { ...remote.coach, ...localCoach } : remote.coach);
+        return;
+      }
+    }
     const res = decodeAnyCode(code, { athletes: loadAthleteDir(), coaches: loadCoachList() });
     if (!res) {
       setCodeError('That code is not right. It is three short words with dashes, like alex-tiger-moon. Check every word.');
@@ -2513,7 +2537,11 @@ function DrillLibrary({ athleteSport, onOpenDrill }) {
             borderRadius: 14, overflow: 'hidden', flexShrink: 0,
           }}>
             <div style={{ height: 84, position: 'relative', overflow: 'hidden' }}>
-              <img src={DRILL_POSTERS[d.sport]} alt="" referrerPolicy="no-referrer" loading="lazy"
+              {/* TODO(blob): switch to d.poster.blob once scripts/mirror-drills.mjs
+                  has run and DRILL_BLOB_BASE is set (blocked on
+                  BLOB_READ_WRITE_TOKEN). The cdn URL is the pre-mirror source,
+                  not a runtime fallback. */}
+              <img src={d.poster.cdn} alt="" referrerPolicy="no-referrer" loading="lazy"
                 style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}/>
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(15,15,20,0.05) 0%, rgba(15,15,20,0.85) 100%)' }}/>
               <div style={{
@@ -2577,8 +2605,12 @@ function DrillSheet({ drill, onClose }) {
         <div className="mono" style={{ fontSize: 10, color: '#9CA0A8', letterSpacing: '0.14em', marginBottom: 8 }}>
           1 · COACH INTRO <span style={{ color: '#5F636B' }}>(sound on)</span>
         </div>
+        {/* TODO(blob): switch src/poster to .blob once scripts/mirror-drills.mjs
+            has run and DRILL_BLOB_BASE is set (blocked on BLOB_READ_WRITE_TOKEN).
+            The cdn URL is the pre-mirror source, not a runtime fallback — a
+            broken blob upload should surface in review, not be masked. */}
         <video
-          src={drill.intro} poster={DRILL_POSTERS[drill.sport]}
+          src={drill.intro.cdn} poster={drill.poster.cdn}
           controls playsInline preload="metadata"
           style={{ width: '100%', borderRadius: 12, background: '#000', marginBottom: 16, display: 'block' }}
         />
@@ -2586,8 +2618,9 @@ function DrillSheet({ drill, onClose }) {
         <div className="mono" style={{ fontSize: 10, color: '#9CA0A8', letterSpacing: '0.14em', marginBottom: 8 }}>
           2 · WATCH THE DEMO <span style={{ color: '#5F636B' }}>(slow rep, copy it)</span>
         </div>
+        {/* TODO(blob): same as the intro player above. */}
         <video
-          src={drill.demo} poster={DRILL_POSTERS[drill.sport]}
+          src={drill.demo.cdn} poster={drill.poster.cdn}
           controls playsInline loop preload="metadata"
           style={{ width: '100%', borderRadius: 12, background: '#000', marginBottom: 14, display: 'block' }}
         />
@@ -3211,6 +3244,13 @@ function CommunityView({ athlete }) {
     } catch {
       setPosts([]);
     }
+    // Server feed: merged into the same local key; null when offline or
+    // the cloud is disabled, in which case the local feed stands.
+    let live = true;
+    sync.fetchPosts(athlete?.code).then(merged => {
+      if (live && merged) setPosts(merged);
+    });
+    return () => { live = false; };
   }, []);
 
   const save = (next) => {
@@ -3241,16 +3281,20 @@ function CommunityView({ athlete }) {
     };
     save([post, ...posts]);
     setDraft('');
+    // Push to the server feed (queued for retry when offline).
+    if (athlete.code) sync.createPost({ authorCode: athlete.code, localId: post.id, body: text });
   };
 
   const toggleLike = (id) => {
     save(posts.map(p => p.id === id ? {
       ...p, liked: !p.liked, likes: p.liked ? Math.max(0, p.likes - 1) : p.likes + 1,
     } : p));
+    if (athlete?.code) sync.toggleLike(id, athlete.code);
   };
 
   const remove = (id) => {
     save(posts.filter(p => p.id !== id));
+    if (athlete?.code) sync.deletePost(id, athlete.code);
   };
 
   return (

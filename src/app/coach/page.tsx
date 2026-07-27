@@ -6,7 +6,7 @@
 // professional tool. Shared data layer is the same localStorage stores.
 
 import { useState, useEffect, useRef } from "react";
-import { cloudEnabled, cloudFetchAll, cloudUpsert } from "@/lib/cloud";
+import * as sync from "@/lib/sync";
 import { generateCoachCode, decodeAnyCode } from "@/lib/codes";
 import {
   Home, MessageCircle, Users, User, Video, Send, ChevronLeft, X,
@@ -55,8 +55,7 @@ function pushCoachReply(threadId, text) {
   t.messages.push({ id: Date.now(), from: "coach", text, ts: Date.now() });
   t.updatedAt = Date.now();
   saveThreads(threads);
-  // Share so the athlete gets it on any device.
-  cloudUpsert("threads", t.id, t);
+  // The server copy is pushed by sync.sendMessage at the call site.
 }
 // Every athlete who signs up in the app registers here. Coaches browse
 // this to find kids to train and can open the first conversation.
@@ -77,7 +76,7 @@ function upsertCoach(c) {
     if (i >= 0) list[i] = { ...list[i], ...c };
     else list.push(c);
     localStorage.setItem("coachme_coaches", JSON.stringify(list));
-    cloudUpsert("coaches", c.id, c);
+    sync.registerProfile(c, "coach");
   } catch {}
 }
 // Coach-initiated conversations: create the thread if it does not exist.
@@ -89,7 +88,10 @@ function ensureThread(coach, athleteSnap) {
     t = { id, coachId: coach.id, coachName: coach.name, athlete: athleteSnap, messages: [], updatedAt: Date.now() };
     threads.push(t);
     saveThreads(threads);
-    cloudUpsert("threads", t.id, t);
+    // Mirror the thread server-side so the athlete sees it on any device.
+    if (coach.code && athleteSnap.code) {
+      sync.openThread({ athleteCode: athleteSnap.code, coachCode: coach.code, legacyKey: id });
+    }
   }
   return id;
 }
@@ -217,41 +219,38 @@ export default function CoachConsole() {
     return () => window.removeEventListener("storage", handler);
   }, []);
 
-  // With the cloud on, pull every athlete (for the directory) and this
-  // coach's conversations from other devices, then keep working locally.
+  // Server sync: every athlete on CoachMe for the directory, and this
+  // coach's conversations from other devices. All of it merges into the
+  // same localStorage keys, so offline the console works exactly as
+  // before on the cached data.
   useEffect(() => {
-    if (!ready || !coach || !cloudEnabled()) return;
+    if (!ready || !coach) return;
     let live = true;
-    cloudFetchAll("athletes").then(remote => {
-      if (!live || !Array.isArray(remote) || !remote.length) return;
-      setDirectory(prev => {
-        const map = new Map(prev.map(a => [String(a.id), a]));
-        remote.forEach(a => {
-          if (a && a.id != null && !map.has(String(a.id))) map.set(String(a.id), a);
-        });
-        return [...map.values()];
-      });
-    });
-    cloudFetchAll("threads").then(remote => {
-      if (!live || !Array.isArray(remote) || !remote.length) return;
+    (async () => {
       try {
-        const mine = remote.filter(t => t && t.coachId === coach.id && typeof t.id === "string");
-        if (!mine.length) return;
-        const local = loadThreads();
-        const map = new Map(local.map(t => [t.id, t]));
-        let changed = false;
-        mine.forEach(rt => {
-          const lt = map.get(rt.id);
-          if (!lt || (rt.updatedAt || 0) > (lt.updatedAt || 0)) { map.set(rt.id, rt); changed = true; }
-        });
-        if (changed) {
-          saveThreads([...map.values()]);
-          setThreads(loadThreads());
+        // Make sure this coach exists on the server, whichever door they
+        // used, then import any pre-cloud local history once and retry
+        // queued offline writes.
+        await sync.registerProfile(coach, "coach");
+        await sync.importOnFirstConnect(coach, "coach");
+        await sync.flushPendingSync();
+        const [remoteAthletes, remoteThreads] = await Promise.all([
+          sync.fetchAthletes(),
+          coach.code ? sync.fetchThreads(coach.code) : null,
+        ]);
+        if (!live) return;
+        if (Array.isArray(remoteAthletes) && remoteAthletes.length) {
+          setDirectory(prev => {
+            const map = new Map(prev.map(a => [String(a.id), a]));
+            remoteAthletes.forEach(a => {
+              if (a && a.id != null && !map.has(String(a.id))) map.set(String(a.id), a);
+            });
+            return [...map.values()];
+          });
         }
+        if (remoteThreads) setThreads(loadThreads());
       } catch {}
-    });
-    // Make sure this coach exists in the cloud, whichever door they used.
-    cloudUpsert("coaches", coach.id, coach);
+    })();
     return () => { live = false; };
   }, [ready, coach]);
 
@@ -266,7 +265,34 @@ export default function CoachConsole() {
     if (!openThread) return;
     pushCoachReply(openThread.id, text);
     refresh();
+    // Push to the server so the athlete gets it on ANY device (queued for
+    // retry when offline or the cloud is disabled).
+    if (coach?.code && openThread.athlete?.code) {
+      sync.sendMessage({
+        athleteCode: openThread.athlete.code, coachCode: coach.code,
+        senderCode: coach.code, body: text, legacyKey: openThread.id,
+      });
+    }
   };
+
+  // Cross-device messages: while a conversation is open, poll its server
+  // thread every 5 seconds (plain polling via our API — no Realtime).
+  useEffect(() => {
+    if (!openThreadId || !coach?.code) return;
+    const t = loadThreads().find(x => x.id === openThreadId);
+    const athleteCode = t?.athlete?.code;
+    if (!athleteCode) return;
+    let live = true;
+    const poll = async () => {
+      const rec = await sync.openThread({
+        athleteCode, coachCode: coach.code, legacyKey: openThreadId,
+      });
+      if (live && rec) setThreads(loadThreads());
+    };
+    poll();
+    const timer = setInterval(poll, 5000);
+    return () => { live = false; clearInterval(timer); };
+  }, [openThreadId, coach]);
 
   const goToThread = (id) => {
     setOpenThreadId(id);

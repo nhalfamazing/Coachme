@@ -3,7 +3,7 @@
 // @ts-nocheck
 
 import { useState, useId } from "react";
-import { cloudUpsert } from "@/lib/cloud";
+import { registerProfile } from "@/lib/sync";
 import { generateCoachCode } from "@/lib/codes";
 import { ArrowRight, ChevronLeft, CheckCircle2 } from "lucide-react";
 
@@ -170,8 +170,10 @@ export default function BecomeACoachPage() {
       console.error("Could not save coach submission:", e);
     }
 
-    // Share with every device so athletes anywhere can find this coach.
-    cloudUpsert("coaches", submission.id, submission);
+    // Register on the server so athletes anywhere can find this coach.
+    // Email and phone deliberately stay device-local: the server profile
+    // schema stores no contact details in this phase (data minimization).
+    registerProfile(submission, "coach");
 
     // Sign them straight in so the Console opens without the picker.
     try { sessionStorage.setItem("coachme_active_coach", JSON.stringify(submission)); } catch {}
