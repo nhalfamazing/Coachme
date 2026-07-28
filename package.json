@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run"
+    "test": "vitest run",
+    "mirror:drills": "node scripts/mirror-drills.mjs",
+    "posters:drills": "node scripts/make-posters.mjs",
+    "build:drills": "node scripts/build-drills.mjs"
   },
   "dependencies": {
     "@base-ui-components/react": "1.0.0-rc.0",
