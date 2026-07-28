@@ -36,6 +36,9 @@ const widths = opt('widths', '390,768,1024,1440').split(',').map(Number);
 const out = opt('out', 'shot');
 const seed = args.includes('--seed');
 const tall = args.includes('--tall');
+// --trial-expired seeds the drill free-month stamp 40 days back so the
+// KoachMe Pro locked state renders.
+const trialExpired = args.includes('--trial-expired');
 // --click, --clickjs and --tab actions run in the order they appear on
 // the command line. --clickjs clicks via the DOM (querySelector +
 // element.click()) for elements Playwright's locators struggle with.
@@ -106,7 +109,7 @@ try {
       const athlete = persona === 'marketing'
         ? { ...TEST_ATHLETE, firstName: 'Sample', lastName: 'Athlete', name: 'S. Athlete', initials: 'SA' }
         : TEST_ATHLETE;
-      await context.addInitScript(({ athlete, workouts, coach, windows }) => {
+      await context.addInitScript(({ athlete, workouts, coach, windows, expiredTrial }) => {
         localStorage.setItem('coachme_athlete', JSON.stringify(athlete));
         localStorage.setItem(`coachme_workouts::${athlete.id}`, JSON.stringify(workouts));
         if (coach) localStorage.setItem('coachme_coaches', JSON.stringify([coach]));
@@ -129,7 +132,10 @@ try {
           ts: Date.now() - 5400000, likes: 3, liked: false,
         }]));
         localStorage.removeItem('coachme_signed_out');
-      }, { athlete, workouts: TEST_WORKOUTS, coach: persona === 'marketing' ? null : TEST_COACH, windows: persona === 'marketing' ? null : TEST_WINDOWS });
+        if (expiredTrial) {
+          localStorage.setItem(`coachme_drills_trial::${athlete.id}`, new Date(Date.now() - 40 * 86400000).toISOString());
+        }
+      }, { athlete, workouts: TEST_WORKOUTS, coach: persona === 'marketing' ? null : TEST_COACH, windows: persona === 'marketing' ? null : TEST_WINDOWS, expiredTrial: trialExpired });
     }
     const page = await context.newPage();
     await page.goto(url, { waitUntil: 'networkidle' }).catch(() => page.goto(url));

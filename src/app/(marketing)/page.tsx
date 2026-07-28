@@ -282,12 +282,12 @@ export default function LandingPage() {
         <div className="mk-wrap">
           <p className="mk-label mono">Drill library</p>
           <h2 className="mk-h2 display" id="drills-h">
-            Train free with our AI drill library
+            Try our AI drill library free for a month
           </h2>
           <p className="mk-lead body">
             Short coach clips your athlete can copy today: a spoken intro,
-            then a slow demo rep. Watch one below, sound comes with the full
-            clips in the app.
+            then a slow demo rep. The first month is free, then the drill
+            library is $9 a month. Everything else in KoachMe stays free.
           </p>
           <div className="mk-drills">
             {SAMPLE_DRILLS.map(d => (
@@ -311,7 +311,7 @@ export default function LandingPage() {
           </p>
           <div className="mk-drills-cta">
             <CtaLink href="/app" cta="drills_browse_all" className="mk-btn mk-btn--primary body">
-              Browse all {DRILLS.length} drills free
+              Browse all {DRILLS.length} drills, first month free
             </CtaLink>
           </div>
         </div>
@@ -334,8 +334,9 @@ export default function LandingPage() {
               <div>
                 <strong>Free for athletes</strong>
                 <p>
-                  The athlete side of KoachMe costs nothing: profile,
-                  logging, drills, messaging.
+                  Profile, workout logging, stats, feed, messaging, and
+                  session booking cost nothing. The AI drill library is
+                  free for the first month, then $9 a month.
                 </p>
               </div>
             </div>

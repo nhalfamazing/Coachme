@@ -9,8 +9,8 @@ export const FAQ_ITEMS: FaqItem[] = [
   {
     q: "Is KoachMe free?",
     a: [
-      "KoachMe is free for athletes. Creating a profile, logging workouts, watching drills, and messaging coaches costs nothing.",
-      "Coaches set their own hourly rates for sessions. When paid bookings launch, coaches keep 90% of their rate.",
+      "A KoachMe profile is free: creating a profile, logging workouts, building stats, posting, messaging coaches, and booking sessions cost nothing. The AI drill library is free for your first month, then $9 a month.",
+      "Subscriptions have not launched yet. When a free month ends today, drills simply lock until payments go live - nobody is charged. Coaches set their own hourly rates for sessions, and when paid bookings launch, coaches keep 90% of their rate.",
     ],
   },
   {

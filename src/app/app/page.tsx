@@ -18,7 +18,7 @@ import {
   ChevronRight, ChevronLeft, X, ArrowRight,
   Plus, Mic, MicOff, VideoOff, PhoneOff, Camera,
   Send as SendIcon, MoreHorizontal, Inbox, UserPlus,
-  Users, Heart, Dumbbell, Flame, Zap, Award, Trophy, Target, Clock
+  Users, Heart, Dumbbell, Flame, Zap, Award, Trophy, Target, Clock, Lock
 } from 'lucide-react';
 
 /* ============================================================
@@ -1120,7 +1120,7 @@ export default function CoachMeApp() {
             )}
 
             {drillOpen && (
-              <DrillSheet drill={drillOpen} onClose={() => setDrillOpen(null)}/>
+              <DrillSheet drill={drillOpen} athleteId={athlete?.id} onClose={() => setDrillOpen(null)}/>
             )}
 
             {logWorkoutOpen && (
@@ -2536,7 +2536,7 @@ function TrainersView({ onOpenTrainer, athlete, trainers = TRAINERS, onOpenDrill
           </div>
         </div>
 
-        <DrillLibrary athleteSport={athlete.sport} onOpenDrill={onOpenDrill}/>
+        <DrillLibrary athleteSport={athlete.sport} athleteId={athlete.id} onOpenDrill={onOpenDrill}/>
 
         <div style={{ padding: '24px 16px 0', textAlign: 'center' }}>
           <div style={{
@@ -2579,7 +2579,7 @@ function TrainersView({ onOpenTrainer, athlete, trainers = TRAINERS, onOpenDrill
       </div>
 
       <div style={{ paddingTop: 8 }}>
-        <DrillLibrary athleteSport={athlete.sport} onOpenDrill={onOpenDrill}/>
+        <DrillLibrary athleteSport={athlete.sport} athleteId={athlete.id} onOpenDrill={onOpenDrill}/>
       </div>
 
       <div style={{ padding: '16px 16px 8px' }}>
@@ -2707,6 +2707,37 @@ function Mini({ num, label, small, icon }) {
 const NEW_DRILL_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
 const isNewDrill = (d) => Date.now() - Date.parse(d.addedAt) < NEW_DRILL_WINDOW_MS;
 
+/* KoachMe Pro: the AI drill library is free for 30 days from the first
+   drill a profile opens, then $9 a month. Payments are NOT live yet, so
+   an expired free month locks the drill videos behind an honest
+   "launching soon" screen - nobody is ever charged and nothing else in
+   the app is affected. The clock is per profile on this device, stored
+   under the app's historical coachme_ namespace (never rename keys). */
+const DRILL_TRIAL_DAYS = 30;
+const DRILL_TRIAL_MS = DRILL_TRIAL_DAYS * 24 * 60 * 60 * 1000;
+const PRO_PRICE_LABEL = '$9/MO';
+const drillTrialKey = (profileId) => `coachme_drills_trial::${profileId}`;
+function drillTrialState(profileId) {
+  if (typeof window === 'undefined' || !profileId) {
+    return { startedAt: null, daysLeft: DRILL_TRIAL_DAYS, expired: false };
+  }
+  const raw = localStorage.getItem(drillTrialKey(profileId));
+  if (!raw) return { startedAt: null, daysLeft: DRILL_TRIAL_DAYS, expired: false };
+  const startedAt = Date.parse(raw);
+  if (Number.isNaN(startedAt)) return { startedAt: null, daysLeft: DRILL_TRIAL_DAYS, expired: false };
+  const elapsed = Date.now() - startedAt;
+  return {
+    startedAt,
+    daysLeft: Math.max(0, Math.ceil((DRILL_TRIAL_MS - elapsed) / 86400000)),
+    expired: elapsed >= DRILL_TRIAL_MS,
+  };
+}
+function startDrillTrial(profileId) {
+  if (typeof window === 'undefined' || !profileId) return;
+  const key = drillTrialKey(profileId);
+  if (!localStorage.getItem(key)) localStorage.setItem(key, new Date().toISOString());
+}
+
 /* Serve Blob-hosted stills through the Next image optimizer (the host is
    allowed in next.config images.remotePatterns). The store keeps full
    quality; devices get right-sized WebP - a 1.5 MB portrait PNG becomes
@@ -2715,10 +2746,18 @@ const isNewDrill = (d) => Date.now() - Date.parse(d.addedAt) < NEW_DRILL_WINDOW_
    optimizer 400s and the img renders broken. */
 const imgOpt = (url, w) => `/_next/image?url=${encodeURIComponent(url)}&w=${w}&q=75`;
 
-function DrillLibrary({ athleteSport, onOpenDrill }) {
+function DrillLibrary({ athleteSport, athleteId, onOpenDrill }) {
   const [sportFilter, setSportFilter] = useState('All');
   const [coachFilter, setCoachFilter] = useState(null);
   const [query, setQuery] = useState('');
+  const trial = drillTrialState(athleteId);
+
+  const openDrill = (d) => {
+    // The free month starts the first time a drill is actually opened,
+    // not on browsing the library. Idempotent after that.
+    startDrillTrial(athleteId);
+    onOpenDrill(d);
+  };
 
   // Sports that actually have drills, the athlete's own sport first.
   const librarySports = [...new Set(DRILLS.map(d => d.sport))];
@@ -2755,13 +2794,28 @@ function DrillLibrary({ athleteSport, onOpenDrill }) {
 
   return (
     <>
-      <div style={{ padding: '0 16px 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ padding: '0 16px 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
         <SectionLabel>DRILL LIBRARY</SectionLabel>
-        <span className="mono" style={{
-          fontSize: 8.5, padding: '3px 8px', borderRadius: 4,
-          background: 'rgba(197,255,61,0.12)', border: '1px solid rgba(197,255,61,0.4)',
-          color: '#C5FF3D', fontWeight: 700, letterSpacing: '0.12em',
-        }}>AI COACH</span>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          {/* Free-month state, always visible so the $9/month rule is
+              never a surprise. */}
+          <span className="mono" style={{
+            fontSize: 8.5, padding: '3px 8px', borderRadius: 4, fontWeight: 700, letterSpacing: '0.12em',
+            background: trial.expired ? 'rgba(244,244,245,0.08)' : 'rgba(197,255,61,0.12)',
+            border: trial.expired ? '1px solid #3A3A42' : '1px solid rgba(197,255,61,0.4)',
+            color: trial.expired ? '#9CA0A8' : '#C5FF3D',
+            display: 'flex', alignItems: 'center', gap: 4,
+          }}>
+            {trial.expired ? (<><Lock size={9}/> PRO · {PRO_PRICE_LABEL}</>)
+              : trial.startedAt ? `FREE MONTH · ${trial.daysLeft} DAY${trial.daysLeft === 1 ? '' : 'S'} LEFT`
+              : 'FIRST MONTH FREE'}
+          </span>
+          <span className="mono" style={{
+            fontSize: 8.5, padding: '3px 8px', borderRadius: 4,
+            background: 'rgba(197,255,61,0.12)', border: '1px solid rgba(197,255,61,0.4)',
+            color: '#C5FF3D', fontWeight: 700, letterSpacing: '0.12em',
+          }}>AI COACH</span>
+        </div>
       </div>
 
       <div style={{ padding: '0 16px 10px' }}>
@@ -2818,7 +2872,7 @@ function DrillLibrary({ athleteSport, onOpenDrill }) {
           {shown.map(d => {
             const coach = coachFor(d);
             return (
-              <button key={d.id} onClick={() => onOpenDrill(d)} className="card-hover" style={{
+              <button key={d.id} onClick={() => openDrill(d)} className="card-hover" style={{
                 textAlign: 'left', cursor: 'pointer', padding: 0,
                 background: '#0F0F14', border: d.sport === athleteSport ? '1px solid rgba(197,255,61,0.45)' : '1px solid #2A2A30',
                 borderRadius: 14, overflow: 'hidden',
@@ -2838,13 +2892,15 @@ function DrillLibrary({ athleteSport, onOpenDrill }) {
                   )}
                   <div style={{ position: 'absolute', bottom: 6, left: 8, display: 'flex', alignItems: 'center', gap: 5 }}>
                     <span style={{
-                      width: 22, height: 22, borderRadius: '50%', background: 'rgba(197,255,61,0.9)',
+                      width: 22, height: 22, borderRadius: '50%',
+                      background: trial.expired ? 'rgba(24,24,28,0.9)' : 'rgba(197,255,61,0.9)',
+                      border: trial.expired ? '1px solid #3A3A42' : 'none',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
-                      <Video size={11} color="#000"/>
+                      {trial.expired ? <Lock size={10} color="#9CA0A8"/> : <Video size={11} color="#000"/>}
                     </span>
                     <span className="mono" style={{ fontSize: 8, color: '#D4D6DA', letterSpacing: '0.1em', fontWeight: 700 }}>
-                      INTRO + DEMO
+                      {trial.expired ? `PRO · ${PRO_PRICE_LABEL}` : 'INTRO + DEMO'}
                     </span>
                   </div>
                 </div>
@@ -2868,8 +2924,13 @@ function DrillLibrary({ athleteSport, onOpenDrill }) {
   );
 }
 
-function DrillSheet({ drill, onClose }) {
+function DrillSheet({ drill, athleteId, onClose }) {
   const coach = coachFor(drill);
+  const { expired } = drillTrialState(athleteId);
+  useEffect(() => {
+    // Role/step analytics only, no PII - same rule as the CRO events.
+    if (expired) track('pro_gate_shown', { surface: 'drill_sheet' });
+  }, [expired]);
   return (
     <div className="sheet-backdrop" style={{ zIndex: 210 }} onClick={onClose}>
       <div className="slide-up phone-scroll sheet-panel sheet-panel--wide" onClick={e => e.stopPropagation()} style={{
@@ -2905,6 +2966,41 @@ function DrillSheet({ drill, onClose }) {
           {drill.cue}
         </div>
 
+        {expired ? (
+          <>
+            {/* Free month over: poster stays (dimmed), videos are locked
+                behind the honest Pro screen. Payments are not live, so
+                this never charges anyone - it only gates the clips. */}
+            <div style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', marginBottom: 14 }}>
+              <img src={imgOpt(drill.poster.blob, 750)} alt="" referrerPolicy="no-referrer"
+                style={{ width: '100%', aspectRatio: '16 / 9', objectFit: 'cover', display: 'block', filter: 'blur(3px) brightness(0.45)' }}/>
+              <div style={{
+                position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center', gap: 10, padding: 20, textAlign: 'center',
+              }}>
+                <span style={{
+                  width: 44, height: 44, borderRadius: '50%', background: 'rgba(197,255,61,0.92)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Lock size={18} color="#000"/>
+                </span>
+                <div className="display" style={{ fontSize: 20, lineHeight: 1, textTransform: 'uppercase' }}>
+                  YOUR FREE MONTH IS <span style={{ color: '#C5FF3D' }}>DONE</span>
+                </div>
+                <div className="body" style={{ fontSize: 12.5, color: '#D4D6DA', lineHeight: 1.5, maxWidth: 380 }}>
+                  Nice work training with {coach.name}. AI drills are part of
+                  KoachMe Pro: $9 a month once payments launch. Until then
+                  drills stay locked and nobody is charged. They unlock right
+                  here the day Pro goes live.
+                </div>
+                <div className="mono" style={{ fontSize: 9, color: '#9CA0A8', letterSpacing: '0.1em' }}>
+                  PROFILE · WORKOUTS · FEED · MESSAGES · SESSIONS STAY FREE
+                </div>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
         <div className="mono" style={{ fontSize: 10, color: '#9CA0A8', letterSpacing: '0.14em', marginBottom: 8 }}>
           1 · COACH INTRO <span style={{ color: '#5F636B' }}>(sound on)</span>
         </div>
@@ -2926,6 +3022,8 @@ function DrillSheet({ drill, onClose }) {
           controls playsInline loop preload="metadata"
           style={{ width: '100%', aspectRatio: '16 / 9', objectFit: 'contain', borderRadius: 12, background: '#000', marginBottom: 14, display: 'block' }}
         />
+          </>
+        )}
 
         <div style={{
           padding: '9px 12px', borderRadius: 10,
