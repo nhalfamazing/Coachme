@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CtaLink } from "./cta-link";
 
 export function SiteHeader() {
   return (
@@ -14,9 +15,9 @@ export function SiteHeader() {
           <Link href="/become-a-coach">For coaches</Link>
         </nav>
         <div className="mk-header-cta">
-          <Link href="/app" className="mk-btn mk-btn--primary mk-btn--sm body">
+          <CtaLink href="/app?signup=1" cta="header_get_started" className="mk-btn mk-btn--primary mk-btn--sm body">
             Get started
-          </Link>
+          </CtaLink>
         </div>
       </div>
     </header>

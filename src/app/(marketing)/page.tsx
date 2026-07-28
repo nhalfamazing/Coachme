@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ReturningUserBanner } from "@/components/marketing/returning-user";
 import { FaqList } from "@/components/marketing/faq";
 import { LandingJsonLd } from "@/components/marketing/json-ld";
+import { CtaLink } from "@/components/marketing/cta-link";
 
 export const metadata: Metadata = {
   title: "CoachMe - A real training profile for young athletes",
@@ -42,12 +43,12 @@ export default function LandingPage() {
               coaches. No email needed. Free for athletes.
             </p>
             <div className="mk-hero-ctas">
-              <Link href="/app" className="mk-btn mk-btn--primary body">
+              <CtaLink href="/app?signup=1" cta="hero_get_started" className="mk-btn mk-btn--primary body">
                 Get started free
-              </Link>
-              <Link href="/become-a-coach" className="mk-btn mk-btn--ghost body">
+              </CtaLink>
+              <CtaLink href="/become-a-coach" cta="hero_im_a_coach" className="mk-btn mk-btn--ghost body">
                 I&apos;m a coach
-              </Link>
+              </CtaLink>
             </div>
             <p className="mk-hero-note body">
               Takes about two minutes. Works on any phone, nothing to install.
@@ -318,9 +319,9 @@ export default function LandingPage() {
             rate.
           </p>
           <div className="mk-hero-ctas" style={{ justifyContent: "flex-start" }}>
-            <Link href="/become-a-coach" className="mk-btn mk-btn--primary body">
+            <CtaLink href="/become-a-coach" cta="coach_strip_apply" className="mk-btn mk-btn--primary body">
               Apply as a coach
-            </Link>
+            </CtaLink>
           </div>
         </div>
       </section>
@@ -344,12 +345,12 @@ export default function LandingPage() {
             <span style={{ color: "#C5FF3D" }}>Let the work talk.</span>
           </h2>
           <div className="mk-hero-ctas" style={{ marginTop: 24 }}>
-            <Link href="/app" className="mk-btn mk-btn--primary body">
+            <CtaLink href="/app?signup=1" cta="final_get_started" className="mk-btn mk-btn--primary body">
               Get started free
-            </Link>
-            <Link href="/become-a-coach" className="mk-btn mk-btn--ghost body">
+            </CtaLink>
+            <CtaLink href="/become-a-coach" cta="final_im_a_coach" className="mk-btn mk-btn--ghost body">
               I&apos;m a coach
-            </Link>
+            </CtaLink>
           </div>
         </div>
       </section>

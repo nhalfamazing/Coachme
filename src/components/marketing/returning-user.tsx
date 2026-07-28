@@ -7,6 +7,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { track } from "@vercel/analytics";
 
 type Returning = { label: string; href: string; name?: string } | null;
 
@@ -47,7 +48,15 @@ export function ReturningUserBanner() {
           <strong>Welcome back{returning.name ? `, ${returning.name}` : ""}.</strong>{" "}
           Your profile is on this device.
         </p>
-        <Link href={returning.href} className="mk-btn mk-btn--primary mk-btn--sm body">
+        <Link
+          href={returning.href}
+          className="mk-btn mk-btn--primary mk-btn--sm body"
+          onClick={() =>
+            track("landing_cta_click", {
+              cta: returning.href === "/coach" ? "returning_open_console" : "returning_open_app",
+            })
+          }
+        >
           {returning.label} →
         </Link>
       </div>

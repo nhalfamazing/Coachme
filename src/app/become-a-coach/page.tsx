@@ -2,7 +2,8 @@
 /* eslint-disable @next/next/no-img-element, react/no-unknown-property */
 // @ts-nocheck
 
-import { useState, useId } from "react";
+import { useState, useId, useRef } from "react";
+import { track } from "@vercel/analytics";
 import { registerProfile } from "@/lib/sync";
 import { generateCoachCode } from "@/lib/codes";
 import { ArrowRight, ChevronLeft, CheckCircle2 } from "lucide-react";
@@ -106,9 +107,21 @@ export default function BecomeACoachPage() {
     }
   };
 
-  const upd = (field, value) => setForm(f => ({ ...f, [field]: value }));
+  // First interaction with any field marks the application as started.
+  const applyStarted = useRef(false);
+  const upd = (field, value) => {
+    if (!applyStarted.current) {
+      applyStarted.current = true;
+      track("coach_apply_started");
+    }
+    setForm(f => ({ ...f, [field]: value }));
+  };
 
   const toggleMode = (key) => {
+    if (!applyStarted.current) {
+      applyStarted.current = true;
+      track("coach_apply_started");
+    }
     setForm(f => ({
       ...f,
       modes: f.modes.includes(key) ? f.modes.filter(m => m !== key) : [...f.modes, key],
@@ -127,6 +140,7 @@ export default function BecomeACoachPage() {
     if (form.modes.length === 0) return setError("Please pick at least one training mode.");
 
     setError("");
+    track("coach_apply_completed");
 
     const initials = form.firstName[0].toUpperCase() + form.lastName[0].toUpperCase();
     const submission = {

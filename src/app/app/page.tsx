@@ -6,6 +6,7 @@
 // follow-up phase.
 
 import { useState, useEffect, useRef } from 'react';
+import { track } from '@vercel/analytics';
 import * as sync from '@/lib/sync';
 import { generateAthleteCode, decodeAnyCode } from '@/lib/codes';
 import { DRILLS } from '@/lib/drills';
@@ -1116,11 +1117,27 @@ function SignUpFlow({ onComplete, savedAthlete, onLogin, onCodeLogin, deviceAthl
 
   const upd = (field, value) => setForm(f => ({ ...f, [field]: value }));
 
+  // The marketing site's "Get started free" links to /app?signup=1:
+  // jump straight to the first form step (one tap shorter than landing
+  // on the welcome screen first).
+  useEffect(() => {
+    try {
+      if (new URLSearchParams(window.location.search).get('signup') === '1') {
+        track('signup_started', { source: 'landing_cta' });
+        setStep(s => (s === 0 ? 1 : s));
+      }
+    } catch {}
+  }, []);
+
   const totalSteps = 5;
-  const next = () => setStep(s => s + 1);
+  const next = () => {
+    if (step === 0) track('signup_started', { source: 'app_welcome' });
+    setStep(s => s + 1);
+  };
   const back = () => setStep(s => Math.max(0, s - 1));
 
   const finish = () => {
+    track('signup_completed');
     const initials = (form.firstName[0] || '?') + (form.lastName[0] || '');
     const stats = [];
     BASEBALL_STAT_DEFS.forEach(d => {
