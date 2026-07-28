@@ -78,10 +78,18 @@ const TEST_COACH = {
   sport: 'Baseball', title: 'Hitting Coach', specialty: 'Exit velo development',
   location: 'Miami, FL', city: 'Miami', state: 'FL',
   rate: 60, rating: null, reviews: 0, athletes: 0, avgGain: null, commits: 0,
-  modes: ['in_person', 'live_online', 'async'], badge: 'NEW COACH',
+  modes: ['in_person', 'live_online', 'async'], badge: 'VERIFIED',
   bio: 'Former college infielder. Ten years coaching youth baseball in South Florida.',
   color: '#C5FF3D', cover: null, photo: null, years: 10,
-  code: 'sam-coach-tiger',
+  code: 'sam-coach-tiger', verified: true, pending: false,
+};
+// Availability mirror so the booking sheet derives real slots in the
+// local-first path: Sat 10-12 in person, Mon 9-11 live online.
+const TEST_WINDOWS = {
+  'sam-coach-tiger': [
+    { id: 'w-sat', weekday: 6, startMinute: 600, endMinute: 720, mode: 'in_person', locationNote: 'Tropical Park, field 3', active: true },
+    { id: 'w-mon', weekday: 1, startMinute: 540, endMinute: 660, mode: 'live_online', locationNote: null, active: true },
+  ],
 };
 
 const dir = resolve('.screenshots');
@@ -96,10 +104,11 @@ try {
       const athlete = persona === 'marketing'
         ? { ...TEST_ATHLETE, firstName: 'Sample', lastName: 'Athlete', name: 'S. Athlete', initials: 'SA' }
         : TEST_ATHLETE;
-      await context.addInitScript(({ athlete, workouts, coach }) => {
+      await context.addInitScript(({ athlete, workouts, coach, windows }) => {
         localStorage.setItem('coachme_athlete', JSON.stringify(athlete));
         localStorage.setItem(`coachme_workouts::${athlete.id}`, JSON.stringify(workouts));
         if (coach) localStorage.setItem('coachme_coaches', JSON.stringify([coach]));
+        if (coach && windows) localStorage.setItem('coachme_availability', JSON.stringify(windows));
         // One thread with an unread coach reply (messages inbox + chat).
         localStorage.setItem('coachme_threads', JSON.stringify([{
           id: `${athlete.id}::${coach.id}`, coachId: coach.id, coachName: coach.name,
@@ -118,7 +127,7 @@ try {
           ts: Date.now() - 5400000, likes: 3, liked: false,
         }]));
         localStorage.removeItem('coachme_signed_out');
-      }, { athlete, workouts: TEST_WORKOUTS, coach: persona === 'marketing' ? null : TEST_COACH });
+      }, { athlete, workouts: TEST_WORKOUTS, coach: persona === 'marketing' ? null : TEST_COACH, windows: persona === 'marketing' ? null : TEST_WINDOWS });
     }
     const page = await context.newPage();
     await page.goto(url, { waitUntil: 'networkidle' }).catch(() => page.goto(url));

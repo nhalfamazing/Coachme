@@ -8,6 +8,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { track } from '@vercel/analytics';
 import * as sync from '@/lib/sync';
+import * as bookingApi from '@/lib/scheduling/client';
+import { checkHardBlock, BLOCK_MESSAGE } from '@/lib/safety/patterns';
 import { generateAthleteCode, decodeAnyCode } from '@/lib/codes';
 import { DRILLS } from '@/lib/drills';
 import {
@@ -488,11 +490,9 @@ export default function CoachMeApp() {
   const [tab, setTab] = useState('profile');
   const [trainerOpen, setTrainerOpen] = useState(null);
   const [booking, setBooking] = useState(null);
-  const [confirmed, setConfirmed] = useState(false);
   const [tabAnim, setTabAnim] = useState(false);
 
   const [conversations, setConversations] = useState({});
-  const [sessions, setSessions] = useState([]);
   const [trainerIds, setTrainerIds] = useState([]);
   const [chatOpen, setChatOpen] = useState(null);
   const [callOpen, setCallOpen] = useState(null);
@@ -680,52 +680,7 @@ export default function CoachMeApp() {
   const closeTrainer = () => setTrainerOpen(null);
 
   const startBook = (trainer, mode) => {
-    setBooking({ trainer, mode: mode || trainer.modes[0], step: 1, slot: null });
-  };
-
-  const confirmBook = () => {
-    const { trainer, mode, slot } = booking;
-    const slotInfo = SLOTS[slot];
-    const newSession = {
-      id: Date.now(),
-      trainerId: trainer.id,
-      mode,
-      date: slotInfo.day === 'TOMORROW' ? 'Tomorrow' : slotInfo.day,
-      time: slotInfo.time,
-      status: 'upcoming',
-      location: mode === 'in_person' ? 'Tropical Park' : mode === 'live_online' ? 'Video call' : 'Async review',
-    };
-    setSessions(prev => [...prev, newSession]);
-
-    setConversations(prev => {
-      const conv = prev[trainer.id] || { trainerId: trainer.id, online: true, unread: 0, messages: [] };
-      return {
-        ...prev,
-        [trainer.id]: {
-          ...conv,
-          messages: [
-            ...conv.messages,
-            {
-              id: Date.now(),
-              type: 'session_booked',
-              mode,
-              when: `${slotInfo.date.split(' ').slice(1).join(' ')} ${slotInfo.time}`,
-              where: newSession.location,
-              ts: 'Just now',
-            },
-          ],
-        },
-      };
-    });
-
-    if (!trainerIds.includes(trainer.id)) {
-      setTrainerIds(prev => [...prev, trainer.id]);
-    }
-
-    setConfirmed(true);
-    setBooking(null);
-    setTrainerOpen(null);
-    setTimeout(() => setConfirmed(false), 2400);
+    setBooking({ trainer, mode: mode || (trainer.modes && trainer.modes[0]) });
   };
 
   const openChat = (trainerId) => {
@@ -1114,7 +1069,7 @@ export default function CoachMeApp() {
                   {tab === 'trainers' && <TrainersView onOpenTrainer={openTrainer} athlete={athlete} trainers={allTrainers} onOpenDrill={setDrillOpen}/>}
                   {tab === 'community' && <CommunityView athlete={athlete}/>}
                   {tab === 'messages' && <MessagesView conversations={conversations} trainers={allTrainers} blockedIds={blockedIds} onOpenChat={openChat} onGoToTrainers={() => switchTab('trainers')}/>}
-                  {tab === 'sessions' && <SessionsView sessions={sessions} trainers={allTrainers} onOpenTrainer={openTrainer} onGoToTrainers={() => switchTab('trainers')}/>}
+                  {tab === 'sessions' && <SessionsView athlete={athlete} onGoToTrainers={() => switchTab('trainers')}/>}
                 </div>
               </div>
 
@@ -1155,13 +1110,11 @@ export default function CoachMeApp() {
             {booking && (
               <BookingFlow
                 booking={booking}
-                setBooking={setBooking}
-                onConfirm={confirmBook}
+                athlete={athlete}
                 onClose={() => setBooking(null)}
+                onMessageCoach={(coachId) => { setBooking(null); openChat(coachId); }}
               />
             )}
-
-            {confirmed && <Celebration />}
 
             {drillOpen && (
               <DrillSheet drill={drillOpen} onClose={() => setDrillOpen(null)}/>
@@ -3560,11 +3513,61 @@ function CallButton({ children, onClick, active }) {
 /* ============================================================
    SESSIONS VIEW
    ============================================================ */
-function SessionsView({ sessions, trainers = TRAINERS, onOpenTrainer, onGoToTrainers }) {
-  const upcoming = sessions.filter(s => s.status === 'upcoming' || s.status === 'review');
-  const past = sessions.filter(s => s.status === 'past');
+function sessionDayLabel(iso) {
+  const d = new Date(iso);
+  const now = new Date();
+  const tomorrow = new Date(now);
+  tomorrow.setDate(now.getDate() + 1);
+  if (isSameDay(d, now)) return 'Today';
+  if (isSameDay(d, tomorrow)) return 'Tomorrow';
+  return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+}
+function sessionTimeLabel(iso) {
+  return new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+}
+const DECLINE_LABELS = {
+  slot_taken: 'That time was already taken',
+  time_doesnt_work: "The time doesn't work for the coach",
+  try_another: 'The coach asked you to try another time',
+};
 
-  if (sessions.length === 0) {
+function SessionsView({ athlete, onGoToTrainers }) {
+  const [requests, setRequests] = useState([]);
+  const [sessions, setSessions] = useState([]);
+  const [loaded, setLoaded] = useState(false);
+
+  const refresh = () => {
+    if (!athlete?.code) { setLoaded(true); return; }
+    Promise.all([
+      bookingApi.fetchRequests(athlete.code),
+      bookingApi.fetchSessions(athlete.code),
+    ]).then(([rs, ss]) => {
+      setRequests(rs.filter(r => r.athleteCode === athlete.code));
+      setSessions(ss.filter(s => s.athleteCode === athlete.code));
+      setLoaded(true);
+    });
+  };
+  useEffect(refresh, [athlete?.code]);
+
+  const now = Date.now();
+  const endOf = (x) => new Date(x.startIso).getTime() + (x.durationMin || 60) * 60000;
+  const pending = requests.filter(r => r.status === 'pending')
+    .sort((a, b) => a.startIso.localeCompare(b.startIso));
+  const answered = requests.filter(r => r.status === 'declined' || r.status === 'cancelled_by_coach')
+    .sort((a, b) => b.startIso.localeCompare(a.startIso)).slice(0, 5);
+  const upcoming = sessions.filter(s => s.status === 'scheduled' && endOf(s) > now)
+    .sort((a, b) => a.startIso.localeCompare(b.startIso));
+  const past = sessions.filter(s => s.status !== 'scheduled' || endOf(s) <= now)
+    .sort((a, b) => b.startIso.localeCompare(a.startIso));
+
+  const cancel = async (r) => {
+    await bookingApi.cancelRequest(athlete.code, r.id);
+    refresh();
+  };
+
+  const empty = loaded && pending.length === 0 && answered.length === 0 && upcoming.length === 0 && past.length === 0;
+
+  if (empty) {
     return (
       <div className="view view--sessions" style={{ padding: '12px 0 24px' }}>
         <div style={{ padding: '0 16px 12px' }}>
@@ -3598,8 +3601,35 @@ function SessionsView({ sessions, trainers = TRAINERS, onOpenTrainer, onGoToTrai
     <div className="view view--sessions" style={{ padding: '12px 0 24px' }}>
       <div style={{ padding: '0 16px 12px' }}>
         <div className="display view-title">YOUR <span style={{ color: '#C5FF3D' }}>SESSIONS</span></div>
-        <div className="mono" style={{ fontSize: 11, color: '#9CA0A8', letterSpacing: '0.08em' }}>{upcoming.length} UPCOMING &middot; {past.length} COMPLETED</div>
+        <div className="mono" style={{ fontSize: 11, color: '#9CA0A8', letterSpacing: '0.08em' }}>
+          {pending.length} REQUESTED &middot; {upcoming.length} UPCOMING
+        </div>
       </div>
+
+      {(pending.length > 0 || answered.length > 0) && (
+        <>
+          <div style={{ padding: '12px 16px 8px' }}>
+            <SectionLabel>REQUESTED</SectionLabel>
+          </div>
+          <div style={{ padding: '12px 16px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {pending.map(r => (
+              <BookingRow key={r.id} accent="#FFB347" name={`Coach ${r.coachName || '?'}`}
+                line1={`${sessionDayLabel(r.startIso)} · ${sessionTimeLabel(r.startIso)}`}
+                line2={`${(MODE_META[r.mode]?.label || r.mode).toUpperCase()}${r.locationNote ? ` · ${r.locationNote.toUpperCase()}` : ''}`}
+                status={`Waiting for ${r.coachName ? `Coach ${r.coachName.split(' ')[0]}` : 'the coach'} to confirm`}
+                action={{ label: 'Cancel request', onClick: () => cancel(r) }}
+              />
+            ))}
+            {answered.map(r => (
+              <BookingRow key={r.id} accent="#5F636B" dim name={`Coach ${r.coachName || '?'}`}
+                line1={`${sessionDayLabel(r.startIso)} · ${sessionTimeLabel(r.startIso)}`}
+                line2={r.status === 'cancelled_by_coach' ? 'CANCELLED BY COACH' : 'DECLINED'}
+                status={DECLINE_LABELS[r.declineReason] || r.declineReason || (r.status === 'cancelled_by_coach' ? 'The coach had to cancel. You can request another time.' : 'This time did not work. You can request another.')}
+              />
+            ))}
+          </div>
+        </>
+      )}
 
       {upcoming.length > 0 && (
         <>
@@ -3607,7 +3637,16 @@ function SessionsView({ sessions, trainers = TRAINERS, onOpenTrainer, onGoToTrai
             <SectionLabel>UPCOMING</SectionLabel>
           </div>
           <div style={{ padding: '12px 16px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {upcoming.map(s => <SessionCard key={s.id} session={s} trainers={trainers} onClickTrainer={() => onOpenTrainer(s.trainerId)}/>)}
+            {upcoming.map(s => (
+              <BookingRow key={s.id} accent="#C5FF3D" name={`Coach ${s.coachName || '?'}`}
+                line1={`${sessionDayLabel(s.startIso)} · ${sessionTimeLabel(s.startIso)}`}
+                line2={`${(MODE_META[s.mode]?.label || s.mode).toUpperCase()}${s.locationNote ? ` · ${s.locationNote.toUpperCase()}` : ''}`}
+                status="Confirmed. Tell your parent or guardian the plan."
+                ics={!String(s.id).startsWith('loc-') && athlete?.code
+                  ? `/api/sessions/ics?sessionId=${encodeURIComponent(s.id)}&code=${encodeURIComponent(athlete.code)}`
+                  : null}
+              />
+            ))}
           </div>
         </>
       )}
@@ -3615,10 +3654,16 @@ function SessionsView({ sessions, trainers = TRAINERS, onOpenTrainer, onGoToTrai
       {past.length > 0 && (
         <>
           <div style={{ padding: '12px 16px 8px' }}>
-            <SectionLabel>COMPLETED</SectionLabel>
+            <SectionLabel>PAST</SectionLabel>
           </div>
           <div style={{ padding: '12px 16px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {past.map(s => <SessionCard key={s.id} session={s} trainers={trainers} onClickTrainer={() => onOpenTrainer(s.trainerId)}/>)}
+            {past.map(s => (
+              <BookingRow key={s.id} accent="#2A2A30" dim name={`Coach ${s.coachName || '?'}`}
+                line1={`${sessionDayLabel(s.startIso)} · ${sessionTimeLabel(s.startIso)}`}
+                line2={(s.status === 'cancelled' ? 'CANCELLED' : s.status === 'no_show' ? 'MISSED' : 'COMPLETED')}
+                status={s.status === 'cancelled' ? (s.cancelReason ? `Coach's note: ${s.cancelReason}` : 'This session was cancelled.') : null}
+              />
+            ))}
           </div>
         </>
       )}
@@ -3626,36 +3671,43 @@ function SessionsView({ sessions, trainers = TRAINERS, onOpenTrainer, onGoToTrai
   );
 }
 
-function SessionCard({ session, trainers = TRAINERS, onClickTrainer }) {
-  const trainer = trainers.find(t => t.id === session.trainerId);
-  const Mode = MODE_META[session.mode];
-  const ModeIcon = Mode.icon;
-  if (!trainer) return null;
-
+function BookingRow({ accent, dim, name, line1, line2, status, action, ics }) {
   return (
     <div style={{
       background: 'linear-gradient(160deg, #1A1A20 0%, #0F0F14 100%)',
-      border: '1px solid #2A2A30', borderRadius: 14, padding: 12, position: 'relative', overflow: 'hidden',
+      border: '1px solid #2A2A30', borderRadius: 14, padding: 12,
+      position: 'relative', overflow: 'hidden', opacity: dim ? 0.75 : 1,
     }}>
-      <div style={{
-        position: 'absolute', top: 0, left: 0, width: 3, height: '100%',
-        background: session.status === 'upcoming' ? '#C5FF3D' : session.status === 'review' ? '#FF9BCD' : '#2A2A30',
-      }}/>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingLeft: 4 }}>
-        <button onClick={onClickTrainer} style={{ padding: 0, background: 'none', border: 'none', cursor: 'pointer' }}>
-          <Avatar photo={trainer.photo} initials={trainer.initials} size={44} color={trainer.color} square/>
-        </button>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="display" style={{ fontSize: 18, lineHeight: 1, textTransform: 'uppercase' }}>{trainer.name}</div>
-          <div className="mono" style={{ fontSize: 10, color: '#9CA0A8', marginTop: 5, letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <ModeIcon size={10} color={Mode.color}/>
-            {Mode.label.toUpperCase()} &middot; {session.location.toUpperCase()}
+      <div style={{ position: 'absolute', top: 0, left: 0, width: 3, height: '100%', background: accent }}/>
+      <div style={{ paddingLeft: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+          <div className="display" style={{ fontSize: 18, lineHeight: 1, textTransform: 'uppercase' }}>{name}</div>
+          <div className="display" style={{ fontSize: 15, lineHeight: 1, color: accent === '#2A2A30' ? '#9CA0A8' : accent }}>{line1}</div>
+        </div>
+        <div className="mono" style={{ fontSize: 9.5, color: '#9CA0A8', marginTop: 5, letterSpacing: '0.06em' }}>{line2}</div>
+        {status && (
+          <div className="body" style={{ fontSize: 12, color: '#9CA0A8', marginTop: 6, lineHeight: 1.45 }}>{status}</div>
+        )}
+        {(action || ics) && (
+          <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+            {ics && (
+              <a href={ics} download className="body" style={{
+                background: '#18181C', border: '1px solid #2A2A30', borderRadius: 999,
+                padding: '7px 14px', color: '#F4F4F5', fontSize: 11.5, fontWeight: 600, textDecoration: 'none',
+              }}>
+                Add to calendar
+              </a>
+            )}
+            {action && (
+              <button onClick={action.onClick} className="body" style={{
+                background: 'transparent', border: '1px solid #3A3A42', borderRadius: 999,
+                padding: '7px 14px', color: '#9CA0A8', fontSize: 11.5, fontWeight: 600, cursor: 'pointer',
+              }}>
+                {action.label}
+              </button>
+            )}
           </div>
-        </div>
-        <div style={{ textAlign: 'right' }}>
-          <div className="display" style={{ fontSize: 17, lineHeight: 1, color: session.status === 'past' ? '#9CA0A8' : '#C5FF3D' }}>{session.date.toUpperCase()}</div>
-          <div className="mono" style={{ fontSize: 10, color: '#5F636B', marginTop: 4, letterSpacing: '0.06em' }}>{session.time}</div>
-        </div>
+        )}
       </div>
     </div>
   );
@@ -4246,114 +4298,258 @@ function LogWorkoutModal({ onClose, onSave }) {
 /* ============================================================
    BOOKING FLOW
    ============================================================ */
-function BookingFlow({ booking, setBooking, onConfirm, onClose }) {
-  const { trainer, mode, step, slot } = booking;
-  const Mode = MODE_META[mode];
+function BookingFlow({ booking, athlete, onClose, onMessageCoach }) {
+  const { trainer } = booking;
+  const first = (trainer.name || 'this coach').split(' ')[0];
+  // 'loading' | 'slots' | 'confirm' | 'done'
+  const [phase, setPhase] = useState('loading');
+  const [slotsInfo, setSlotsInfo] = useState(null);
+  const [slot, setSlot] = useState(null);
+  const [note, setNote] = useState('');
+  const [error, setError] = useState('');
+  const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    let live = true;
+    bookingApi.fetchSlots(trainer.code || '', athlete?.code).then(res => {
+      if (!live) return;
+      setSlotsInfo(res);
+      setPhase('slots');
+    });
+    return () => { live = false; };
+  }, [trainer?.code]);
+
+  // Server verdict wins; the local fallback trusts the coach card.
+  const unverified = slotsInfo && (
+    slotsInfo.reason === 'unverified' || (slotsInfo.local && trainer.verified !== true)
+  );
+  const unavailable = slotsInfo && (slotsInfo.reason === 'banned' || slotsInfo.reason === 'blocked');
+  const noTimes = slotsInfo && !unverified && !unavailable &&
+    (slotsInfo.reason === 'no_windows' || slotsInfo.slots.length === 0);
+
+  const submit = async () => {
+    if (!slot || sending) return;
+    const trimmed = note.trim();
+    // Same safety policy as messages, checked here first so the kid gets
+    // the answer instantly; the server enforces it again regardless.
+    if (trimmed && checkHardBlock(trimmed)) {
+      setError(BLOCK_MESSAGE);
+      return;
+    }
+    setSending(true);
+    setError('');
+    const res = await bookingApi.createRequest({
+      athleteCode: athlete?.code || '', athleteName: athlete?.name || '',
+      coachCode: trainer.code || '', coachName: trainer.name || '',
+      startIso: slot.startIso, durationMin: slot.durationMin, mode: slot.mode,
+      locationNote: slot.locationNote, note: trimmed || null,
+    });
+    setSending(false);
+    if (!res.ok) { setError(res.message); return; }
+    setPhase('done');
+  };
+
+  // Group slots by browser-local day.
+  const groups = [];
+  if (slotsInfo) {
+    for (const s of slotsInfo.slots) {
+      const label = sessionDayLabel(s.startIso);
+      const g = groups[groups.length - 1];
+      if (g && g.label === label) g.slots.push(s);
+      else groups.push({ label, slots: [s] });
+    }
+  }
 
   return (
     <div className="sheet-backdrop" style={{ zIndex: 200 }} onClick={onClose}>
-      <div className="slide-up sheet-panel" onClick={e => e.stopPropagation()} style={{ padding: 24 }}>
+      <div className="slide-up phone-scroll sheet-panel" onClick={e => e.stopPropagation()} style={{ padding: 24, maxHeight: '92%', overflowY: 'auto' }}>
         <div className="sheet-handle"/>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, marginTop: 4 }}>
-          <span className="mono" style={{ fontSize: 10, color: '#5F636B', letterSpacing: '0.18em' }}>STEP {step} OF 2</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Avatar photo={trainer.photo} initials={trainer.initials} size={38} square color={trainer.color}/>
+            <div>
+              <div className="display" style={{ fontSize: 20, lineHeight: 1, textTransform: 'uppercase' }}>
+                {phase === 'done' ? 'REQUEST SENT' : `REQUEST A SESSION`}
+              </div>
+              <div className="mono" style={{ fontSize: 9.5, color: '#9CA0A8', marginTop: 4, letterSpacing: '0.06em' }}>
+                {(trainer.name || '').toUpperCase()}{trainer.rate ? ` · $${trainer.rate}/HR` : ''}
+              </div>
+            </div>
+          </div>
           <button onClick={onClose} className="tap" style={{ color: '#5F636B' }}>
             <X size={18}/>
           </button>
         </div>
 
-        {step === 1 && (
+        {phase === 'loading' && (
+          <div className="body" style={{ padding: 30, textAlign: 'center', color: '#9CA0A8', fontSize: 13 }}>
+            Checking {first}&apos;s times...
+          </div>
+        )}
+
+        {phase === 'slots' && unverified && (
+          <div style={{ padding: 20, borderRadius: 12, background: '#18181C', border: '1px dashed #2A2A30', textAlign: 'center' }}>
+            <div className="display" style={{ fontSize: 18, marginBottom: 6, textTransform: 'uppercase' }}>
+              Almost ready to book
+            </div>
+            <div className="body" style={{ fontSize: 12.5, color: '#9CA0A8', lineHeight: 1.55, marginBottom: 14 }}>
+              Coach {first} can take session requests after CoachMe verifies them.
+              That check protects you. You can message them in the meantime.
+            </div>
+            <button onClick={() => onMessageCoach(trainer.id)} className="body" style={{
+              background: '#C5FF3D', color: '#000', border: 'none',
+              padding: '11px 18px', borderRadius: 999, fontWeight: 700, fontSize: 13, cursor: 'pointer',
+            }}>
+              Message {first}
+            </button>
+          </div>
+        )}
+
+        {phase === 'slots' && unavailable && (
+          <div style={{ padding: 20, borderRadius: 12, background: '#18181C', border: '1px dashed #2A2A30', textAlign: 'center' }}>
+            <div className="body" style={{ fontSize: 13, color: '#9CA0A8', lineHeight: 1.55 }}>
+              This coach isn&apos;t taking requests right now.
+            </div>
+          </div>
+        )}
+
+        {phase === 'slots' && noTimes && (
+          <div style={{ padding: 20, borderRadius: 12, background: '#18181C', border: '1px dashed #2A2A30', textAlign: 'center' }}>
+            <div className="display" style={{ fontSize: 18, marginBottom: 6, textTransform: 'uppercase' }}>
+              No times posted yet
+            </div>
+            <div className="body" style={{ fontSize: 12.5, color: '#9CA0A8', lineHeight: 1.55, marginBottom: 14 }}>
+              Coach {first} has not posted training times yet. Message them to ask what works.
+            </div>
+            <button onClick={() => onMessageCoach(trainer.id)} className="body" style={{
+              background: '#C5FF3D', color: '#000', border: 'none',
+              padding: '11px 18px', borderRadius: 999, fontWeight: 700, fontSize: 13, cursor: 'pointer',
+            }}>
+              Message {first}
+            </button>
+          </div>
+        )}
+
+        {phase === 'slots' && slotsInfo && !unverified && !unavailable && !noTimes && (
           <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
-              <Avatar photo={trainer.photo} initials={trainer.initials} size={48} square color={trainer.color}/>
-              <div>
-                <div className="display" style={{ fontSize: 22, lineHeight: 1, textTransform: 'uppercase' }}>PICK A TIME</div>
-                <div className="mono" style={{ fontSize: 10, color: '#9CA0A8', marginTop: 6, letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Mode.icon size={10} color={Mode.color}/> {Mode.label.toUpperCase()} &middot; ${trainer.rate}/HR
+            <div className="body" style={{ fontSize: 12.5, color: '#9CA0A8', lineHeight: 1.5, marginBottom: 14 }}>
+              Pick a time that works for your family. {first} confirms every request.
+            </div>
+            {groups.map(g => (
+              <div key={g.label} style={{ marginBottom: 14 }}>
+                <div className="mono" style={{ fontSize: 10, color: '#5F636B', letterSpacing: '0.14em', marginBottom: 8 }}>
+                  {g.label.toUpperCase()}
                 </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {g.slots.map(s => {
+                    const meta = MODE_META[s.mode];
+                    return (
+                      <button key={s.startIso + s.mode} onClick={() => { setSlot(s); setPhase('confirm'); setError(''); }} className="body" style={{
+                        cursor: 'pointer', padding: '10px 14px', borderRadius: 12,
+                        background: 'linear-gradient(160deg, #1A1A20 0%, #0F0F14 100%)',
+                        border: '1px solid #2A2A30', color: '#F4F4F5', textAlign: 'left',
+                      }}>
+                        <div style={{ fontSize: 14, fontWeight: 700 }}>{sessionTimeLabel(s.startIso)}</div>
+                        <div className="mono" style={{ fontSize: 8.5, color: meta?.color || '#9CA0A8', letterSpacing: '0.08em', marginTop: 3 }}>
+                          {(meta?.label || s.mode).toUpperCase()}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </>
+        )}
+
+        {phase === 'confirm' && slot && (
+          <>
+            <div style={{
+              padding: 16, borderRadius: 14, marginBottom: 14,
+              background: 'linear-gradient(160deg, #1A1A20 0%, #0F0F14 100%)', border: '1px solid #2A2A30',
+            }}>
+              <Row k="COACH" v={trainer.name}/>
+              <Row k="WHEN" v={`${sessionDayLabel(slot.startIso)} · ${sessionTimeLabel(slot.startIso)}`}/>
+              <Row k="MODE" v={MODE_META[slot.mode]?.label || slot.mode}/>
+              {slot.locationNote && <Row k="WHERE" v={slot.locationNote}/>}
+              <Row k="RATE" v={trainer.rate ? `$${trainer.rate}/hr, paid to the coach directly. Requesting is free.` : 'Free to request'} last/>
+            </div>
+
+            {/* Kid-safety framing: reviewed copy, keep visible. */}
+            <div style={{
+              padding: '12px 14px', borderRadius: 12, marginBottom: 14,
+              background: 'rgba(197,255,61,0.06)', border: '1px solid rgba(197,255,61,0.35)',
+            }}>
+              <div className="mono" style={{ fontSize: 9, color: '#C5FF3D', letterSpacing: '0.14em', marginBottom: 6 }}>
+                BEFORE YOU REQUEST
+              </div>
+              <div className="body" style={{ fontSize: 12.5, color: '#D4D6DA', lineHeight: 1.55 }}>
+                Tell your parent or guardian about this session.
+                {slot.mode === 'in_person' ? ' Sessions should happen in public training locations.' : ''}
+              </div>
+              <div className="mono" style={{ fontSize: 9, color: '#9CA0A8', letterSpacing: '0.08em', marginTop: 8, display: 'flex', alignItems: 'center', gap: 5 }}>
+                <CheckCircle2 size={11} color="#C5FF3D"/> COACHME VERIFIED COACH
               </div>
             </div>
 
-            {SLOTS.length === 0 && (
-              <div style={{
-                padding: 20, borderRadius: 12, background: '#18181C',
-                border: '1px dashed #2A2A30', textAlign: 'center', marginBottom: 20,
-              }}>
-                <div className="display" style={{ fontSize: 18, marginBottom: 6, textTransform: 'uppercase' }}>
-                  No Slots Available
-                </div>
-                <div className="body" style={{ fontSize: 12, color: '#9CA0A8', lineHeight: 1.5 }}>
-                  Real availability loads from the trainer's calendar. Once a verified trainer is connected, their open times appear here.
-                </div>
-              </div>
+            <textarea
+              value={note}
+              onChange={e => { setNote(e.target.value.slice(0, 280)); if (error) setError(''); }}
+              placeholder={`Anything ${first} should know? (optional)`}
+              rows={2}
+              className="body"
+              style={{
+                width: '100%', background: '#18181C', border: '1px solid #2A2A30',
+                borderRadius: 12, padding: '11px 13px', color: '#F4F4F5',
+                fontSize: 13, outline: 'none', resize: 'none', marginBottom: 12, fontFamily: 'inherit',
+              }}
+            />
+            {error && (
+              <div className="body" style={{
+                padding: '9px 12px', borderRadius: 10, marginBottom: 12,
+                background: 'rgba(255,68,68,0.1)', border: '1px solid rgba(255,68,68,0.4)',
+                color: '#FF8888', fontSize: 12, lineHeight: 1.45,
+              }}>{error}</div>
             )}
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
-              {SLOTS.map((s, i) => (
-                <button key={i} onClick={() => setBooking({ ...booking, slot: i, step: 2 })} style={{
-                  cursor: 'pointer', textAlign: 'left',
-                  padding: 14, borderRadius: 12,
-                  background: 'linear-gradient(160deg, #1A1A20 0%, #0F0F14 100%)',
-                  border: '1px solid #2A2A30',
-                  display: 'flex', alignItems: 'center', gap: 14, transition: 'border-color 0.15s',
-                }}>
-                  <div style={{
-                    width: 50, height: 50, borderRadius: 12,
-                    background: 'rgba(197,255,61,0.08)', border: '1px solid rgba(197,255,61,0.3)',
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    <div className="mono" style={{ fontSize: 8, color: '#9CA0A8', letterSpacing: '0.08em' }}>{s.date.split(' ')[1].toUpperCase()}</div>
-                    <div className="display" style={{ fontSize: 19, lineHeight: 1, color: '#C5FF3D' }}>{s.date.split(' ')[2]}</div>
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div className="display" style={{ fontSize: 17, lineHeight: 1, textTransform: 'uppercase' }}>{s.day}</div>
-                    <div className="mono" style={{ fontSize: 11, color: '#9CA0A8', marginTop: 4, letterSpacing: '0.06em' }}>{s.time}</div>
-                  </div>
-                  <ChevronRight size={18} color="#5F636B"/>
-                </button>
-              ))}
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={() => { setPhase('slots'); setSlot(null); }} className="body" style={{
+                flex: 1, background: 'transparent', color: '#F4F4F5', border: '1px solid #3A3A42',
+                padding: '14px', borderRadius: 999, fontWeight: 600, fontSize: 14, cursor: 'pointer',
+              }}>Back</button>
+              <button onClick={submit} disabled={sending} className="body" style={{
+                flex: 2, background: sending ? '#1A1A20' : '#C5FF3D', color: sending ? '#5F636B' : '#000',
+                border: 'none', padding: '14px 20px', borderRadius: 999, fontWeight: 700, fontSize: 14,
+                cursor: sending ? 'wait' : 'pointer',
+                display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8,
+              }}>
+                {sending ? 'Sending...' : 'Send request'} {!sending && <ArrowRight size={15}/>}
+              </button>
             </div>
           </>
         )}
 
-        {step === 2 && (
-          <>
-            <div className="display" style={{ fontSize: 28, lineHeight: 1.05, marginBottom: 18 }}>
-              CONFIRM YOUR<br/><span style={{ color: '#C5FF3D' }}>SESSION</span>
-            </div>
-
+        {phase === 'done' && (
+          <div style={{ textAlign: 'center', padding: '10px 0 6px' }}>
             <div style={{
-              padding: 18, borderRadius: 16, marginBottom: 20,
-              background: 'linear-gradient(160deg, #1A1A20 0%, #0F0F14 100%)',
-              border: '1px solid #2A2A30',
+              width: 64, height: 64, borderRadius: '50%', background: '#C5FF3D',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px',
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingBottom: 14, borderBottom: '1px solid #2A2A30', marginBottom: 4 }}>
-                <Avatar photo={trainer.photo} initials={trainer.initials} size={44} square color={trainer.color}/>
-                <div>
-                  <div className="display" style={{ fontSize: 18, lineHeight: 1, textTransform: 'uppercase' }}>{trainer.name}</div>
-                  <div className="mono" style={{ fontSize: 10, color: '#9CA0A8', marginTop: 4, letterSpacing: '0.06em' }}>{trainer.title.toUpperCase()}</div>
-                </div>
-              </div>
-              <Row k="MODE" v={Mode.label}/>
-              <Row k="DATE" v={SLOTS[slot].date}/>
-              <Row k="TIME" v={SLOTS[slot].time}/>
-              <Row k="RATE" v={`$${trainer.rate}/hr`} last/>
+              <CheckCircle2 size={32} color="#000"/>
             </div>
-
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => setBooking({ ...booking, step: 1 })} style={{
-                flex: 1, background: 'transparent', color: '#F4F4F5', border: '1px solid #3A3A42',
-                padding: '14px', borderRadius: 999, fontWeight: 600, fontSize: 14, cursor: 'pointer',
-              }} className="body">Back</button>
-              <button onClick={onConfirm} style={{
-                flex: 2, background: '#C5FF3D', color: '#000', border: 'none',
-                padding: '14px 20px', borderRadius: 999, fontWeight: 700, fontSize: 14, cursor: 'pointer',
-                display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8,
-              }} className="body">
-                Confirm and book <ArrowRight size={15}/>
-              </button>
+            <div className="display" style={{ fontSize: 26, textTransform: 'uppercase', marginBottom: 8 }}>
+              Request sent
             </div>
-          </>
+            <div className="body" style={{ fontSize: 13, color: '#9CA0A8', lineHeight: 1.55, maxWidth: 300, margin: '0 auto 18px' }}>
+              Waiting for Coach {first} to confirm. You can watch it in your Sessions tab, and cancel any time before they answer.
+            </div>
+            <button onClick={onClose} className="body" style={{
+              background: '#C5FF3D', color: '#000', border: 'none',
+              padding: '13px 22px', borderRadius: 999, fontWeight: 700, fontSize: 14, cursor: 'pointer',
+            }}>
+              Done
+            </button>
+          </div>
         )}
       </div>
     </div>

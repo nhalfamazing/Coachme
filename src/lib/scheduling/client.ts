@@ -374,12 +374,15 @@ export async function fetchRequests(code: string): Promise<BookingRequest[]> {
     const res = await api<{ requests: ServerRequestRow[] }>(`/sessions/requests?code=${encodeURIComponent(code)}`);
     let rows = localRequests();
     for (const r of res.requests) {
+      // Server request rows carry no location note (it lives on the
+      // window/session); keep the one the device saw at request time.
+      const existing = rows.find(x => x.id === r.id);
       rows = upsert(rows, {
         id: r.id,
         athleteCode: r.athlete?.code ?? "", athleteName: personName(r.athlete),
         coachCode: r.coach?.code ?? "", coachName: personName(r.coach),
         startIso: r.requested_start, durationMin: r.duration_min, mode: r.mode,
-        locationNote: r.location_note ?? null, note: r.note,
+        locationNote: r.location_note ?? existing?.locationNote ?? null, note: r.note,
         status: r.status, declineReason: r.decline_reason,
         createdAt: new Date(r.created_at).getTime(),
       });
