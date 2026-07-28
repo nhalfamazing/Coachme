@@ -72,6 +72,25 @@ function removeLastCoachMessage(threadId, text) {
   }
   saveThreads(threads);
 }
+// Device-local mirror of this coach's blocks (enforced server-side by
+// the message route): hides blocked athletes' threads and directory
+// entries immediately.
+function coachBlockedKey(coachId) { return `coachme_coach_blocked::${coachId}`; }
+function loadCoachBlocked(coachId) {
+  try {
+    const b = JSON.parse(localStorage.getItem(coachBlockedKey(coachId)) || "[]");
+    return Array.isArray(b) ? b : [];
+  } catch { return []; }
+}
+function addCoachBlocked(coachId, athleteId) {
+  const list = loadCoachBlocked(coachId);
+  if (!list.includes(athleteId)) {
+    list.push(athleteId);
+    try { localStorage.setItem(coachBlockedKey(coachId), JSON.stringify(list)); } catch {}
+  }
+  return list;
+}
+
 // Every athlete who signs up in the app registers here. Coaches browse
 // this to find kids to train and can open the first conversation.
 function loadAthleteDirectory() {
@@ -271,9 +290,27 @@ export default function CoachConsole() {
 
   const refresh = () => setThreads(loadThreads());
 
+  // Blocked athletes: threads and directory entries disappear for this
+  // coach; the server refuses messages in both directions regardless.
+  const [blockedAthleteIds, setBlockedAthleteIds] = useState([]);
+  useEffect(() => {
+    setBlockedAthleteIds(coach ? loadCoachBlocked(coach.id) : []);
+  }, [coach?.id]);
+  const blockAthlete = (athleteSnap) => {
+    if (!coach || !athleteSnap) return;
+    setBlockedAthleteIds(addCoachBlocked(coach.id, athleteSnap.id));
+    setOpenThreadId(null);
+    if (coach.code && athleteSnap.code) {
+      sync.blockProfile({ blockerCode: coach.code, blockedCode: athleteSnap.code });
+    }
+  };
+
   const myThreads = coach
-    ? threads.filter(t => t.coachId === coach.id).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
+    ? threads
+        .filter(t => t.coachId === coach.id && !blockedAthleteIds.includes(t.athlete?.id))
+        .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
     : [];
+  const visibleDirectory = directory.filter(a => !blockedAthleteIds.includes(a.id));
   const openThread = myThreads.find(t => t.id === openThreadId);
 
   const [sendNotice, setSendNotice] = useState(null);
@@ -348,15 +385,17 @@ export default function CoachConsole() {
           needsReplyCount={myThreads.filter(needsReply).length}
         >
           {view === "overview" && (
-            <OverviewView coach={coach} threads={myThreads} directoryCount={directory.length} onOpenThread={goToThread} onGoAthletes={() => setView("roster")}/>
+            <OverviewView coach={coach} threads={myThreads} directoryCount={visibleDirectory.length} onOpenThread={goToThread} onGoAthletes={() => setView("roster")}/>
           )}
           {view === "messages" && (
             openThread ? (
               <ConversationView
                 thread={openThread}
+                coach={coach}
                 onBack={() => { setOpenThreadId(null); setSendNotice(null); }}
                 onReply={reply}
                 onCall={() => setCallOpen(true)}
+                onBlockAthlete={() => blockAthlete(openThread.athlete)}
                 notice={sendNotice}
               />
             ) : (
@@ -364,7 +403,7 @@ export default function CoachConsole() {
             )
           )}
           {view === "roster" && (
-            <AthletesView threads={myThreads} directory={directory} onOpenThread={goToThread} onStart={messageAthlete}/>
+            <AthletesView threads={myThreads} directory={visibleDirectory} onOpenThread={goToThread} onStart={messageAthlete}/>
           )}
           {view === "profile" && (
             <MyProfileView coach={coach}/>
@@ -987,9 +1026,160 @@ const QUICK_OPENERS = [
   "What are you working on right now?",
 ];
 
-function ConversationView({ thread, onBack, onReply, onCall, notice }) {
+/* ============================================================
+   CONVERSATION SAFETY (report / block an athlete)
+   ============================================================ */
+const COACH_REPORT_REASONS = [
+  { key: "uncomfortable", label: "Inappropriate messages" },
+  { key: "personal_info", label: "Asked for personal information" },
+  { key: "move_off_platform", label: "Asked to move off CoachMe" },
+  { key: "other", label: "Something else" },
+];
+
+function CoachSafetySheet({ mode, setMode, athlete, coach, onBlock }) {
+  const [reason, setReason] = useState(null);
+  const [details, setDetails] = useState("");
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
+  const close = () => setMode(null);
+
+  const submitReport = async () => {
+    if (!reason || sending) return;
+    setSending(true);
+    setError("");
+    const res = await sync.fileReport({
+      reporterCode: coach?.code || "",
+      subjectCode: athlete?.code || "",
+      reason,
+      details: details.trim() || null,
+    });
+    setSending(false);
+    if (res.ok) setMode("report_done");
+    else setError(res.message || "We couldn't send this right now. Please try again shortly.");
+  };
+
+  const btn = (primary) => ({
+    width: "100%", padding: "12px 16px", borderRadius: 10, fontWeight: 700, fontSize: 13.5,
+    cursor: "pointer", border: primary ? "none" : `1px solid ${C.border}`,
+    background: primary ? C.accent : "transparent",
+    color: primary ? "#04121D" : C.text,
+  });
+
+  return (
+    <div onClick={close} style={{
+      position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.6)",
+      backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        width: "100%", maxWidth: 440, background: C.panel, border: `1px solid ${C.border}`,
+        borderRadius: 16, padding: 22, maxHeight: "88vh", overflowY: "auto",
+      }}>
+        {mode === "menu" && (
+          <>
+            <div className="display" style={{ fontSize: 22, textTransform: "uppercase", marginBottom: 6 }}>
+              Conversation options
+            </div>
+            <div style={{ fontSize: 13, color: C.muted, lineHeight: 1.5, marginBottom: 16 }}>
+              Report this athlete to the CoachMe team, or block them so you no longer hear from each other.
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <button className="body" onClick={() => setMode("report")} style={btn(true)}>Report this athlete</button>
+              <button className="body" onClick={() => setMode("block")} style={btn(false)}>Block this athlete</button>
+              <button className="body" onClick={close} style={{ ...btn(false), border: "none", color: C.muted }}>Cancel</button>
+            </div>
+          </>
+        )}
+
+        {mode === "report" && (
+          <>
+            <div className="display" style={{ fontSize: 22, textTransform: "uppercase", marginBottom: 6 }}>
+              Report {athlete?.name || "this athlete"}
+            </div>
+            <div style={{ fontSize: 13, color: C.muted, lineHeight: 1.5, marginBottom: 14 }}>
+              Our team reads every report. What happened?
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
+              {COACH_REPORT_REASONS.map(r => (
+                <button key={r.key} onClick={() => setReason(r.key)} className="body" style={{
+                  textAlign: "left", padding: "11px 14px", borderRadius: 10, fontSize: 13, fontWeight: 600,
+                  cursor: "pointer",
+                  background: reason === r.key ? C.accentDim : C.panelUp,
+                  border: reason === r.key ? `1px solid ${C.accent}` : `1px solid ${C.border}`,
+                  color: reason === r.key ? C.accent : C.text,
+                }}>
+                  {r.label}
+                </button>
+              ))}
+            </div>
+            <textarea
+              value={details}
+              onChange={e => setDetails(e.target.value.slice(0, 500))}
+              placeholder="Details (optional)"
+              rows={3}
+              className="body"
+              style={{
+                width: "100%", background: C.panelUp, border: `1px solid ${C.border}`,
+                borderRadius: 10, padding: "11px 13px", color: C.text,
+                fontSize: 13, outline: "none", resize: "none", marginBottom: 12, fontFamily: "inherit",
+              }}
+            />
+            {error && (
+              <div style={{
+                padding: "9px 12px", borderRadius: 8, marginBottom: 10,
+                background: "rgba(255,68,68,0.1)", border: "1px solid rgba(255,68,68,0.4)",
+                color: "#FF8888", fontSize: 12, lineHeight: 1.4,
+              }}>{error}</div>
+            )}
+            <button className="body" onClick={submitReport} disabled={!reason || sending} style={{
+              ...btn(true),
+              background: reason && !sending ? C.accent : C.panelUp,
+              color: reason && !sending ? "#04121D" : C.muted,
+              cursor: reason && !sending ? "pointer" : "not-allowed",
+            }}>
+              {sending ? "Sending..." : "Send report"}
+            </button>
+          </>
+        )}
+
+        {mode === "report_done" && (
+          <>
+            <div className="display" style={{ fontSize: 22, textTransform: "uppercase", marginBottom: 6 }}>
+              Report received
+            </div>
+            <div style={{ fontSize: 13, color: C.muted, lineHeight: 1.6, marginBottom: 16 }}>
+              Thanks. The CoachMe team will review this conversation. You can also block this athlete if you'd rather not hear from them.
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <button className="body" onClick={() => setMode("block")} style={btn(true)}>Block this athlete</button>
+              <button className="body" onClick={close} style={btn(false)}>Done</button>
+            </div>
+          </>
+        )}
+
+        {mode === "block" && (
+          <>
+            <div className="display" style={{ fontSize: 22, textTransform: "uppercase", marginBottom: 6 }}>
+              Block {athlete?.name || "this athlete"}?
+            </div>
+            <div style={{ fontSize: 13, color: C.muted, lineHeight: 1.6, marginBottom: 16 }}>
+              Neither of you will be able to message the other, and their thread leaves your inbox. They won't be notified.
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <button className="body" onClick={() => { close(); onBlock && onBlock(); }} style={btn(true)}>Block</button>
+              <button className="body" onClick={close} style={btn(false)}>Cancel</button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ConversationView({ thread, coach, onBack, onReply, onCall, onBlockAthlete, notice }) {
   const [input, setInput] = useState("");
   const [showStats, setShowStats] = useState(false);
+  // 'menu' | 'report' | 'report_done' | 'block' | null
+  const [safetySheet, setSafetySheet] = useState(null);
   const scrollRef = useRef(null);
   const messages = thread.messages || [];
   const athlete = thread.athlete || {};
@@ -1036,7 +1226,24 @@ function ConversationView({ thread, onBack, onReply, onCall, notice }) {
         }}>
           <Video size={16}/>
         </button>
+        <button onClick={() => setSafetySheet("menu")} aria-label="Conversation safety options" style={{
+          background: C.panelUp, border: `1px solid ${C.border}`, color: C.muted, cursor: "pointer",
+          width: 36, height: 36, borderRadius: 9, display: "flex",
+          alignItems: "center", justifyContent: "center", flexShrink: 0,
+        }}>
+          <MoreHorizontal size={16}/>
+        </button>
       </div>
+
+      {safetySheet && (
+        <CoachSafetySheet
+          mode={safetySheet}
+          setMode={setSafetySheet}
+          athlete={athlete}
+          coach={coach}
+          onBlock={onBlockAthlete}
+        />
+      )}
 
       {showStats && (
         <div style={{ padding: "14px 16px", borderBottom: `1px solid ${C.border}`, background: C.panel, flexShrink: 0 }}>

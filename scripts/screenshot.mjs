@@ -139,7 +139,9 @@ try {
         const hit = await page.evaluate((text) => {
           const t = text.toLowerCase();
           const els = [...document.querySelectorAll('button, a')];
-          const el = els.find(e => (e.innerText || '').toLowerCase().includes(t));
+          const el = els.find(e =>
+            (e.innerText || '').toLowerCase().includes(t) ||
+            (e.getAttribute('aria-label') || '').toLowerCase().includes(t));
           if (el) { el.click(); return true; }
           return false;
         }, action.value);

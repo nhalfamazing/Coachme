@@ -254,6 +254,30 @@ function pushAthleteMessage(athlete, coachId, coachName, text) {
   saveThreads(threads);
   // The server copy is pushed by sync.sendMessage at the call site.
 }
+/* ============================================================
+   LOCAL BLOCK LIST
+   Blocks are enforced server-side (the message route refuses both
+   directions); this device-local list makes the UI honest instantly:
+   blocked threads disappear from Messages and the composer is
+   replaced. Keyed per athlete so siblings sharing a device don't
+   share blocks.
+   ============================================================ */
+function blockedKey(athleteId) { return `coachme_blocked::${athleteId}`; }
+function loadBlockedIds(athleteId) {
+  try {
+    const b = JSON.parse(localStorage.getItem(blockedKey(athleteId)) || '[]');
+    return Array.isArray(b) ? b : [];
+  } catch { return []; }
+}
+function addBlockedId(athleteId, coachId) {
+  const list = loadBlockedIds(athleteId);
+  if (!list.includes(coachId)) {
+    list.push(coachId);
+    try { localStorage.setItem(blockedKey(athleteId), JSON.stringify(list)); } catch {}
+  }
+  return list;
+}
+
 // Directory of every athlete who has signed up in this browser's app.
 // The Coach Console browses this list so coaches can find kids to train
 // and message them first. Moves to Supabase in Phase 1.
@@ -472,6 +496,22 @@ export default function CoachMeApp() {
   const [trainerIds, setTrainerIds] = useState([]);
   const [chatOpen, setChatOpen] = useState(null);
   const [callOpen, setCallOpen] = useState(null);
+
+  // Coaches this athlete has blocked (device-local mirror of the
+  // server-side block; see LOCAL BLOCK LIST above).
+  const [blockedIds, setBlockedIds] = useState([]);
+  useEffect(() => {
+    setBlockedIds(athlete ? loadBlockedIds(athlete.id) : []);
+  }, [athlete?.id]);
+  const blockCoach = (coachId) => {
+    if (!athlete) return;
+    setBlockedIds(addBlockedId(athlete.id, coachId));
+    setChatOpen(null);
+    const coach = allTrainers.find(t => t.id === coachId);
+    if (athlete.code && coach?.code) {
+      sync.blockProfile({ blockerCode: athlete.code, blockedCode: coach.code });
+    }
+  };
 
   // Coaches who signed themselves up via /become-a-coach. A coach only
   // needs to have signed up ONCE to appear for athletes; they do not
@@ -1073,7 +1113,7 @@ export default function CoachMeApp() {
                   {tab === 'profile' && <ProfileView athlete={athlete} trainerIds={trainerIds} trainers={allTrainers} workouts={workouts} hasPosts={hasPosts} hasMessagedCoach={messagedCoachEver} onOpenTrainer={openTrainer} onGoToTrainers={() => switchTab('trainers')} onOpenChat={openChat} onLogWorkout={() => setLogWorkoutOpen(true)} onRemoveWorkout={removeWorkout} onSignOut={signOut}/>}
                   {tab === 'trainers' && <TrainersView onOpenTrainer={openTrainer} athlete={athlete} trainers={allTrainers} onOpenDrill={setDrillOpen}/>}
                   {tab === 'community' && <CommunityView athlete={athlete}/>}
-                  {tab === 'messages' && <MessagesView conversations={conversations} trainers={allTrainers} onOpenChat={openChat} onGoToTrainers={() => switchTab('trainers')}/>}
+                  {tab === 'messages' && <MessagesView conversations={conversations} trainers={allTrainers} blockedIds={blockedIds} onOpenChat={openChat} onGoToTrainers={() => switchTab('trainers')}/>}
                   {tab === 'sessions' && <SessionsView sessions={sessions} trainers={allTrainers} onOpenTrainer={openTrainer} onGoToTrainers={() => switchTab('trainers')}/>}
                 </div>
               </div>
@@ -1096,6 +1136,8 @@ export default function CoachMeApp() {
                 trainer={allTrainers.find(t => t.id === chatOpen)}
                 conversation={conversations[chatOpen]}
                 athlete={athlete}
+                blocked={blockedIds.includes(chatOpen)}
+                onBlock={() => blockCoach(chatOpen)}
                 onClose={() => setChatOpen(null)}
                 onSend={(text) => sendMessage(chatOpen, text)}
                 onCall={() => startCall(chatOpen)}
@@ -2831,8 +2873,10 @@ function DrillSheet({ drill, onClose }) {
 /* ============================================================
    MESSAGES VIEW
    ============================================================ */
-function MessagesView({ conversations, trainers = TRAINERS, onOpenChat, onGoToTrainers }) {
-  const sortedConvs = Object.values(conversations).filter(c => c.messages.length > 0);
+function MessagesView({ conversations, trainers = TRAINERS, blockedIds = [], onOpenChat, onGoToTrainers }) {
+  // Blocked coaches' threads disappear from the inbox immediately.
+  const sortedConvs = Object.values(conversations)
+    .filter(c => c.messages.length > 0 && !blockedIds.includes(c.trainerId));
 
   if (sortedConvs.length === 0) {
     return (
@@ -2951,8 +2995,10 @@ function ConversationRow({ trainer, conv, preview, onClick }) {
 /* ============================================================
    CHAT VIEW
    ============================================================ */
-function ChatView({ trainer, conversation, athlete, onClose, onSend, onCall }) {
+function ChatView({ trainer, conversation, athlete, blocked = false, onBlock, onClose, onSend, onCall }) {
   const [input, setInput] = useState('');
+  // 'menu' | 'report' | 'report_done' | 'block' | null
+  const [safetySheet, setSafetySheet] = useState(null);
   const scrollRef = useRef(null);
   const messages = conversation?.messages || [];
 
@@ -3008,6 +3054,13 @@ function ChatView({ trainer, conversation, athlete, onClose, onSend, onCall }) {
         }}>
           <Video size={16}/>
         </button>
+        <button onClick={() => setSafetySheet('menu')} aria-label="Chat safety options" style={{
+          background: '#18181C', border: '1px solid #2A2A30', color: '#9CA0A8', cursor: 'pointer',
+          width: 36, height: 36, borderRadius: '50%', display: 'flex',
+          alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+        }}>
+          <MoreHorizontal size={16}/>
+        </button>
       </div>
 
       <div ref={scrollRef} className="phone-scroll" style={{
@@ -3028,6 +3081,16 @@ function ChatView({ trainer, conversation, athlete, onClose, onSend, onCall }) {
         )}
       </div>
 
+      {blocked ? (
+        <div className="body" style={{
+          padding: '18px 16px 22px', borderTop: '1px solid #1F1F25', flexShrink: 0,
+          textAlign: 'center', color: '#9CA0A8', fontSize: 13.5,
+          background: 'rgba(10,10,11,0.95)',
+        }}>
+          You can't message this person.
+        </div>
+      ) : (
+      <>
       {input.length === 0 && (
         <div style={{ padding: '0 12px 8px', display: 'flex', gap: 6, overflowX: 'auto' }} className="phone-scroll">
           {QUICK_REPLIES.map((q, i) => (
@@ -3074,7 +3137,179 @@ function ChatView({ trainer, conversation, athlete, onClose, onSend, onCall }) {
           <SendIcon size={16}/>
         </button>
       </div>
+      </>
+      )}
+
+      {safetySheet && (
+        <ChatSafetySheet
+          mode={safetySheet}
+          setMode={setSafetySheet}
+          trainer={trainer}
+          athlete={athlete}
+          onBlock={onBlock}
+        />
+      )}
     </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   CHAT SAFETY SHEET (report / block)
+   Kid-facing copy: short, warm, never scary.
+   ============================================================ */
+const REPORT_REASONS = [
+  { key: 'uncomfortable', label: 'They made me uncomfortable' },
+  { key: 'personal_info', label: 'They asked for personal info' },
+  { key: 'move_off_platform', label: 'They asked me to talk somewhere else' },
+  { key: 'other', label: 'Something else' },
+];
+
+function ChatSafetySheet({ mode, setMode, trainer, athlete, onBlock }) {
+  const [reason, setReason] = useState(null);
+  const [details, setDetails] = useState('');
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState('');
+  const close = () => setMode(null);
+
+  const submitReport = async () => {
+    if (!reason || sending) return;
+    setSending(true);
+    setError('');
+    const res = await sync.fileReport({
+      reporterCode: athlete?.code || '',
+      subjectCode: trainer?.code || '',
+      reason,
+      details: details.trim() || null,
+    });
+    setSending(false);
+    if (res.ok) setMode('report_done');
+    else setError(res.message || "We couldn't send this right now. Please try again in a bit.");
+  };
+
+  const sheetBtn = (primary) => ({
+    width: '100%', padding: '13px 16px', borderRadius: 999, fontWeight: 700, fontSize: 14,
+    cursor: 'pointer', border: primary ? 'none' : '1px solid #3A3A42',
+    background: primary ? '#C5FF3D' : 'transparent',
+    color: primary ? '#000' : '#F4F4F5',
+  });
+
+  return (
+    <div className="sheet-backdrop" style={{ zIndex: 260 }} onClick={close}>
+      <div className="slide-up sheet-panel" onClick={e => e.stopPropagation()} style={{ padding: 24, maxHeight: '92%', overflowY: 'auto' }}>
+        <div className="sheet-handle"/>
+
+        {mode === 'menu' && (
+          <>
+            <div className="display" style={{ fontSize: 24, textTransform: 'uppercase', marginBottom: 6, marginTop: 4 }}>
+              Need help with this chat?
+            </div>
+            <div className="body" style={{ fontSize: 13, color: '#9CA0A8', lineHeight: 1.5, marginBottom: 18 }}>
+              If something feels off, you can tell us or block this coach. You won't get in trouble for asking for help.
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <button className="body" onClick={() => setMode('report')} style={sheetBtn(true)}>
+                Report this coach
+              </button>
+              <button className="body" onClick={() => setMode('block')} style={sheetBtn(false)}>
+                Block this coach
+              </button>
+              <button className="body" onClick={close} style={{ ...sheetBtn(false), border: 'none', color: '#5F636B' }}>
+                Never mind
+              </button>
+            </div>
+          </>
+        )}
+
+        {mode === 'report' && (
+          <>
+            <div className="display" style={{ fontSize: 24, textTransform: 'uppercase', marginBottom: 6, marginTop: 4 }}>
+              Report {trainer?.name || 'this coach'}
+            </div>
+            <div className="body" style={{ fontSize: 13, color: '#9CA0A8', lineHeight: 1.5, marginBottom: 16 }}>
+              A real person on our team will read this. What happened?
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
+              {REPORT_REASONS.map(r => (
+                <button key={r.key} onClick={() => setReason(r.key)} className="body" style={{
+                  textAlign: 'left', padding: '12px 14px', borderRadius: 12, fontSize: 13.5, fontWeight: 600,
+                  cursor: 'pointer',
+                  background: reason === r.key ? 'rgba(197,255,61,0.1)' : '#18181C',
+                  border: reason === r.key ? '1px solid #C5FF3D' : '1px solid #2A2A30',
+                  color: reason === r.key ? '#C5FF3D' : '#D4D6DA',
+                }}>
+                  {r.label}
+                </button>
+              ))}
+            </div>
+            <textarea
+              value={details}
+              onChange={e => setDetails(e.target.value.slice(0, 500))}
+              placeholder="Tell us more if you want to (optional)"
+              rows={3}
+              className="body"
+              style={{
+                width: '100%', background: '#18181C', border: '1px solid #2A2A30',
+                borderRadius: 12, padding: '12px 14px', color: '#F4F4F5',
+                fontSize: 13, outline: 'none', resize: 'none', marginBottom: 12, fontFamily: 'inherit',
+              }}
+            />
+            {error && (
+              <div className="body" style={{
+                padding: '9px 12px', borderRadius: 10, marginBottom: 10,
+                background: 'rgba(255,68,68,0.1)', border: '1px solid rgba(255,68,68,0.4)',
+                color: '#FF8888', fontSize: 12, lineHeight: 1.4,
+              }}>{error}</div>
+            )}
+            <button className="body" onClick={submitReport} disabled={!reason || sending} style={{
+              ...sheetBtn(true),
+              background: reason && !sending ? '#C5FF3D' : '#1A1A20',
+              color: reason && !sending ? '#000' : '#5F636B',
+              cursor: reason && !sending ? 'pointer' : 'not-allowed',
+            }}>
+              {sending ? 'Sending...' : 'Send report'}
+            </button>
+          </>
+        )}
+
+        {mode === 'report_done' && (
+          <>
+            <div className="display" style={{ fontSize: 24, textTransform: 'uppercase', marginBottom: 6, marginTop: 4 }}>
+              Thanks for telling us
+            </div>
+            <div className="body" style={{ fontSize: 13, color: '#9CA0A8', lineHeight: 1.6, marginBottom: 18 }}>
+              A real person will look at this soon. If you don't want to hear from this coach, you can block them too.
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <button className="body" onClick={() => setMode('block')} style={sheetBtn(true)}>
+                Block this coach
+              </button>
+              <button className="body" onClick={close} style={sheetBtn(false)}>
+                Done
+              </button>
+            </div>
+          </>
+        )}
+
+        {mode === 'block' && (
+          <>
+            <div className="display" style={{ fontSize: 24, textTransform: 'uppercase', marginBottom: 6, marginTop: 4 }}>
+              Block {trainer?.name || 'this coach'}?
+            </div>
+            <div className="body" style={{ fontSize: 13, color: '#9CA0A8', lineHeight: 1.6, marginBottom: 18 }}>
+              You won't see messages from them anymore, and they can't message you. They won't be told you blocked them.
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <button className="body" onClick={() => { close(); onBlock && onBlock(); }} style={sheetBtn(true)}>
+                Block
+              </button>
+              <button className="body" onClick={close} style={sheetBtn(false)}>
+                Cancel
+              </button>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }

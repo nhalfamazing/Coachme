@@ -634,6 +634,36 @@ export async function sendMessage(params: {
   }
 }
 
+/** File a report against the other party of a conversation. Not queued
+ *  for retry: the caller shows success or asks the user to try again. */
+export async function fileReport(params: {
+  reporterCode: string; subjectCode: string; messageId?: string | null;
+  reason: "uncomfortable" | "personal_info" | "move_off_platform" | "other";
+  details?: string | null;
+}): Promise<{ ok: boolean; message?: string }> {
+  try {
+    await api("/reports", { method: "POST", body: JSON.stringify(params) });
+    return { ok: true };
+  } catch (err) {
+    if (err instanceof ApiError) return { ok: false, message: err.message };
+    return { ok: false, message: "We couldn't send this right now. Please try again in a bit." };
+  }
+}
+
+/** Block a profile server-side. The caller also records the block
+ *  locally so the UI hides the thread immediately either way. */
+export async function blockProfile(params: {
+  blockerCode: string; blockedCode: string;
+}): Promise<{ ok: boolean; message?: string }> {
+  try {
+    await api("/blocks", { method: "POST", body: JSON.stringify(params) });
+    return { ok: true };
+  } catch (err) {
+    if (err instanceof ApiError) return { ok: false, message: err.message };
+    return { ok: false, message: "We couldn't finish this right now. Please try again in a bit." };
+  }
+}
+
 /** All threads for a profile, merged into coachme_threads. */
 export async function fetchThreads(code: string): Promise<AppThread[] | null> {
   try {
