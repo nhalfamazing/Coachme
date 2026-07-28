@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import * as sync from "@/lib/sync";
+import * as booking from "@/lib/scheduling/client";
 import { generateCoachCode, decodeAnyCode } from "@/lib/codes";
 import {
   Home, MessageCircle, Users, User, Video, Send, ChevronLeft, X,
@@ -402,6 +403,9 @@ export default function CoachConsole() {
               <InboxView threads={myThreads} onOpen={setOpenThreadId}/>
             )
           )}
+          {view === "availability" && (
+            <AvailabilityView coach={coach}/>
+          )}
           {view === "roster" && (
             <AthletesView threads={myThreads} directory={visibleDirectory} onOpenThread={goToThread} onStart={messageAthlete}/>
           )}
@@ -568,6 +572,7 @@ function Shell({ coach, view, setView, onSwitch, needsReplyCount, children }) {
   const NAV = [
     { id: "overview", label: "Overview", icon: Home },
     { id: "messages", label: "Messages", icon: MessageCircle, badge: needsReplyCount },
+    { id: "availability", label: "Availability", icon: Clock },
     { id: "roster", label: "Athletes", icon: Users },
     { id: "profile", label: "My Profile", icon: User },
   ];
@@ -1025,6 +1030,183 @@ const QUICK_OPENERS = [
   "When do you usually train?",
   "What are you working on right now?",
 ];
+
+/* ============================================================
+   AVAILABILITY (recurring weekly training windows)
+   Times are the coach's local time (America/New_York assumption for
+   this phase, documented in the scheduling migration).
+   ============================================================ */
+const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const AVAIL_MODE_LABELS = { in_person: "In person", live_online: "Live online", async: "Async video review" };
+
+function minuteLabel(m) {
+  const h = Math.floor(m / 60);
+  const min = m % 60;
+  const ampm = h >= 12 ? "PM" : "AM";
+  const hh = h % 12 === 0 ? 12 : h % 12;
+  return `${hh}:${String(min).padStart(2, "0")} ${ampm}`;
+}
+// Half-hour choices, 6:00 AM through 10:00 PM.
+const TIME_CHOICES = Array.from({ length: 33 }, (_, i) => 360 + i * 30);
+
+function AvailabilityView({ coach }) {
+  const [windows, setWindows] = useState([]);
+  const [loaded, setLoaded] = useState(false);
+  const [savedLocally, setSavedLocally] = useState(false);
+  const [error, setError] = useState("");
+  const [form, setForm] = useState({ weekday: 6, startMinute: 600, endMinute: 720, mode: "in_person", locationNote: "" });
+
+  useEffect(() => {
+    let live = true;
+    if (coach?.code) {
+      booking.fetchWindows(coach.code).then(w => { if (live) { setWindows(w); setLoaded(true); } });
+    }
+    return () => { live = false; };
+  }, [coach?.code]);
+
+  const upd = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  const add = async () => {
+    setError("");
+    if (form.endMinute <= form.startMinute) {
+      setError("The end time needs to be after the start time.");
+      return;
+    }
+    const res = await booking.saveWindow(coach.code, {
+      weekday: form.weekday, startMinute: form.startMinute, endMinute: form.endMinute,
+      mode: form.mode, locationNote: form.mode === "in_person" ? (form.locationNote.trim() || null) : null,
+      active: true,
+    });
+    if (!res.ok) { setError(res.message); return; }
+    if (res.local) setSavedLocally(true);
+    setWindows(ws => {
+      const i = ws.findIndex(w => w.id === res.value.id);
+      return i >= 0 ? ws.map(w => (w.id === res.value.id ? res.value : w)) : [...ws, res.value];
+    });
+  };
+
+  const toggle = async (w) => {
+    const res = await booking.saveWindow(coach.code, { ...w, active: w.active === false });
+    if (res.ok) {
+      if (res.local) setSavedLocally(true);
+      setWindows(ws => ws.map(x => (x.id === w.id ? { ...x, active: w.active === false } : x)));
+    }
+  };
+
+  const remove = async (w) => {
+    await booking.removeWindow(coach.code, w.id);
+    setWindows(ws => ws.filter(x => x.id !== w.id));
+  };
+
+  const selStyle = {
+    background: C.panelUp, border: `1px solid ${C.border}`, borderRadius: 8,
+    color: C.text, padding: "9px 10px", fontSize: 13, fontFamily: "inherit",
+  };
+  const byDay = WEEKDAYS.map((name, day) => ({
+    name, day,
+    windows: windows.filter(w => w.weekday === day).sort((a, b) => a.startMinute - b.startMinute),
+  })).filter(d => d.windows.length > 0);
+
+  return (
+    <div style={{ maxWidth: 760, margin: "0 auto", padding: "26px 18px 60px" }}>
+      <div className="display" style={{ fontSize: 28, textTransform: "uppercase", marginBottom: 4 }}>Availability</div>
+      <div style={{ fontSize: 13, color: C.muted, lineHeight: 1.55, marginBottom: 6 }}>
+        Add your training windows so athletes can request sessions. Windows repeat weekly; times are your local time.
+      </div>
+      {savedLocally && (
+        <div className="mono" style={{ fontSize: 10, color: C.amber, letterSpacing: "0.06em", marginBottom: 10 }}>
+          SAVED ON THIS DEVICE · SYNCS WHEN THE SERVER SCHEDULE IS READY
+        </div>
+      )}
+
+      <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, padding: 16, margin: "14px 0 22px" }}>
+        <div className="mono" style={{ fontSize: 9.5, color: C.muted, letterSpacing: "0.15em", marginBottom: 12 }}>ADD A WINDOW</div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          <select className="body" style={selStyle} value={form.weekday} onChange={e => upd("weekday", Number(e.target.value))}>
+            {WEEKDAYS.map((d, i) => <option key={i} value={i}>{d}</option>)}
+          </select>
+          <select className="body" style={selStyle} value={form.startMinute} onChange={e => upd("startMinute", Number(e.target.value))}>
+            {TIME_CHOICES.map(m => <option key={m} value={m}>{minuteLabel(m)}</option>)}
+          </select>
+          <span className="mono" style={{ fontSize: 10, color: C.faint }}>TO</span>
+          <select className="body" style={selStyle} value={form.endMinute} onChange={e => upd("endMinute", Number(e.target.value))}>
+            {TIME_CHOICES.map(m => <option key={m} value={m}>{minuteLabel(m)}</option>)}
+          </select>
+          <select className="body" style={selStyle} value={form.mode} onChange={e => upd("mode", e.target.value)}>
+            {Object.entries(AVAIL_MODE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+        </div>
+        {form.mode === "in_person" && (
+          <input
+            className="body" value={form.locationNote} onChange={e => upd("locationNote", e.target.value.slice(0, 120))}
+            placeholder="Where? e.g. Tropical Park, field 3 (public training spots only)"
+            style={{ ...selStyle, width: "100%", marginTop: 10 }}
+          />
+        )}
+        {error && (
+          <div style={{
+            marginTop: 10, padding: "9px 12px", borderRadius: 8, fontSize: 12.5,
+            background: "rgba(255,68,68,0.1)", border: "1px solid rgba(255,68,68,0.4)", color: "#FF8888",
+          }}>{error}</div>
+        )}
+        <button onClick={add} className="body" style={{
+          marginTop: 12, background: C.accent, color: "#04121D", border: "none",
+          padding: "10px 18px", borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: "pointer",
+        }}>
+          Add window
+        </button>
+      </div>
+
+      {loaded && windows.length === 0 ? (
+        <div style={{
+          border: `1px dashed ${C.border}`, borderRadius: 14, padding: 22, textAlign: "center",
+          color: C.muted, fontSize: 13, lineHeight: 1.6,
+        }}>
+          No windows yet. Add your training windows so athletes can request sessions.
+          Until then, your profile shows messaging only.
+        </div>
+      ) : (
+        byDay.map(d => (
+          <div key={d.day} style={{ marginBottom: 16 }}>
+            <div className="mono" style={{ fontSize: 10, color: C.muted, letterSpacing: "0.15em", marginBottom: 8 }}>
+              {d.name.toUpperCase()}
+            </div>
+            {d.windows.map(w => (
+              <div key={w.id} style={{
+                display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
+                background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10,
+                padding: "10px 12px", marginBottom: 8, opacity: w.active === false ? 0.55 : 1,
+              }}>
+                <span className="body" style={{ fontSize: 13.5, fontWeight: 700 }}>
+                  {minuteLabel(w.startMinute)} to {minuteLabel(w.endMinute)}
+                </span>
+                <span className="mono" style={{ fontSize: 9.5, color: C.accent, letterSpacing: "0.08em" }}>
+                  {(AVAIL_MODE_LABELS[w.mode] || w.mode).toUpperCase()}
+                </span>
+                {w.locationNote && (
+                  <span className="body" style={{ fontSize: 12, color: C.muted }}>· {w.locationNote}</span>
+                )}
+                <span style={{ flex: 1 }}/>
+                <button onClick={() => toggle(w)} className="body" style={{
+                  background: "transparent", border: `1px solid ${C.border}`, color: C.muted,
+                  padding: "6px 10px", borderRadius: 8, fontSize: 11.5, fontWeight: 600, cursor: "pointer",
+                }}>
+                  {w.active === false ? "Turn on" : "Pause"}
+                </button>
+                <button onClick={() => remove(w)} className="body" style={{
+                  background: "transparent", border: `1px solid ${C.border}`, color: "#FF8888",
+                  padding: "6px 10px", borderRadius: 8, fontSize: 11.5, fontWeight: 600, cursor: "pointer",
+                }}>
+                  Remove
+                </button>
+              </div>
+            ))}
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
 
 /* ============================================================
    CONVERSATION SAFETY (report / block an athlete)
