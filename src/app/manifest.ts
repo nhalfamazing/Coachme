@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "CoachMe",
     description:
       "The performance graph for emerging athletes. Find a real coach. Track every PR.",
-    start_url: "/",
+    start_url: "/app",
     display: "standalone",
     background_color: "#0A0A0B",
     theme_color: "#C5FF3D",

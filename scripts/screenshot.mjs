@@ -34,12 +34,19 @@ const widths = opt('widths', '390,768,1024,1440').split(',').map(Number);
 const out = opt('out', 'shot');
 const seed = args.includes('--seed');
 const tall = args.includes('--tall');
-// --click and --tab actions run in the order they appear on the command line.
+// --click, --clickjs and --tab actions run in the order they appear on
+// the command line. --clickjs clicks via the DOM (querySelector +
+// element.click()) for elements Playwright's locators struggle with.
 const actions = [];
 for (let i = 0; i < args.length; i++) {
   if (args[i] === '--click') actions.push({ kind: 'click', value: args[i + 1] });
+  if (args[i] === '--clickjs') actions.push({ kind: 'clickjs', value: args[i + 1] });
   if (args[i] === '--tab') actions.push({ kind: 'tab', value: args[i + 1] });
 }
+// --persona marketing renames the seeded athlete to an obviously-sample
+// profile and seeds no coach, for product screenshots used on the
+// marketing site (integrity rule: no invented coach names in marketing).
+const persona = opt('persona', null);
 
 // Realistic viewport heights per width tier (phone / tablet / desktop).
 const HEIGHTS = { 390: 844, 768: 1024, 1024: 768, 1440: 900 };
@@ -86,10 +93,13 @@ try {
     const height = tall ? 2400 : (HEIGHTS[width] || 900);
     const context = await browser.newContext({ viewport: { width, height } });
     if (seed) {
+      const athlete = persona === 'marketing'
+        ? { ...TEST_ATHLETE, firstName: 'Sample', lastName: 'Athlete', name: 'S. Athlete', initials: 'SA' }
+        : TEST_ATHLETE;
       await context.addInitScript(({ athlete, workouts, coach }) => {
         localStorage.setItem('coachme_athlete', JSON.stringify(athlete));
         localStorage.setItem(`coachme_workouts::${athlete.id}`, JSON.stringify(workouts));
-        localStorage.setItem('coachme_coaches', JSON.stringify([coach]));
+        if (coach) localStorage.setItem('coachme_coaches', JSON.stringify([coach]));
         // One thread with an unread coach reply (messages inbox + chat).
         localStorage.setItem('coachme_threads', JSON.stringify([{
           id: `${athlete.id}::${coach.id}`, coachId: coach.id, coachName: coach.name,
@@ -108,7 +118,7 @@ try {
           ts: Date.now() - 5400000, likes: 3, liked: false,
         }]));
         localStorage.removeItem('coachme_signed_out');
-      }, { athlete: TEST_ATHLETE, workouts: TEST_WORKOUTS, coach: TEST_COACH });
+      }, { athlete, workouts: TEST_WORKOUTS, coach: persona === 'marketing' ? null : TEST_COACH });
     }
     const page = await context.newPage();
     await page.goto(url, { waitUntil: 'networkidle' }).catch(() => page.goto(url));
@@ -125,6 +135,15 @@ try {
         await loc.click({ timeout: 5000, force: true }).catch(e => {
           console.error(`  [${width}] click "${action.value}" failed: ${e.message.split('\n')[0]}`);
         });
+      } else if (action.kind === 'clickjs') {
+        const hit = await page.evaluate((text) => {
+          const t = text.toLowerCase();
+          const els = [...document.querySelectorAll('button, a')];
+          const el = els.find(e => (e.innerText || '').toLowerCase().includes(t));
+          if (el) { el.click(); return true; }
+          return false;
+        }, action.value);
+        if (!hit) console.error(`  [${width}] clickjs "${action.value}" found nothing`);
       } else {
         // Nav buttons have exactly the tab label as text (plus an optional
         // numeric unread badge); .last() skips same-named content buttons.

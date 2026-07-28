@@ -5,7 +5,10 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: import.meta.dirname,
   },
-  // Vendored UI prototype lives in src/app/(marketing)/page.tsx and is
+  // Keeps dev-mode screenshots clean for marketing captures; has no
+  // effect on production builds.
+  devIndicators: false,
+  // Vendored UI prototype lives in src/app/app/page.tsx and is
   // intentionally untyped. We re-enable strict checks before Phase 1.
   typescript: {
     ignoreBuildErrors: true,
