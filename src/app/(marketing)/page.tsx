@@ -813,30 +813,19 @@ export default function CoachMeApp() {
     .phone-scroll::-webkit-scrollbar { display: none; }
     .phone-scroll { -ms-overflow-style: none; scrollbar-width: none; overscroll-behavior: contain; }
 
-    /* Laptops, iPads, big screens: the app sits in a pretty phone frame. */
-    .phone-stage { padding: 20px 12px; }
+    /* Full-viewport app shell at every width. The document never scrolls;
+       the app scrolls inside .phone-scroll. Safe-area insets (notches) are
+       owned by the shell, so the body padding from the root layout is
+       zeroed while this app is mounted. */
+    body { padding: 0 !important; }
     .phone {
-      max-width: 420px; min-height: 820px;
-      border-radius: 40px; border: 8px solid #18181C;
-      box-shadow: 0 30px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
+      min-height: 100vh; min-height: 100dvh;
+      height: 100vh; height: 100dvh;
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
     }
-    /* Real phones only (<=480px): drop the fake frame, go true
-       full-screen edge to edge, respect the notch, pin the nav, no fake
-       status bar. Anything wider (laptops, iPads, narrow desktop
-       windows, scaled displays) keeps the framed presentation. */
+    /* Real phones: 16px inputs stop iPhones from zooming in on every field. */
     @media (max-width: 480px) {
-      body { padding: 0 !important; }
-      .phone-stage { padding: 0; }
-      .phone {
-        max-width: none;
-        min-height: 100vh; min-height: 100dvh;
-        height: 100vh; height: 100dvh;
-        border-radius: 0; border: none; box-shadow: none;
-        padding-top: env(safe-area-inset-top);
-        padding-bottom: env(safe-area-inset-bottom);
-      }
-      .phone-statusbar { display: none; }
-      /* 16px inputs stop iPhones from zooming in on every field. */
       .phone input, .phone select, .phone textarea { font-size: 16px !important; }
     }
     @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
@@ -864,7 +853,7 @@ export default function CoachMeApp() {
   `;
 
   return (
-    <div className="phone-stage" style={{ background: '#000', minHeight: '100vh', display: 'flex', justifyContent: 'center', fontFamily: 'system-ui' }}>
+    <div className="phone-stage" style={{ background: '#0A0A0B', minHeight: '100vh', display: 'flex', justifyContent: 'center', fontFamily: 'system-ui' }}>
       <style>{phoneStyles}</style>
 
       <div className="phone" style={{
@@ -872,16 +861,6 @@ export default function CoachMeApp() {
         position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column',
         color: '#F4F4F5',
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 24px 8px', fontSize: 13, fontWeight: 600 }} className="mono phone-statusbar">
-          <span>9:41</span>
-          <div style={{ width: 60, height: 18, background: '#000', borderRadius: 12 }}/>
-          <span style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-            <svg width="16" height="10" viewBox="0 0 16 10" fill="currentColor"><rect x="0" y="6" width="2" height="4" rx="0.5"/><rect x="4" y="4" width="2" height="6" rx="0.5"/><rect x="8" y="2" width="2" height="8" rx="0.5"/><rect x="12" y="0" width="2" height="10" rx="0.5"/></svg>
-            <span style={{ fontSize: 10 }}>5G</span>
-            <svg width="22" height="11" viewBox="0 0 22 11" fill="none" stroke="currentColor"><rect x="0.5" y="0.5" width="18" height="10" rx="2.5"/><rect x="2" y="2" width="14" height="7" rx="1" fill="#C5FF3D" stroke="none"/><rect x="20" y="3.5" width="1.5" height="4" rx="0.5" fill="currentColor"/></svg>
-          </span>
-        </div>
-
         {!athlete ? (
           <SignUpFlow onComplete={completeSignup} savedAthlete={savedAthlete} onLogin={loginSavedAthlete} onCodeLogin={completeSignup} deviceAthletes={deviceAthletes} deviceCoaches={deviceCoaches} onPickAthlete={pickDeviceAthlete} onPickCoach={pickDeviceCoach} />
         ) : (
