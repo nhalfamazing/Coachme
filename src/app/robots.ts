@@ -8,7 +8,8 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: "*",
         allow: "/",
         // Product surfaces: per-device state, nothing useful to index.
-        disallow: ["/app", "/coach", "/api/"],
+        // /admin is the moderation console.
+        disallow: ["/app", "/coach", "/api/", "/admin"],
       },
     ],
     sitemap: `${SITE_URL}/sitemap.xml`,

@@ -24,7 +24,11 @@ export async function GET(req: Request) {
       .limit(1000);
     if (error) throw new Error(`directory query failed: ${error.message}`);
 
-    const rows = (data ?? []).map(r => ({ ...r, pending: r.verification_status !== "verified" }));
+    // Banned profiles disappear from all directories (column-agnostic
+    // before the trust_safety migration: undefined is not true).
+    const rows = (data ?? [])
+      .filter(r => r.banned !== true)
+      .map(r => ({ ...r, pending: r.verification_status !== "verified" }));
     return ok({ profiles: rows });
   });
 }
