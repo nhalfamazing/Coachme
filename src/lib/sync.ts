@@ -595,11 +595,23 @@ export async function openThread(params: { athleteCode: string; coachCode: strin
   } catch { return null; }
 }
 
+/** Outcome of a send. `refused` covers the safety layer saying no
+ *  (hard-blocked content, banned sender, blocked pair, thread rate
+ *  limit): the message must NOT be kept locally or retried, and
+ *  `message` is kid-readable copy to show the sender. */
+export type SendMessageResult =
+  | { status: "sent" }
+  | { status: "queued" }
+  | { status: "refused"; code: string; message: string }
+  | { status: "failed" };
+
+const REFUSAL_CODES = new Set(["message_blocked", "sender_banned", "recipient_unavailable", "blocked", "rate_limited_thread"]);
+
 /** Send a message. The local thread copy is written by the page (as
  *  today); this pushes it to the server or queues it. */
 export async function sendMessage(params: {
   athleteCode: string; coachCode: string; senderCode: string; body: string; legacyKey?: string;
-}): Promise<boolean> {
+}): Promise<SendMessageResult> {
   try {
     const dto = await api<ThreadDto>("/threads/open", {
       method: "POST",
@@ -609,12 +621,16 @@ export async function sendMessage(params: {
       method: "POST",
       body: JSON.stringify({ threadId: dto.thread.id, senderCode: params.senderCode, body: params.body }),
     });
-    return true;
+    return { status: "sent" };
   } catch (err) {
     if (err instanceof CloudUnavailableError) {
       queuePush({ kind: "message", ...params });
+      return { status: "queued" };
     }
-    return false;
+    if (err instanceof ApiError && REFUSAL_CODES.has(err.code)) {
+      return { status: "refused", code: err.code, message: err.message };
+    }
+    return { status: "failed" };
   }
 }
 

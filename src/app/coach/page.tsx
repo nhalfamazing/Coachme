@@ -57,6 +57,21 @@ function pushCoachReply(threadId, text) {
   saveThreads(threads);
   // The server copy is pushed by sync.sendMessage at the call site.
 }
+// The server refused a message (safety block, ban, blocked pair, rate
+// limit): remove the optimistic local copy so the thread reflects what
+// the athlete can actually see.
+function removeLastCoachMessage(threadId, text) {
+  const threads = loadThreads();
+  const t = threads.find(x => x.id === threadId);
+  if (!t) return;
+  for (let i = t.messages.length - 1; i >= 0; i--) {
+    if (t.messages[i].from === "coach" && t.messages[i].text === text) {
+      t.messages.splice(i, 1);
+      break;
+    }
+  }
+  saveThreads(threads);
+}
 // Every athlete who signs up in the app registers here. Coaches browse
 // this to find kids to train and can open the first conversation.
 function loadAthleteDirectory() {
@@ -261,16 +276,27 @@ export default function CoachConsole() {
     : [];
   const openThread = myThreads.find(t => t.id === openThreadId);
 
+  const [sendNotice, setSendNotice] = useState(null);
+
   const reply = (text) => {
     if (!openThread) return;
+    setSendNotice(null);
     pushCoachReply(openThread.id, text);
     refresh();
     // Push to the server so the athlete gets it on ANY device (queued for
-    // retry when offline or the cloud is disabled).
+    // retry when offline or the cloud is disabled). A safety refusal
+    // takes the local copy back and shows the reason.
     if (coach?.code && openThread.athlete?.code) {
+      const threadId = openThread.id;
       sync.sendMessage({
         athleteCode: openThread.athlete.code, coachCode: coach.code,
-        senderCode: coach.code, body: text, legacyKey: openThread.id,
+        senderCode: coach.code, body: text, legacyKey: threadId,
+      }).then(res => {
+        if (res && res.status === "refused") {
+          removeLastCoachMessage(threadId, text);
+          refresh();
+          setSendNotice(res.message);
+        }
       });
     }
   };
@@ -328,9 +354,10 @@ export default function CoachConsole() {
             openThread ? (
               <ConversationView
                 thread={openThread}
-                onBack={() => setOpenThreadId(null)}
+                onBack={() => { setOpenThreadId(null); setSendNotice(null); }}
                 onReply={reply}
                 onCall={() => setCallOpen(true)}
+                notice={sendNotice}
               />
             ) : (
               <InboxView threads={myThreads} onOpen={setOpenThreadId}/>
@@ -960,7 +987,7 @@ const QUICK_OPENERS = [
   "What are you working on right now?",
 ];
 
-function ConversationView({ thread, onBack, onReply, onCall }) {
+function ConversationView({ thread, onBack, onReply, onCall, notice }) {
   const [input, setInput] = useState("");
   const [showStats, setShowStats] = useState(false);
   const scrollRef = useRef(null);
@@ -1084,6 +1111,16 @@ function ConversationView({ thread, onBack, onReply, onCall }) {
           })
         )}
       </div>
+
+      {notice && (
+        <div className="body" style={{
+          margin: "0 16px 10px", padding: "10px 14px", borderRadius: 10, flexShrink: 0,
+          background: "rgba(93,169,255,0.08)", border: "1px solid rgba(93,169,255,0.4)",
+          color: "#B9D6F7", fontSize: 12.5, lineHeight: 1.5,
+        }}>
+          {notice}
+        </div>
+      )}
 
       <div style={{
         padding: "12px 16px 18px", borderTop: `1px solid ${C.border}`,

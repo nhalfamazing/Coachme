@@ -221,6 +221,23 @@ function athleteSnapshot(a) {
     stats: Array.isArray(a.stats) ? a.stats : [],
   };
 }
+// The server refused a message (safety block, ban, blocked pair, or
+// rate limit): remove the optimistic local copy so the kid never
+// believes it sent. Matched by sender+text from the end, because the
+// local id was minted separately from the push.
+function removeLastLocalAthleteMessage(athleteId, coachId, text) {
+  const threads = loadThreads();
+  const t = threads.find(x => x.id === makeThreadId(athleteId, coachId));
+  if (!t) return;
+  for (let i = t.messages.length - 1; i >= 0; i--) {
+    if (t.messages[i].from === 'athlete' && t.messages[i].text === text) {
+      t.messages.splice(i, 1);
+      break;
+    }
+  }
+  saveThreads(threads);
+}
+
 // Athlete sends a message to a coach: upsert the thread, append it.
 function pushAthleteMessage(athlete, coachId, coachName, text) {
   const threads = loadThreads();
@@ -707,12 +724,31 @@ export default function CoachMeApp() {
       const coach = allTrainers.find(t => t.id === trainerId);
       pushAthleteMessage(athlete, trainerId, coach?.name || 'Coach', text);
       // Push to the server so the coach gets it on ANY device. Queued for
-      // retry automatically when offline or the cloud is disabled.
+      // retry automatically when offline or the cloud is disabled. If the
+      // safety layer refuses it, take the local copy back and explain
+      // calmly in the thread.
       if (athlete.code && coach?.code) {
         sync.sendMessage({
           athleteCode: athlete.code, coachCode: coach.code,
           senderCode: athlete.code, body: text,
           legacyKey: makeThreadId(athlete.id, trainerId),
+        }).then(res => {
+          if (res && res.status === 'refused') {
+            removeLastLocalAthleteMessage(athlete.id, trainerId, text);
+            setConversations(prev => {
+              const conv = prev[trainerId];
+              if (!conv) return prev;
+              return {
+                ...prev,
+                [trainerId]: {
+                  ...conv,
+                  messages: conv.messages
+                    .filter(m => !(m.id === newMsg.id && m.text === text))
+                    .concat({ id: `notice-${Date.now()}`, type: 'safety_notice', text: res.message }),
+                },
+              };
+            });
+          }
         });
       }
     }
@@ -3044,6 +3080,22 @@ function ChatView({ trainer, conversation, athlete, onClose, onSend, onCall }) {
 }
 
 function Message({ m, trainer, isLastFromSender }) {
+  // Calm, non-scary notice shown when a message was not sent (safety
+  // block, rate limit). Local-only, never stored server-side.
+  if (m.type === 'safety_notice') {
+    return (
+      <div className="slide-up-msg" style={{ alignSelf: 'center', maxWidth: '88%', margin: '4px 0' }}>
+        <div className="body" style={{
+          background: 'rgba(93,169,255,0.08)', border: '1px solid rgba(93,169,255,0.35)',
+          borderRadius: 14, padding: '10px 14px', fontSize: 12.5, lineHeight: 1.5, color: '#B9D6F7',
+          textAlign: 'center',
+        }}>
+          {m.text}
+        </div>
+      </div>
+    );
+  }
+
   if (m.type === 'pr') {
     return (
       <div className="slide-up-msg" style={{ alignSelf: 'center', maxWidth: '85%', margin: '4px 0' }}>

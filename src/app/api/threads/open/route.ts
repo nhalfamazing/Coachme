@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { db, cloudDisabled, guarded, jsonError, ok, parseBody, rateLimited, profileByCode } from "../../_lib/api";
+import { visibleMessages } from "../../_lib/safety";
 
 const OpenSchema = z.object({
   athleteCode: z.string().min(3).max(80),
@@ -61,6 +62,7 @@ export async function POST(req: Request) {
       .limit(500);
     if (msgs.error) throw new Error(`messages query failed: ${msgs.error.message}`);
 
-    return ok({ thread, athlete, coach, messages: msgs.data ?? [] });
+    // Admin-hidden messages never reach the apps.
+    return ok({ thread, athlete, coach, messages: visibleMessages(msgs.data ?? []) });
   });
 }

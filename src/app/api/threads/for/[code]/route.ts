@@ -1,4 +1,5 @@
 import { db, cloudDisabled, guarded, jsonError, ok, rateLimited, profileByCode } from "../../../_lib/api";
+import { visibleMessages } from "../../../_lib/safety";
 
 export const dynamic = "force-dynamic";
 
@@ -34,7 +35,8 @@ export async function GET(req: Request, ctx: { params: Promise<{ code: string }>
       .limit(5000);
     if (msgs.error) throw new Error(`messages query failed: ${msgs.error.message}`);
     const grouped = new Map<string, any[]>();
-    for (const m of (msgs.data ?? []).sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)))) {
+    // Admin-hidden messages never reach the apps.
+    for (const m of visibleMessages(msgs.data ?? []).sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)))) {
       const list = grouped.get(m.thread_id) ?? [];
       list.push(m);
       grouped.set(m.thread_id, list);
