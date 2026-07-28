@@ -850,6 +850,140 @@ export default function CoachMeApp() {
     .typing-dot { animation: typingDot 1.2s infinite; }
     .tab-fade { transition: opacity 0.15s ease; }
     .tab-fade.out { opacity: 0; }
+
+    /* ============================================================
+       RESPONSIVE TIERS
+       phone <=640px | tablet 641-1023px | desktop >=1024px
+       ============================================================ */
+
+    /* Signed-in shell: scroll area + nav. Column (nav = bottom bar) on
+       phone/tablet, row (nav = left sidebar) on desktop. */
+    .app-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+
+    /* Per-tab content container. */
+    .view { width: 100%; margin: 0 auto; }
+
+    /* Tab title (FIND A TRAINER etc). */
+    .view-title { font-size: 36px; line-height: 1; margin-bottom: 4px; }
+
+    /* Horizontal-scroll card rows (featured trainers, drill library).
+       Base = phone/tablet swipe rows; desktop reflows them. */
+    .featured-row { display: flex; gap: 12px; overflow-x: auto; padding: 12px 16px 16px; }
+    .drill-row { display: flex; gap: 10px; overflow-x: auto; padding: 10px 16px 18px; }
+
+    /* Nav: base = bottom tab bar. */
+    .app-nav {
+      flex-shrink: 0; display: flex;
+      border-top: 1px solid #1F1F25;
+      background: rgba(10,10,11,0.92);
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    }
+    .app-nav-brand, .app-nav-signout { display: none; }
+    .app-nav-tabs { flex: 1; min-width: 0; display: flex; justify-content: space-around; padding: 12px 2px 18px; }
+    .app-nav-btn {
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      background: none; border: none; cursor: pointer; padding: 6px;
+      color: #5F636B; position: relative; transition: color 0.15s, background 0.15s; min-width: 0;
+      font-size: 9px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    }
+    .app-nav-btn.is-active { color: #C5FF3D; }
+    .app-nav-ind { position: absolute; bottom: -12px; width: 20px; height: 2px; background: #C5FF3D; border-radius: 2px; }
+
+    /* Sheets: bottom sheets on phone/tablet, centered dialogs on desktop. */
+    .sheet-backdrop {
+      position: absolute; inset: 0; background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      display: flex; align-items: flex-end;
+    }
+    .sheet-panel {
+      width: 100%; background: #0F0F14; position: relative;
+      border-top-left-radius: 24px; border-top-right-radius: 24px;
+      border-top: 1px solid #2A2A30;
+    }
+    .sheet-handle {
+      position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+      width: 36px; height: 4px; background: #3A3A42; border-radius: 999px;
+    }
+
+    /* Full-screen overlays (trainer detail, chat): whole screen on
+       phone/tablet, centered modal over a dimmed backdrop on desktop. */
+    .modal-backdrop { position: absolute; inset: 0; }
+    .modal-panel {
+      position: absolute; inset: 0; background: #0A0A0B;
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+
+    @media (min-width: 641px) {
+      .view { max-width: 720px; }
+      .view-title { font-size: 44px; }
+    }
+
+    @media (min-width: 1024px) {
+      .view { max-width: 1100px; }
+      .view--feed { max-width: 600px; }
+      .view--messages, .view--sessions { max-width: 700px; }
+      .view-title { font-size: 52px; }
+
+      .app-body { flex-direction: row; }
+      .app-nav {
+        order: -1; flex-direction: column; width: 230px;
+        border-top: none; border-right: 1px solid #1F1F25;
+        padding: 22px 14px 18px; gap: 10px;
+      }
+      .app-nav-brand { display: block; font-size: 30px; line-height: 1; padding: 4px 12px 16px; }
+      .app-nav-tabs { flex-direction: column; justify-content: flex-start; gap: 4px; padding: 0; }
+      .app-nav-btn { flex-direction: row; gap: 12px; width: 100%; padding: 12px; border-radius: 12px; font-size: 11px; }
+      .app-nav-btn.is-active { background: rgba(197,255,61,0.08); }
+      .app-nav-ind { display: none; }
+      .app-nav-signout {
+        display: flex; align-items: center; gap: 12px; width: 100%;
+        background: none; border: 1px solid #2A2A30; border-radius: 12px;
+        padding: 12px; color: #5F636B; cursor: pointer;
+        font-size: 10px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase;
+        transition: color 0.15s, border-color 0.15s;
+      }
+
+      .profile-name { font-size: 40px !important; }
+
+      /* Grids that widen on desktop. */
+      .stats-grid { grid-template-columns: repeat(4, 1fr) !important; }
+      .ach-grid { grid-template-columns: repeat(4, 1fr) !important; }
+      .trainer-list { display: grid !important; grid-template-columns: 1fr 1fr; align-items: start; }
+      .featured-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); overflow: visible; }
+      .drill-row { flex-wrap: wrap; overflow: visible; }
+
+      .sheet-backdrop { align-items: center; justify-content: center; padding: 32px; }
+      .sheet-panel { max-width: 560px; border-radius: 24px; border: 1px solid #2A2A30; }
+      .sheet-panel--wide { max-width: 660px; }
+      .sheet-handle { display: none; }
+      /* Centered dialogs fade in; sliding from the bottom is a sheet move. */
+      .sheet-panel.slide-up { animation-name: fadeUp; animation-duration: 0.25s; }
+
+      .modal-backdrop {
+        background: rgba(0,0,0,0.6);
+        backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+        display: flex; align-items: center; justify-content: center;
+      }
+      .modal-panel {
+        inset: auto; position: relative;
+        width: min(680px, 92vw); height: min(860px, 90vh);
+        border-radius: 24px; border: 1px solid #2A2A30;
+        box-shadow: 0 40px 120px rgba(0,0,0,0.7);
+      }
+      /* Sliding up from the bottom of a centered modal looks wrong;
+         fade the panel in instead on desktop. */
+      .modal-panel.slide-up { animation-name: fadeUp; animation-duration: 0.25s; }
+    }
+
+    /* Pointer feedback on devices that hover, consistent with the
+       existing pressed states. */
+    @media (hover: hover) {
+      .card-hover { transition: border-color 0.15s, background 0.15s; }
+      .card-hover:hover { border-color: #4A4A54 !important; }
+      .app-nav-btn:hover { color: #F4F4F5; background: rgba(255,255,255,0.05); }
+      .app-nav-btn.is-active:hover { color: #C5FF3D; background: rgba(197,255,61,0.08); }
+      .app-nav-signout:hover { color: #F4F4F5; border-color: #3A3A42; }
+    }
   `;
 
   return (
@@ -865,17 +999,19 @@ export default function CoachMeApp() {
           <SignUpFlow onComplete={completeSignup} savedAthlete={savedAthlete} onLogin={loginSavedAthlete} onCodeLogin={completeSignup} deviceAthletes={deviceAthletes} deviceCoaches={deviceCoaches} onPickAthlete={pickDeviceAthlete} onPickCoach={pickDeviceCoach} />
         ) : (
           <>
-            <div className="phone-scroll" style={{ flex: 1, overflow: 'auto', position: 'relative' }}>
-              <div className={`tab-fade ${tabAnim ? 'out' : ''}`}>
-                {tab === 'profile' && <ProfileView athlete={athlete} trainerIds={trainerIds} trainers={allTrainers} workouts={workouts} hasPosts={hasPosts} hasMessagedCoach={messagedCoachEver} onOpenTrainer={openTrainer} onGoToTrainers={() => switchTab('trainers')} onOpenChat={openChat} onLogWorkout={() => setLogWorkoutOpen(true)} onRemoveWorkout={removeWorkout} onSignOut={signOut}/>}
-                {tab === 'trainers' && <TrainersView onOpenTrainer={openTrainer} athlete={athlete} trainers={allTrainers} onOpenDrill={setDrillOpen}/>}
-                {tab === 'community' && <CommunityView athlete={athlete}/>}
-                {tab === 'messages' && <MessagesView conversations={conversations} trainers={allTrainers} onOpenChat={openChat} onGoToTrainers={() => switchTab('trainers')}/>}
-                {tab === 'sessions' && <SessionsView sessions={sessions} trainers={allTrainers} onOpenTrainer={openTrainer} onGoToTrainers={() => switchTab('trainers')}/>}
+            <div className="app-body">
+              <div className="phone-scroll" style={{ flex: 1, overflow: 'auto', position: 'relative' }}>
+                <div className={`tab-fade ${tabAnim ? 'out' : ''}`}>
+                  {tab === 'profile' && <ProfileView athlete={athlete} trainerIds={trainerIds} trainers={allTrainers} workouts={workouts} hasPosts={hasPosts} hasMessagedCoach={messagedCoachEver} onOpenTrainer={openTrainer} onGoToTrainers={() => switchTab('trainers')} onOpenChat={openChat} onLogWorkout={() => setLogWorkoutOpen(true)} onRemoveWorkout={removeWorkout} onSignOut={signOut}/>}
+                  {tab === 'trainers' && <TrainersView onOpenTrainer={openTrainer} athlete={athlete} trainers={allTrainers} onOpenDrill={setDrillOpen}/>}
+                  {tab === 'community' && <CommunityView athlete={athlete}/>}
+                  {tab === 'messages' && <MessagesView conversations={conversations} trainers={allTrainers} onOpenChat={openChat} onGoToTrainers={() => switchTab('trainers')}/>}
+                  {tab === 'sessions' && <SessionsView sessions={sessions} trainers={allTrainers} onOpenTrainer={openTrainer} onGoToTrainers={() => switchTab('trainers')}/>}
+                </div>
               </div>
-            </div>
 
-            <BottomNav tab={tab} switchTab={switchTab} unread={totalUnread} />
+              <AppNav tab={tab} switchTab={switchTab} unread={totalUnread} onSignOut={signOut} />
+            </div>
 
             {trainerOpen && (
               <TrainerDetail
@@ -1343,16 +1479,11 @@ function LoginSheet({ savedAthlete, onLogin, onCodeLogin, onSignUp, onClose }) {
   };
 
   return (
-    <div style={{
-      position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)',
-      backdropFilter: 'blur(8px)', zIndex: 60, display: 'flex', alignItems: 'flex-end',
-    }} onClick={onClose}>
-      <div className="slide-up phone-scroll" onClick={e => e.stopPropagation()} style={{
-        width: '100%', background: '#0F0F14', borderTopLeftRadius: 24, borderTopRightRadius: 24,
-        padding: 24, borderTop: '1px solid #2A2A30', position: 'relative',
-        maxHeight: '92%', overflowY: 'auto',
+    <div className="sheet-backdrop" style={{ zIndex: 60 }} onClick={onClose}>
+      <div className="slide-up phone-scroll sheet-panel" onClick={e => e.stopPropagation()} style={{
+        padding: 24, maxHeight: '92%', overflowY: 'auto',
       }}>
-        <div style={{ position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)', width: 36, height: 4, background: '#3A3A42', borderRadius: 999 }}/>
+        <div className="sheet-handle"/>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, marginTop: 4 }}>
           <div className="display" style={{ fontSize: 26, lineHeight: 1, textTransform: 'uppercase' }}>
@@ -1844,7 +1975,7 @@ function ProfileView({ athlete, trainerIds, trainers = TRAINERS, workouts = [], 
   const earnedCount = Object.values(earned).filter(Boolean).length;
 
   return (
-    <div style={{ padding: '0 0 24px' }}>
+    <div className="view view--profile" style={{ padding: '0 0 24px' }}>
       <div style={{
         margin: '12px 16px 20px', borderRadius: 24, position: 'relative', overflow: 'hidden',
         background: 'linear-gradient(160deg, #1C1C24 0%, #0F0F14 100%)',
@@ -1875,7 +2006,7 @@ function ProfileView({ athlete, trainerIds, trainers = TRAINERS, workouts = [], 
           <div style={{ display: 'flex', alignItems: 'flex-end' }}>
             <Avatar photo={athlete.photo} initials={athlete.initials} size={76} square color="#C5FF3D" ring/>
             <div style={{ flex: 1, marginLeft: 14, paddingBottom: 4 }}>
-              <div className="display" style={{ fontSize: 28, lineHeight: 1, textTransform: 'uppercase' }}>{athlete.name}</div>
+              <div className="display profile-name" style={{ fontSize: 28, lineHeight: 1, textTransform: 'uppercase' }}>{athlete.name}</div>
               <div className="mono" style={{ fontSize: 10.5, color: '#9CA0A8', marginTop: 6, letterSpacing: '0.06em' }}>
                 {athlete.position.toUpperCase()}
                 {athlete.age ? ` · AGE ${athlete.age}` : ''}
@@ -1911,7 +2042,7 @@ function ProfileView({ athlete, trainerIds, trainers = TRAINERS, workouts = [], 
         <SectionLabel>{hasStats ? 'YOUR STATS' : 'STATS'}</SectionLabel>
       </div>
       {hasStats ? (
-        <div style={{ padding: '0 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 24 }}>
+        <div className="stats-grid" style={{ padding: '0 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 24 }}>
           {athlete.stats.map((s, i) => <StatCard key={i} stat={s}/>)}
         </div>
       ) : (
@@ -2002,7 +2133,7 @@ function ProfileView({ athlete, trainerIds, trainers = TRAINERS, workouts = [], 
           {earnedCount} / {ACHIEVEMENTS.length}
         </span>
       </div>
-      <div style={{ padding: '0 16px 24px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+      <div className="ach-grid" style={{ padding: '0 16px 24px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
         {ACHIEVEMENTS.map(a => <AchievementCard key={a.id} achievement={a} earned={earned[a.id]}/>)}
       </div>
 
@@ -2279,7 +2410,7 @@ function SectionLabel({ children }) {
 
 function TrainerRow({ trainer, onClick, showSport }) {
   return (
-    <button onClick={onClick} style={{
+    <button onClick={onClick} className="card-hover" style={{
       width: '100%', textAlign: 'left', cursor: 'pointer',
       background: 'linear-gradient(160deg, #1A1A20 0%, #0F0F14 100%)',
       border: '1px solid #2A2A30', borderRadius: 14, padding: 12,
@@ -2316,9 +2447,9 @@ function TrainersView({ onOpenTrainer, athlete, trainers = TRAINERS, onOpenDrill
 
   if (sportTrainers.length === 0 && otherSportTrainers.length === 0) {
     return (
-      <div style={{ padding: '12px 0 24px' }}>
+      <div className="view view--trainers" style={{ padding: '12px 0 24px' }}>
         <div style={{ padding: '0 16px 12px' }}>
-          <div className="display" style={{ fontSize: 36, lineHeight: 1, marginBottom: 4 }}>FIND A <span style={{ color: '#C5FF3D' }}>TRAINER</span></div>
+          <div className="display view-title">FIND A <span style={{ color: '#C5FF3D' }}>TRAINER</span></div>
           <div className="mono" style={{ fontSize: 11, color: '#9CA0A8', letterSpacing: '0.08em' }}>
             {athlete.sport.toUpperCase()} &middot; {athlete.city.toUpperCase()}
           </div>
@@ -2358,9 +2489,9 @@ function TrainersView({ onOpenTrainer, athlete, trainers = TRAINERS, onOpenDrill
   }
 
   return (
-    <div style={{ padding: '12px 0 24px' }}>
+    <div className="view view--trainers" style={{ padding: '12px 0 24px' }}>
       <div style={{ padding: '0 16px 8px' }}>
-        <div className="display" style={{ fontSize: 36, lineHeight: 1, marginBottom: 4 }}>FIND A <span style={{ color: '#C5FF3D' }}>TRAINER</span></div>
+        <div className="display view-title">FIND A <span style={{ color: '#C5FF3D' }}>TRAINER</span></div>
         <div className="mono" style={{ fontSize: 11, color: '#9CA0A8', letterSpacing: '0.08em' }}>
           {sportTrainers.length} TRAINER{sportTrainers.length !== 1 ? 'S' : ''} &middot; {athlete.sport.toUpperCase()} &middot; {athlete.city.toUpperCase()}
         </div>
@@ -2397,7 +2528,7 @@ function TrainersView({ onOpenTrainer, athlete, trainers = TRAINERS, onOpenDrill
           <div style={{ padding: '0 16px 8px' }}>
             <SectionLabel>FEATURED &middot; FORMER PROS</SectionLabel>
           </div>
-          <div style={{ display: 'flex', gap: 12, overflowX: 'auto', padding: '12px 16px 16px' }} className="phone-scroll">
+          <div className="phone-scroll featured-row">
             {formerPros.map(t => <TrainerCardFeatured key={t.id} trainer={t} onClick={() => onOpenTrainer(t.id)}/>)}
           </div>
         </>
@@ -2408,7 +2539,7 @@ function TrainersView({ onOpenTrainer, athlete, trainers = TRAINERS, onOpenDrill
           <SectionLabel>ALL TRAINERS</SectionLabel>
         </div>
       )}
-      <div style={{ padding: '12px 16px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div className="trainer-list" style={{ padding: '12px 16px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
         {others.map(t => <TrainerRow key={t.id} trainer={t} onClick={() => onOpenTrainer(t.id)}/>)}
       </div>
 
@@ -2430,7 +2561,7 @@ function TrainersView({ onOpenTrainer, athlete, trainers = TRAINERS, onOpenDrill
           <div style={{ padding: '0 16px 8px' }}>
             <SectionLabel>COACHES IN OTHER SPORTS</SectionLabel>
           </div>
-          <div style={{ padding: '12px 16px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div className="trainer-list" style={{ padding: '12px 16px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
             {otherSportTrainers.map(t => <TrainerRow key={t.id} trainer={t} showSport onClick={() => onOpenTrainer(t.id)}/>)}
           </div>
         </>
@@ -2441,7 +2572,7 @@ function TrainersView({ onOpenTrainer, athlete, trainers = TRAINERS, onOpenDrill
 
 function TrainerCardFeatured({ trainer, onClick }) {
   return (
-    <button onClick={onClick} style={{
+    <button onClick={onClick} className="card-hover" style={{
       minWidth: 260, textAlign: 'left', cursor: 'pointer',
       background: '#0F0F14', border: '1px solid #2A2A30', borderRadius: 18, position: 'relative', overflow: 'hidden',
       transition: 'transform 0.15s, border-color 0.15s', padding: 0,
@@ -2508,9 +2639,9 @@ function DrillLibrary({ athleteSport, onOpenDrill }) {
           color: '#C5FF3D', fontWeight: 700, letterSpacing: '0.12em',
         }}>AI COACH</span>
       </div>
-      <div style={{ display: 'flex', gap: 10, overflowX: 'auto', padding: '10px 16px 18px' }} className="phone-scroll">
+      <div className="phone-scroll drill-row">
         {ordered.map(d => (
-          <button key={d.id} onClick={() => onOpenDrill(d)} style={{
+          <button key={d.id} onClick={() => onOpenDrill(d)} className="card-hover" style={{
             minWidth: 168, maxWidth: 168, textAlign: 'left', cursor: 'pointer', padding: 0,
             background: '#0F0F14', border: d.sport === athleteSport ? '1px solid rgba(197,255,61,0.45)' : '1px solid #2A2A30',
             borderRadius: 14, overflow: 'hidden', flexShrink: 0,
@@ -2550,16 +2681,11 @@ function DrillLibrary({ athleteSport, onOpenDrill }) {
 
 function DrillSheet({ drill, onClose }) {
   return (
-    <div style={{
-      position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)',
-      backdropFilter: 'blur(8px)', zIndex: 210, display: 'flex', alignItems: 'flex-end',
-    }} onClick={onClose}>
-      <div className="slide-up phone-scroll" onClick={e => e.stopPropagation()} style={{
-        width: '100%', background: '#0F0F14', borderTopLeftRadius: 24, borderTopRightRadius: 24,
-        padding: 20, borderTop: '1px solid #2A2A30', position: 'relative',
-        maxHeight: '92%', overflowY: 'auto',
+    <div className="sheet-backdrop" style={{ zIndex: 210 }} onClick={onClose}>
+      <div className="slide-up phone-scroll sheet-panel sheet-panel--wide" onClick={e => e.stopPropagation()} style={{
+        padding: 20, maxHeight: '92%', overflowY: 'auto',
       }}>
-        <div style={{ position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)', width: 36, height: 4, background: '#3A3A42', borderRadius: 999 }}/>
+        <div className="sheet-handle"/>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4, marginTop: 6 }}>
           <div>
@@ -2627,9 +2753,9 @@ function MessagesView({ conversations, trainers = TRAINERS, onOpenChat, onGoToTr
 
   if (sortedConvs.length === 0) {
     return (
-      <div style={{ padding: '12px 0 24px' }}>
+      <div className="view view--messages" style={{ padding: '12px 0 24px' }}>
         <div style={{ padding: '0 16px 12px' }}>
-          <div className="display" style={{ fontSize: 36, lineHeight: 1, marginBottom: 4 }}>YOUR <span style={{ color: '#C5FF3D' }}>MESSAGES</span></div>
+          <div className="display view-title">YOUR <span style={{ color: '#C5FF3D' }}>MESSAGES</span></div>
           <div className="mono" style={{ fontSize: 11, color: '#9CA0A8', letterSpacing: '0.08em' }}>NO CONVERSATIONS YET</div>
         </div>
         <div style={{ padding: '40px 16px 0', textAlign: 'center' }}>
@@ -2656,9 +2782,9 @@ function MessagesView({ conversations, trainers = TRAINERS, onOpenChat, onGoToTr
   }
 
   return (
-    <div style={{ padding: '12px 0 24px' }}>
+    <div className="view view--messages" style={{ padding: '12px 0 24px' }}>
       <div style={{ padding: '0 16px 12px' }}>
-        <div className="display" style={{ fontSize: 36, lineHeight: 1, marginBottom: 4 }}>YOUR <span style={{ color: '#C5FF3D' }}>MESSAGES</span></div>
+        <div className="display view-title">YOUR <span style={{ color: '#C5FF3D' }}>MESSAGES</span></div>
         <div className="mono" style={{ fontSize: 11, color: '#9CA0A8', letterSpacing: '0.08em' }}>
           {sortedConvs.length} CONVERSATION{sortedConvs.length !== 1 ? 'S' : ''}
         </div>
@@ -2763,10 +2889,8 @@ function ChatView({ trainer, conversation, athlete, onClose, onSend, onCall }) {
   };
 
   return (
-    <div className="slide-up" style={{
-      position: 'absolute', inset: 0, background: '#0A0A0B', zIndex: 150,
-      display: 'flex', flexDirection: 'column', overflow: 'hidden',
-    }}>
+    <div className="modal-backdrop" style={{ zIndex: 150 }} onClick={onClose}>
+    <div className="modal-panel slide-up" onClick={e => e.stopPropagation()}>
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '14px 12px', borderBottom: '1px solid #1F1F25', flexShrink: 0,
@@ -2870,6 +2994,7 @@ function ChatView({ trainer, conversation, athlete, onClose, onSend, onCall }) {
           <SendIcon size={16}/>
         </button>
       </div>
+    </div>
     </div>
   );
 }
@@ -3110,9 +3235,9 @@ function SessionsView({ sessions, trainers = TRAINERS, onOpenTrainer, onGoToTrai
 
   if (sessions.length === 0) {
     return (
-      <div style={{ padding: '12px 0 24px' }}>
+      <div className="view view--sessions" style={{ padding: '12px 0 24px' }}>
         <div style={{ padding: '0 16px 12px' }}>
-          <div className="display" style={{ fontSize: 36, lineHeight: 1, marginBottom: 4 }}>YOUR <span style={{ color: '#C5FF3D' }}>SESSIONS</span></div>
+          <div className="display view-title">YOUR <span style={{ color: '#C5FF3D' }}>SESSIONS</span></div>
           <div className="mono" style={{ fontSize: 11, color: '#9CA0A8', letterSpacing: '0.08em' }}>NO SESSIONS YET</div>
         </div>
         <div style={{ padding: '40px 16px 0', textAlign: 'center' }}>
@@ -3139,9 +3264,9 @@ function SessionsView({ sessions, trainers = TRAINERS, onOpenTrainer, onGoToTrai
   }
 
   return (
-    <div style={{ padding: '12px 0 24px' }}>
+    <div className="view view--sessions" style={{ padding: '12px 0 24px' }}>
       <div style={{ padding: '0 16px 12px' }}>
-        <div className="display" style={{ fontSize: 36, lineHeight: 1, marginBottom: 4 }}>YOUR <span style={{ color: '#C5FF3D' }}>SESSIONS</span></div>
+        <div className="display view-title">YOUR <span style={{ color: '#C5FF3D' }}>SESSIONS</span></div>
         <div className="mono" style={{ fontSize: 11, color: '#9CA0A8', letterSpacing: '0.08em' }}>{upcoming.length} UPCOMING &middot; {past.length} COMPLETED</div>
       </div>
 
@@ -3274,9 +3399,9 @@ function CommunityView({ athlete }) {
   };
 
   return (
-    <div style={{ padding: '12px 0 24px' }}>
+    <div className="view view--feed" style={{ padding: '12px 0 24px' }}>
       <div style={{ padding: '0 16px 12px' }}>
-        <div className="display" style={{ fontSize: 36, lineHeight: 1, marginBottom: 4 }}>THE <span style={{ color: '#C5FF3D' }}>FEED</span></div>
+        <div className="display view-title">THE <span style={{ color: '#C5FF3D' }}>FEED</span></div>
         <div className="mono" style={{ fontSize: 11, color: '#9CA0A8', letterSpacing: '0.08em' }}>
           ATHLETES &middot; TRAINING UPDATES &middot; PRS
         </div>
@@ -3416,9 +3541,12 @@ function timeAgo(ts) {
 }
 
 /* ============================================================
-   BOTTOM NAV
+   APP NAV
+   Bottom tab bar on phone/tablet, left sidebar on desktop.
+   Layout lives in the .app-nav* CSS classes, not inline, so the
+   breakpoints can restyle it.
    ============================================================ */
-function BottomNav({ tab, switchTab, unread }) {
+function AppNav({ tab, switchTab, unread, onSignOut }) {
   const tabs = [
     { id: 'profile', label: 'Profile', icon: UserIcon },
     { id: 'trainers', label: 'Trainers', icon: Search },
@@ -3427,42 +3555,43 @@ function BottomNav({ tab, switchTab, unread }) {
     { id: 'sessions', label: 'Sessions', icon: CalIcon },
   ];
   return (
-    <div style={{
-      borderTop: '1px solid #1F1F25',
-      background: 'rgba(10,10,11,0.92)', backdropFilter: 'blur(20px)',
-      WebkitBackdropFilter: 'blur(20px)',
-      display: 'flex', justifyContent: 'space-around', padding: '12px 2px 18px',
-      flexShrink: 0,
-    }}>
-      {tabs.map(t => {
-        const Icon = t.icon;
-        const active = tab === t.id;
-        return (
-          <button key={t.id} onClick={() => switchTab(t.id)} style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-            background: 'none', border: 'none', cursor: 'pointer', padding: '6px 6px',
-            color: active ? '#C5FF3D' : '#5F636B', position: 'relative',
-            transition: 'color 0.15s', minWidth: 0,
-          }}>
-            <div style={{ position: 'relative' }}>
-              <Icon size={20} strokeWidth={active ? 2.2 : 1.8}/>
-              {t.badge > 0 && (
-                <span className="mono" style={{
-                  position: 'absolute', top: -6, right: -8,
-                  background: '#C5FF3D', color: '#000', fontSize: 9,
-                  minWidth: 16, height: 16, borderRadius: 8, padding: '0 4px',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontWeight: 700, border: '2px solid #0A0A0B',
-                }}>{t.badge}</span>
-              )}
-            </div>
-            <span className="mono" style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{t.label}</span>
-            {active && <span style={{
-              position: 'absolute', bottom: -12, width: 20, height: 2, background: '#C5FF3D', borderRadius: 2,
-            }}/>}
-          </button>
-        );
-      })}
+    <div className="app-nav">
+      <div className="app-nav-brand display">
+        COACH<span style={{ color: '#C5FF3D' }}>ME</span>
+      </div>
+      <div className="app-nav-tabs">
+        {tabs.map(t => {
+          const Icon = t.icon;
+          const active = tab === t.id;
+          return (
+            <button key={t.id} onClick={() => switchTab(t.id)} className={`app-nav-btn mono ${active ? 'is-active' : ''}`}>
+              <div style={{ position: 'relative', display: 'flex' }}>
+                <Icon size={20} strokeWidth={active ? 2.2 : 1.8}/>
+                {t.badge > 0 && (
+                  <span className="mono" style={{
+                    position: 'absolute', top: -6, right: -8,
+                    background: '#C5FF3D', color: '#000', fontSize: 9,
+                    minWidth: 16, height: 16, borderRadius: 8, padding: '0 4px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontWeight: 700, border: '2px solid #0A0A0B',
+                  }}>{t.badge}</span>
+                )}
+              </div>
+              <span>{t.label}</span>
+              {active && <span className="app-nav-ind"/>}
+            </button>
+          );
+        })}
+      </div>
+      {onSignOut && (
+        <button className="app-nav-signout mono" onClick={() => {
+          if (typeof window !== 'undefined' && window.confirm('Sign out? Your profile stays saved on this device. Use Log in on the welcome screen to come back.')) {
+            onSignOut();
+          }
+        }}>
+          <X size={16}/> Sign out
+        </button>
+      )}
     </div>
   );
 }
@@ -3474,10 +3603,8 @@ function TrainerDetail({ trainer, onClose, onBook, onMessage, onCall }) {
   const [selectedMode, setSelectedMode] = useState(trainer.modes[0]);
 
   return (
-    <div className="slide-up" style={{
-      position: 'absolute', inset: 0, background: '#0A0A0B', zIndex: 100,
-      display: 'flex', flexDirection: 'column', overflow: 'hidden',
-    }}>
+    <div className="modal-backdrop" style={{ zIndex: 100 }} onClick={onClose}>
+    <div className="modal-panel slide-up" onClick={e => e.stopPropagation()}>
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '14px 16px', borderBottom: '1px solid #1F1F25', flexShrink: 0,
@@ -3616,6 +3743,7 @@ function TrainerDetail({ trainer, onClose, onBook, onMessage, onCall }) {
         </button>
       </div>
     </div>
+    </div>
   );
 }
 
@@ -3669,15 +3797,11 @@ function LogWorkoutModal({ onClose, onSave }) {
   };
 
   return (
-    <div style={{
-      position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)',
-      backdropFilter: 'blur(8px)', zIndex: 200, display: 'flex', alignItems: 'flex-end',
-    }} onClick={onClose}>
-      <div className="slide-up phone-scroll" onClick={e => e.stopPropagation()} style={{
-        width: '100%', background: '#0F0F14', borderTopLeftRadius: 24, borderTopRightRadius: 24,
-        padding: 24, borderTop: '1px solid #2A2A30', position: 'relative', maxHeight: '90vh', overflowY: 'auto',
+    <div className="sheet-backdrop" style={{ zIndex: 200 }} onClick={onClose}>
+      <div className="slide-up phone-scroll sheet-panel" onClick={e => e.stopPropagation()} style={{
+        padding: 24, maxHeight: '90vh', overflowY: 'auto',
       }}>
-        <div style={{ position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)', width: 36, height: 4, background: '#3A3A42', borderRadius: 999 }}/>
+        <div className="sheet-handle"/>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, marginTop: 4 }}>
           <div className="display" style={{ fontSize: 26, lineHeight: 1, textTransform: 'uppercase' }}>
@@ -3799,15 +3923,9 @@ function BookingFlow({ booking, setBooking, onConfirm, onClose }) {
   const Mode = MODE_META[mode];
 
   return (
-    <div style={{
-      position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)',
-      backdropFilter: 'blur(8px)', zIndex: 200, display: 'flex', alignItems: 'flex-end',
-    }} onClick={onClose}>
-      <div className="slide-up" onClick={e => e.stopPropagation()} style={{
-        width: '100%', background: '#0F0F14', borderTopLeftRadius: 24, borderTopRightRadius: 24,
-        padding: 24, borderTop: '1px solid #2A2A30', position: 'relative',
-      }}>
-        <div style={{ position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)', width: 36, height: 4, background: '#3A3A42', borderRadius: 999 }}/>
+    <div className="sheet-backdrop" style={{ zIndex: 200 }} onClick={onClose}>
+      <div className="slide-up sheet-panel" onClick={e => e.stopPropagation()} style={{ padding: 24 }}>
+        <div className="sheet-handle"/>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, marginTop: 4 }}>
           <span className="mono" style={{ fontSize: 10, color: '#5F636B', letterSpacing: '0.18em' }}>STEP {step} OF 2</span>

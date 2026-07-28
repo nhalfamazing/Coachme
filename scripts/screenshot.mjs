@@ -34,10 +34,11 @@ const widths = opt('widths', '390,768,1024,1440').split(',').map(Number);
 const out = opt('out', 'shot');
 const seed = args.includes('--seed');
 const tall = args.includes('--tall');
-const tab = opt('tab', null);
-const clicks = [];
+// --click and --tab actions run in the order they appear on the command line.
+const actions = [];
 for (let i = 0; i < args.length; i++) {
-  if (args[i] === '--click') clicks.push(args[i + 1]);
+  if (args[i] === '--click') actions.push({ kind: 'click', value: args[i + 1] });
+  if (args[i] === '--tab') actions.push({ kind: 'tab', value: args[i + 1] });
 }
 
 // Realistic viewport heights per width tier (phone / tablet / desktop).
@@ -63,6 +64,18 @@ const TEST_WORKOUTS = [
   { id: 1, date: new Date().toISOString(), type: 'practice', duration: 90, intensity: 3, notes: 'Team practice, live at-bats.' },
   { id: 2, date: new Date(Date.now() - 86400000).toISOString(), type: 'strength', duration: 45, intensity: 4, notes: '' },
 ];
+// A device-local coach so trainer detail / chat / booking flows render.
+// Only ever seeded against a dev server running with cloud sync disabled.
+const TEST_COACH = {
+  id: 'test-coach-1', name: 'Sam Rivera', initials: 'SR',
+  sport: 'Baseball', title: 'Hitting Coach', specialty: 'Exit velo development',
+  location: 'Miami, FL', city: 'Miami', state: 'FL',
+  rate: 60, rating: null, reviews: 0, athletes: 0, avgGain: null, commits: 0,
+  modes: ['in_person', 'live_online', 'async'], badge: 'NEW COACH',
+  bio: 'Former college infielder. Ten years coaching youth baseball in South Florida.',
+  color: '#C5FF3D', cover: null, photo: null, years: 10,
+  code: 'sam-coach-tiger',
+};
 
 const dir = resolve('.screenshots');
 mkdirSync(dir, { recursive: true });
@@ -73,28 +86,36 @@ try {
     const height = tall ? 2400 : (HEIGHTS[width] || 900);
     const context = await browser.newContext({ viewport: { width, height } });
     if (seed) {
-      await context.addInitScript(({ athlete, workouts }) => {
+      await context.addInitScript(({ athlete, workouts, coach }) => {
         localStorage.setItem('coachme_athlete', JSON.stringify(athlete));
         localStorage.setItem(`coachme_workouts::${athlete.id}`, JSON.stringify(workouts));
+        localStorage.setItem('coachme_coaches', JSON.stringify([coach]));
         localStorage.removeItem('coachme_signed_out');
-      }, { athlete: TEST_ATHLETE, workouts: TEST_WORKOUTS });
+      }, { athlete: TEST_ATHLETE, workouts: TEST_WORKOUTS, coach: TEST_COACH });
     }
     const page = await context.newPage();
     await page.goto(url, { waitUntil: 'networkidle' }).catch(() => page.goto(url));
     await page.waitForTimeout(1200);
-    for (const text of clicks) {
-      await page.getByText(text, { exact: false }).first().click({ timeout: 5000 }).catch(e => {
-        console.error(`  [${width}] click "${text}" failed: ${e.message.split('\n')[0]}`);
-      });
-      await page.waitForTimeout(700);
-    }
-    if (tab) {
-      // Nav buttons have exactly the tab label as text (plus an optional
-      // numeric unread badge); .last() skips same-named content buttons.
-      const re = new RegExp(`^\\s*${tab}\\s*\\d*\\s*$`, 'i');
-      await page.locator('button').filter({ hasText: re }).last().click({ timeout: 5000 }).catch(e => {
-        console.error(`  [${width}] tab click "${tab}" failed: ${e.message.split('\n')[0]}`);
-      });
+    for (const action of actions) {
+      if (action.kind === 'click') {
+        // Exact text match first (so "Message" cannot hit the "Messages"
+        // nav), falling back to substring; .last() prefers overlay content,
+        // which renders after the app body. force: true skips the stability
+        // check - cards scale down on mousedown (pressed state), which
+        // otherwise loops the check forever.
+        let loc = page.getByText(action.value, { exact: true }).last();
+        if (await loc.count() === 0) loc = page.getByText(action.value, { exact: false }).last();
+        await loc.click({ timeout: 5000, force: true }).catch(e => {
+          console.error(`  [${width}] click "${action.value}" failed: ${e.message.split('\n')[0]}`);
+        });
+      } else {
+        // Nav buttons have exactly the tab label as text (plus an optional
+        // numeric unread badge); .last() skips same-named content buttons.
+        const re = new RegExp(`^\\s*${action.value}\\s*\\d*\\s*$`, 'i');
+        await page.locator('button').filter({ hasText: re }).last().click({ timeout: 5000 }).catch(e => {
+          console.error(`  [${width}] tab click "${action.value}" failed: ${e.message.split('\n')[0]}`);
+        });
+      }
       await page.waitForTimeout(700);
     }
     const file = `${dir}/${out}-${width}${tall ? '-tall' : ''}.png`;
