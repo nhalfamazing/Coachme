@@ -11,6 +11,8 @@
 //                                (repeatable; runs in order after --tab)
 //   --tall                       use a 2400px-tall viewport to expose content
 //                                below the fold of the app's internal scroller
+//   --scroll "#selector"         scroll an element into view before capture
+//                                (for mid-page marketing sections)
 //
 // The app scrolls inside its own container (not the document), so fullPage
 // screenshots would not show below-the-fold content; --tall is the substitute.
@@ -165,6 +167,20 @@ try {
       }
       await page.waitForTimeout(700);
     }
+    const scrollTo = opt('scroll', null);
+    if (scrollTo) {
+      await page.evaluate((sel) => {
+        document.querySelector(sel)?.scrollIntoView({ block: 'start' });
+      }, scrollTo);
+      await page.waitForTimeout(400);
+    }
+    // Never capture half-loaded images: cold image-optimizer hits can
+    // take seconds on first request, which reads as broken black cards.
+    await page.waitForFunction(
+      () => [...document.images].every(i => !i.src || i.complete),
+      { timeout: 20000 },
+    ).catch(() => console.error(`  [${width}] warning: images still loading at capture`));
+    await page.waitForTimeout(300);
     const file = `${dir}/${out}-${width}${tall ? '-tall' : ''}.png`;
     await page.screenshot({ path: file });
     console.log(`saved ${file}`);

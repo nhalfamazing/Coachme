@@ -11,7 +11,7 @@ import * as sync from '@/lib/sync';
 import * as bookingApi from '@/lib/scheduling/client';
 import { checkHardBlock, BLOCK_MESSAGE } from '@/lib/safety/patterns';
 import { generateAthleteCode, decodeAnyCode } from '@/lib/codes';
-import { DRILLS } from '@/lib/drills';
+import { DRILLS, COACHES, coachFor } from '@/lib/drills';
 import {
   CheckCircle2, MapPin, Video, Send, Calendar as CalIcon, Star,
   TrendingUp, Search, User as UserIcon, MessageCircle,
@@ -902,6 +902,8 @@ export default function CoachMeApp() {
        Base = phone/tablet swipe rows; desktop reflows them. */
     .featured-row { display: flex; gap: 12px; overflow-x: auto; padding: 12px 16px 16px; }
     .drill-row { display: flex; gap: 10px; overflow-x: auto; padding: 10px 16px 18px; }
+    /* Drill library browse grid: 2-up on phone/tablet, 3-up on desktop. */
+    .drill-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 4px 16px 18px; }
 
     /* 44px-ish touch targets for small icon buttons (close, delete):
        the negative margin keeps the visual footprint where it was. */
@@ -1002,6 +1004,7 @@ export default function CoachMeApp() {
       .trainer-list { display: grid !important; grid-template-columns: 1fr 1fr; align-items: start; }
       .featured-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); overflow: visible; }
       .drill-row { flex-wrap: wrap; overflow: visible; }
+      .drill-grid { grid-template-columns: repeat(3, 1fr); gap: 12px; }
 
       .sheet-backdrop { align-items: center; justify-content: center; padding: 32px; }
       .sheet-panel { max-width: 560px; border-radius: 24px; border: 1px solid #2A2A30; }
@@ -2701,11 +2704,54 @@ function Mini({ num, label, small, icon }) {
 /* ============================================================
    DRILL LIBRARY (AI coach clips)
    ============================================================ */
+const NEW_DRILL_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
+const isNewDrill = (d) => Date.now() - Date.parse(d.addedAt) < NEW_DRILL_WINDOW_MS;
+
+/* Serve Blob-hosted stills through the Next image optimizer (the host is
+   allowed in next.config images.remotePatterns). The store keeps full
+   quality; devices get right-sized WebP - a 1.5 MB portrait PNG becomes
+   a ~2 KB avatar. w must be one of Next's default size buckets
+   (imageSizes 16-384, deviceSizes 640/750/828/1080/1200/...) or the
+   optimizer 400s and the img renders broken. */
+const imgOpt = (url, w) => `/_next/image?url=${encodeURIComponent(url)}&w=${w}&q=75`;
+
 function DrillLibrary({ athleteSport, onOpenDrill }) {
-  // The athlete's own sport first, then everything else.
-  const mine = DRILLS.filter(d => d.sport === athleteSport);
-  const rest = DRILLS.filter(d => d.sport !== athleteSport);
-  const ordered = [...mine, ...rest];
+  const [sportFilter, setSportFilter] = useState('All');
+  const [coachFilter, setCoachFilter] = useState(null);
+  const [query, setQuery] = useState('');
+
+  // Sports that actually have drills, the athlete's own sport first.
+  const librarySports = [...new Set(DRILLS.map(d => d.sport))];
+  const orderedSports = [
+    ...librarySports.filter(s => s === athleteSport),
+    ...librarySports.filter(s => s !== athleteSport),
+  ];
+  const sportCount = (s) => DRILLS.filter(d => d.sport === s).length;
+  const sportIcon = (name) => SPORTS.find(s => s.name === name)?.icon ?? '';
+
+  // Filters combine: sport AND coach AND search text (name + focus).
+  const q = query.trim().toLowerCase();
+  let shown = DRILLS.filter(d =>
+    (sportFilter === 'All' || d.sport === sportFilter)
+    && (!coachFilter || d.coachId === coachFilter)
+    && (!q || `${d.title} ${d.focus}`.toLowerCase().includes(q)),
+  );
+  if (sportFilter === 'All') {
+    // Keep the FOR YOU ordering: the athlete's sport surfaces first.
+    shown = [
+      ...shown.filter(d => d.sport === athleteSport),
+      ...shown.filter(d => d.sport !== athleteSport),
+    ];
+  }
+
+  const chipStyle = (active) => ({
+    display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0, cursor: 'pointer',
+    padding: '6px 11px', borderRadius: 999, whiteSpace: 'nowrap',
+    background: active ? '#C5FF3D' : '#18181C',
+    border: active ? '1px solid #C5FF3D' : '1px solid #2A2A30',
+    color: active ? '#000' : '#9CA0A8',
+    fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
+  });
 
   return (
     <>
@@ -2717,47 +2763,113 @@ function DrillLibrary({ athleteSport, onOpenDrill }) {
           color: '#C5FF3D', fontWeight: 700, letterSpacing: '0.12em',
         }}>AI COACH</span>
       </div>
-      <div className="phone-scroll drill-row">
-        {ordered.map(d => (
-          <button key={d.id} onClick={() => onOpenDrill(d)} className="card-hover" style={{
-            minWidth: 168, maxWidth: 168, textAlign: 'left', cursor: 'pointer', padding: 0,
-            background: '#0F0F14', border: d.sport === athleteSport ? '1px solid rgba(197,255,61,0.45)' : '1px solid #2A2A30',
-            borderRadius: 14, overflow: 'hidden', flexShrink: 0,
-          }}>
-            <div style={{ height: 84, position: 'relative', overflow: 'hidden' }}>
-              {/* Served from our Blob mirror; .cdn is the original source
-                  reference only, never a runtime fallback. */}
-              <img src={d.poster.blob} alt="" referrerPolicy="no-referrer" loading="lazy"
-                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}/>
-              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(15,15,20,0.05) 0%, rgba(15,15,20,0.85) 100%)' }}/>
-              <div style={{
-                position: 'absolute', bottom: 6, left: 8, display: 'flex', alignItems: 'center', gap: 5,
-              }}>
-                <span style={{
-                  width: 22, height: 22, borderRadius: '50%', background: 'rgba(197,255,61,0.9)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                  <Video size={11} color="#000"/>
-                </span>
-                <span className="mono" style={{ fontSize: 8, color: '#D4D6DA', letterSpacing: '0.1em', fontWeight: 700 }}>
-                  INTRO + DEMO
-                </span>
-              </div>
-            </div>
-            <div style={{ padding: '9px 10px 11px' }}>
-              <div className="display" style={{ fontSize: 15, lineHeight: 1.05, textTransform: 'uppercase', color: '#F4F4F5' }}>{d.title}</div>
-              <div className="mono" style={{ fontSize: 8.5, color: d.sport === athleteSport ? '#C5FF3D' : '#5F636B', letterSpacing: '0.1em', marginTop: 4 }}>
-                {d.sport.toUpperCase()}{d.sport === athleteSport ? ' · FOR YOU' : ''}
-              </div>
-            </div>
+
+      <div style={{ padding: '0 16px 10px' }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          background: '#18181C', border: '1px solid #2A2A30', borderRadius: 12, padding: '10px 14px',
+        }}>
+          <Search size={16} color="#5F636B"/>
+          <input
+            value={query} onChange={e => setQuery(e.target.value)} placeholder="Search drills"
+            aria-label="Search drills by name or focus" className="body"
+            style={{ flex: 1, minWidth: 0, background: 'none', border: 'none', outline: 'none', color: '#F4F4F5', fontSize: 14 }}
+          />
+          {query !== '' && (
+            <button onClick={() => setQuery('')} className="tap" aria-label="Clear search" style={{ color: '#5F636B', display: 'flex' }}>
+              <X size={14}/>
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '0 16px 8px' }} className="phone-scroll">
+        <button className="mono" style={chipStyle(sportFilter === 'All')} onClick={() => setSportFilter('All')}>
+          ALL <span style={{ opacity: 0.6 }}>{DRILLS.length}</span>
+        </button>
+        {orderedSports.map(s => (
+          <button key={s} className="mono" style={chipStyle(sportFilter === s)} onClick={() => setSportFilter(sportFilter === s ? 'All' : s)}>
+            <span aria-hidden="true">{sportIcon(s)}</span> {s.toUpperCase()} <span style={{ opacity: 0.6 }}>{sportCount(s)}</span>
           </button>
         ))}
       </div>
+
+      {/* The three AI coach characters; tap to see one coach's drills. */}
+      <div style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '4px 16px 12px' }} className="phone-scroll">
+        {COACHES.map(c => {
+          const active = coachFilter === c.id;
+          return (
+            <button key={c.id} className="mono" onClick={() => setCoachFilter(active ? null : c.id)}
+              style={{ ...chipStyle(active), padding: '4px 11px 4px 4px' }}>
+              <img src={imgOpt(c.portrait.blob, 48)} alt="" referrerPolicy="no-referrer" loading="lazy"
+                style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover', display: 'block' }}/>
+              {c.name.toUpperCase()}
+            </button>
+          );
+        })}
+      </div>
+
+      {shown.length === 0 ? (
+        <div style={{ padding: '18px 16px 24px', textAlign: 'center' }}>
+          <div className="body" style={{ fontSize: 13, color: '#9CA0A8' }}>No drills here yet. More coming.</div>
+        </div>
+      ) : (
+        <div className="drill-grid">
+          {shown.map(d => {
+            const coach = coachFor(d);
+            return (
+              <button key={d.id} onClick={() => onOpenDrill(d)} className="card-hover" style={{
+                textAlign: 'left', cursor: 'pointer', padding: 0,
+                background: '#0F0F14', border: d.sport === athleteSport ? '1px solid rgba(197,255,61,0.45)' : '1px solid #2A2A30',
+                borderRadius: 14, overflow: 'hidden',
+              }}>
+                <div style={{ aspectRatio: '2 / 1', position: 'relative', overflow: 'hidden' }}>
+                  {/* Served from our Blob mirror via the image optimizer;
+                      .cdn is the original source reference only, never a
+                      runtime fallback. */}
+                  <img src={imgOpt(d.poster.blob, 750)} alt="" referrerPolicy="no-referrer" loading="lazy"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', position: 'absolute', inset: 0 }}/>
+                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(15,15,20,0.05) 0%, rgba(15,15,20,0.85) 100%)' }}/>
+                  {isNewDrill(d) && (
+                    <span className="mono" style={{
+                      position: 'absolute', top: 6, right: 6, padding: '2px 6px', borderRadius: 4,
+                      background: '#C5FF3D', color: '#000', fontSize: 8, fontWeight: 700, letterSpacing: '0.12em',
+                    }}>NEW</span>
+                  )}
+                  <div style={{ position: 'absolute', bottom: 6, left: 8, display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <span style={{
+                      width: 22, height: 22, borderRadius: '50%', background: 'rgba(197,255,61,0.9)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <Video size={11} color="#000"/>
+                    </span>
+                    <span className="mono" style={{ fontSize: 8, color: '#D4D6DA', letterSpacing: '0.1em', fontWeight: 700 }}>
+                      INTRO + DEMO
+                    </span>
+                  </div>
+                </div>
+                <div style={{ padding: '9px 10px 11px' }}>
+                  <div className="display" style={{ fontSize: 15, lineHeight: 1.05, textTransform: 'uppercase', color: '#F4F4F5' }}>{d.title}</div>
+                  <div className="mono" style={{ fontSize: 8.5, color: d.sport === athleteSport ? '#C5FF3D' : '#5F636B', letterSpacing: '0.1em', marginTop: 4 }}>
+                    {d.sport.toUpperCase()}{d.sport === athleteSport ? ' · FOR YOU' : ''}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 6 }}>
+                    <img src={imgOpt(coach.portrait.blob, 32)} alt="" referrerPolicy="no-referrer" loading="lazy"
+                      style={{ width: 14, height: 14, borderRadius: '50%', objectFit: 'cover', display: 'block' }}/>
+                    <span className="mono" style={{ fontSize: 8, color: '#9CA0A8', letterSpacing: '0.08em' }}>{coach.name.toUpperCase()}</span>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </>
   );
 }
 
 function DrillSheet({ drill, onClose }) {
+  const coach = coachFor(drill);
   return (
     <div className="sheet-backdrop" style={{ zIndex: 210 }} onClick={onClose}>
       <div className="slide-up phone-scroll sheet-panel sheet-panel--wide" onClick={e => e.stopPropagation()} style={{
@@ -2771,12 +2883,22 @@ function DrillSheet({ drill, onClose }) {
               {drill.title}
             </div>
             <div className="mono" style={{ fontSize: 9.5, color: '#9CA0A8', letterSpacing: '0.1em', marginTop: 5 }}>
-              {drill.sport.toUpperCase()} · COACH CLIP
+              {drill.sport.toUpperCase()} · {drill.focus.toUpperCase()}{isNewDrill(drill) ? ' · NEW' : ''}
             </div>
           </div>
           <button onClick={onClose} className="tap" style={{ color: '#5F636B' }}>
             <X size={20}/>
           </button>
+        </div>
+
+        {/* Which AI coach character teaches this drill. */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9, margin: '10px 0 2px' }}>
+          <img src={imgOpt(coach.portrait.blob, 96)} alt={`${coach.name} portrait`} referrerPolicy="no-referrer"
+            style={{ width: 34, height: 34, borderRadius: 10, objectFit: 'cover', display: 'block' }}/>
+          <div>
+            <div className="display" style={{ fontSize: 13, lineHeight: 1, textTransform: 'uppercase' }}>{coach.name}</div>
+            <div className="mono" style={{ fontSize: 8.5, color: '#5F636B', letterSpacing: '0.08em', marginTop: 3 }}>{coach.style.toUpperCase()}</div>
+          </div>
         </div>
 
         <div className="body" style={{ fontSize: 13, color: '#D4D6DA', lineHeight: 1.5, margin: '10px 0 16px' }}>
@@ -2790,7 +2912,7 @@ function DrillSheet({ drill, onClose }) {
             only, never a runtime fallback — a broken blob upload should
             surface in review, not be masked. */}
         <video
-          src={drill.intro.blob} poster={drill.poster.blob}
+          src={drill.intro.blob} poster={imgOpt(drill.poster.blob, 1200)}
           controls playsInline preload="metadata"
           style={{ width: '100%', aspectRatio: '16 / 9', objectFit: 'contain', borderRadius: 12, background: '#000', marginBottom: 16, display: 'block' }}
         />
@@ -2800,7 +2922,7 @@ function DrillSheet({ drill, onClose }) {
         </div>
         {/* Served from our Blob mirror, same as the intro player above. */}
         <video
-          src={drill.demo.blob} poster={drill.poster.blob}
+          src={drill.demo.blob} poster={imgOpt(drill.poster.blob, 1200)}
           controls playsInline loop preload="metadata"
           style={{ width: '100%', aspectRatio: '16 / 9', objectFit: 'contain', borderRadius: 12, background: '#000', marginBottom: 14, display: 'block' }}
         />

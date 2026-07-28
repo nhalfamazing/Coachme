@@ -5,6 +5,14 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: import.meta.dirname,
   },
+  images: {
+    // Drill posters and coach portraits are served from our Vercel Blob
+    // store (mirrored there by scripts/mirror-drills.mjs; we never serve
+    // third-party CDN URLs).
+    remotePatterns: [
+      new URL("https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/**"),
+    ],
+  },
   // Keeps dev-mode screenshots clean for marketing captures; has no
   // effect on production builds.
   devIndicators: false,
