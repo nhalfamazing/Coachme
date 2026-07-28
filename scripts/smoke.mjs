@@ -57,7 +57,7 @@ await step('signup step 4: skip stats', async () => {
 });
 
 await step('signup done -> app', async () => {
-  await click('Open my CoachMe');
+  await click('Open my KoachMe');
   await page.getByText('TRAINING LOG').first().waitFor({ timeout: 8000 });
 });
 
