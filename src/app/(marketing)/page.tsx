@@ -6,7 +6,13 @@ import { FaqList } from "@/components/marketing/faq";
 import { LandingJsonLd } from "@/components/marketing/json-ld";
 import { CtaLink } from "@/components/marketing/cta-link";
 import { DrillSample } from "@/components/marketing/drill-sample";
-import { DRILLS, coachFor, type Drill } from "@/lib/drills";
+import { HeroVideo } from "@/components/marketing/hero-video";
+import { DRILLS, DRILL_BLOB_BASE, coachFor, type Drill } from "@/lib/drills";
+
+// The hero mockup plays the crossover demo (a silent rep - no speech
+// wasted on a muted loop). scripts/make-hero-clip.mjs maintains the
+// lightweight WebM variant this references.
+const HERO_DRILL = DRILLS.find(d => d.id === "bb-crossover") ?? null;
 
 // One sample per sport for variety (basketball, football, soccer).
 // Preferred picks by id, falling back to the sport's first drill so the
@@ -71,16 +77,24 @@ export default function LandingPage() {
           </div>
           <div className="mk-hero-shot">
             <div className="mk-shot">
-              <Image
-                src="/marketing/profile.png"
-                alt="A KoachMe athlete profile: sample athlete card with level bar, training streak, and stats each labeled SELF for self-reported"
-                width={390}
-                height={844}
-                priority
-                sizes="(min-width: 1024px) 360px, 82vw"
-              />
+              {HERO_DRILL ? (
+                <HeroVideo
+                  webmUrl={`${DRILL_BLOB_BASE}/drills/${HERO_DRILL.id}/hero.webm`}
+                  mp4Url={HERO_DRILL.demo.blob}
+                  posterUrl={HERO_DRILL.poster.blob}
+                />
+              ) : (
+                <Image
+                  src="/marketing/profile.png"
+                  alt="A KoachMe athlete profile: sample athlete card with level bar, training streak, and stats each labeled SELF for self-reported"
+                  width={390}
+                  height={844}
+                  priority
+                  sizes="(min-width: 1024px) 360px, 82vw"
+                />
+              )}
             </div>
-            <p className="mk-caption body">Sample profile shown</p>
+            <p className="mk-caption body">AI-generated drill demo, muted</p>
           </div>
         </div>
       </section>
