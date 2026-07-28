@@ -871,6 +871,15 @@ export default function CoachMeApp() {
     .featured-row { display: flex; gap: 12px; overflow-x: auto; padding: 12px 16px 16px; }
     .drill-row { display: flex; gap: 10px; overflow-x: auto; padding: 10px 16px 18px; }
 
+    /* 44px-ish touch targets for small icon buttons (close, delete):
+       the negative margin keeps the visual footprint where it was. */
+    .tap {
+      padding: 12px; margin: -8px;
+      background: none; border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
     /* Landing (signed-out welcome). Stacked banner-over-content on
        phone/tablet, split hero (content left, stadium right) on desktop. */
     .landing { flex: 1; min-height: 0; display: flex; flex-direction: column; position: relative; overflow: hidden; }
@@ -1513,7 +1522,7 @@ function LoginSheet({ savedAthlete, onLogin, onCodeLogin, onSignUp, onClose }) {
           <div className="display" style={{ fontSize: 26, lineHeight: 1, textTransform: 'uppercase' }}>
             LOG <span style={{ color: '#C5FF3D' }}>IN</span>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#5F636B', cursor: 'pointer' }}>
+          <button onClick={onClose} className="tap" style={{ color: '#5F636B' }}>
             <X size={20}/>
           </button>
         </div>
@@ -2264,10 +2273,7 @@ function WorkoutRow({ workout, onDelete }) {
           <div className="body" style={{ fontSize: 12, color: '#D4D6DA', marginTop: 6, lineHeight: 1.45 }}>{workout.notes}</div>
         ) : null}
       </div>
-      <button onClick={onDelete} title="Delete" style={{
-        background: 'none', border: 'none', color: '#5F636B', cursor: 'pointer', padding: 4,
-        display: 'flex', flexShrink: 0,
-      }}>
+      <button onClick={onDelete} title="Delete" className="tap" style={{ color: '#5F636B' }}>
         <X size={14}/>
       </button>
     </div>
@@ -2720,7 +2726,7 @@ function DrillSheet({ drill, onClose }) {
               {drill.sport.toUpperCase()} · COACH CLIP
             </div>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#5F636B', cursor: 'pointer', padding: 4 }}>
+          <button onClick={onClose} className="tap" style={{ color: '#5F636B' }}>
             <X size={20}/>
           </button>
         </div>
@@ -2738,7 +2744,7 @@ function DrillSheet({ drill, onClose }) {
         <video
           src={drill.intro.blob} poster={drill.poster.blob}
           controls playsInline preload="metadata"
-          style={{ width: '100%', borderRadius: 12, background: '#000', marginBottom: 16, display: 'block' }}
+          style={{ width: '100%', aspectRatio: '16 / 9', objectFit: 'contain', borderRadius: 12, background: '#000', marginBottom: 16, display: 'block' }}
         />
 
         <div className="mono" style={{ fontSize: 10, color: '#9CA0A8', letterSpacing: '0.14em', marginBottom: 8 }}>
@@ -2748,7 +2754,7 @@ function DrillSheet({ drill, onClose }) {
         <video
           src={drill.demo.blob} poster={drill.poster.blob}
           controls playsInline loop preload="metadata"
-          style={{ width: '100%', borderRadius: 12, background: '#000', marginBottom: 14, display: 'block' }}
+          style={{ width: '100%', aspectRatio: '16 / 9', objectFit: 'contain', borderRadius: 12, background: '#000', marginBottom: 14, display: 'block' }}
         />
 
         <div style={{
@@ -2921,10 +2927,7 @@ function ChatView({ trainer, conversation, athlete, onClose, onSend, onCall }) {
         background: 'rgba(10,10,11,0.95)', backdropFilter: 'blur(12px)',
         position: 'relative', zIndex: 10, gap: 8,
       }}>
-        <button onClick={onClose} style={{
-          background: 'none', border: 'none', color: '#F4F4F5', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', flexShrink: 0,
-        }}>
+        <button onClick={onClose} className="tap" style={{ color: '#F4F4F5' }}>
           <ChevronLeft size={22}/>
         </button>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
@@ -3525,10 +3528,7 @@ function PostCard({ post, currentId, onLike, onDelete }) {
           </div>
         </div>
         {mine && (
-          <button onClick={onDelete} title="Delete post" style={{
-            background: 'none', border: 'none', color: '#5F636B', cursor: 'pointer',
-            padding: 4, display: 'flex',
-          }}>
+          <button onClick={onDelete} title="Delete post" className="tap" style={{ color: '#5F636B' }}>
             <X size={14}/>
           </button>
         )}
@@ -3831,7 +3831,7 @@ function LogWorkoutModal({ onClose, onSave }) {
           <div className="display" style={{ fontSize: 26, lineHeight: 1, textTransform: 'uppercase' }}>
             LOG <span style={{ color: '#C5FF3D' }}>WORKOUT</span>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#5F636B', cursor: 'pointer' }}>
+          <button onClick={onClose} className="tap" style={{ color: '#5F636B' }}>
             <X size={20}/>
           </button>
         </div>
@@ -3953,7 +3953,7 @@ function BookingFlow({ booking, setBooking, onConfirm, onClose }) {
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, marginTop: 4 }}>
           <span className="mono" style={{ fontSize: 10, color: '#5F636B', letterSpacing: '0.18em' }}>STEP {step} OF 2</span>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#5F636B', cursor: 'pointer' }}>
+          <button onClick={onClose} className="tap" style={{ color: '#5F636B' }}>
             <X size={18}/>
           </button>
         </div>

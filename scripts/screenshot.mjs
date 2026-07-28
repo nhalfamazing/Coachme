@@ -90,6 +90,23 @@ try {
         localStorage.setItem('coachme_athlete', JSON.stringify(athlete));
         localStorage.setItem(`coachme_workouts::${athlete.id}`, JSON.stringify(workouts));
         localStorage.setItem('coachme_coaches', JSON.stringify([coach]));
+        // One thread with an unread coach reply (messages inbox + chat).
+        localStorage.setItem('coachme_threads', JSON.stringify([{
+          id: `${athlete.id}::${coach.id}`, coachId: coach.id, coachName: coach.name,
+          athlete: { id: athlete.id, name: athlete.name, initials: athlete.initials, sport: athlete.sport },
+          messages: [
+            { id: 1, from: 'athlete', text: 'Hey coach, can you check my swing this week?', ts: Date.now() - 7200000 },
+            { id: 2, from: 'coach', text: 'Sure - send a clip from your next practice and we will go through it together.', ts: Date.now() - 3600000 },
+          ],
+          updatedAt: Date.now() - 3600000,
+        }]));
+        // One feed post by the athlete (composer + post card + like row).
+        localStorage.setItem('coachme_posts', JSON.stringify([{
+          id: 9001, authorId: athlete.id,
+          author: { name: athlete.name, initials: athlete.initials, sport: athlete.sport, position: athlete.position, city: athlete.city, photo: null },
+          text: 'New PR on exit velo today - 85 mph off the tee. Chasing 90 by fall.',
+          ts: Date.now() - 5400000, likes: 3, liked: false,
+        }]));
         localStorage.removeItem('coachme_signed_out');
       }, { athlete: TEST_ATHLETE, workouts: TEST_WORKOUTS, coach: TEST_COACH });
     }
@@ -111,8 +128,8 @@ try {
       } else {
         // Nav buttons have exactly the tab label as text (plus an optional
         // numeric unread badge); .last() skips same-named content buttons.
-        const re = new RegExp(`^\\s*${action.value}\\s*\\d*\\s*$`, 'i');
-        await page.locator('button').filter({ hasText: re }).last().click({ timeout: 5000 }).catch(e => {
+        const re = new RegExp(`^\\s*\\d*\\s*${action.value}\\s*\\d*\\s*$`, 'i');
+        await page.locator('button').filter({ hasText: re }).last().click({ timeout: 5000, force: true }).catch(e => {
           console.error(`  [${width}] tab click "${action.value}" failed: ${e.message.split('\n')[0]}`);
         });
       }
