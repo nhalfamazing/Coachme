@@ -9,6 +9,12 @@
       "env": {
         "SUPABASE_SERVICE_ROLE_KEY": ""
       }
+    },
+    {
+      "name": "coachme-start",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["start"],
+      "port": 3000
     }
   ]
 }
