@@ -19,22 +19,22 @@ export function LandingJsonLd() {
   const organization = {
     "@context": "https://schema.org",
     "@type": "Organization",
-    name: "CoachMe",
+    name: "KoachMe",
     url: SITE_URL,
     logo: `${SITE_URL}/icon.svg`,
     description:
-      "CoachMe gives young athletes a free training profile: logged workouts, honestly labeled stats, and access to real coaches.",
+      "KoachMe gives young athletes a free training profile: logged workouts, honestly labeled stats, and access to real coaches.",
   };
   const website = {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    name: "CoachMe",
+    name: "KoachMe",
     url: SITE_URL,
   };
   const webApp = {
     "@context": "https://schema.org",
     "@type": "WebApplication",
-    name: "CoachMe",
+    name: "KoachMe",
     url: `${SITE_URL}/app`,
     applicationCategory: "SportsApplication",
     operatingSystem: "Any (web browser)",
@@ -68,13 +68,13 @@ export function AboutJsonLd() {
   const aboutPage = {
     "@context": "https://schema.org",
     "@type": "AboutPage",
-    name: "About CoachMe",
+    name: "About KoachMe",
     url: `${SITE_URL}/about`,
     description:
-      "CoachMe is a family-built platform from Miami that gives young athletes an honest training profile.",
+      "KoachMe is a family-built platform from Miami that gives young athletes an honest training profile.",
     about: {
       "@type": "Organization",
-      name: "CoachMe",
+      name: "KoachMe",
       url: SITE_URL,
     },
   };

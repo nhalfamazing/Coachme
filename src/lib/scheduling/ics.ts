@@ -25,7 +25,7 @@ export function buildIcs(s: IcsSession): string {
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//CoachMe//Sessions//EN",
+    "PRODID:-//KoachMe//Sessions//EN",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     "BEGIN:VEVENT",

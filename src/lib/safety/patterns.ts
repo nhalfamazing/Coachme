@@ -1,7 +1,7 @@
 /* ============================================================================
    Message safety patterns.
 
-   This is the single reviewed module for CoachMe's message screening.
+   This is the single reviewed module for KoachMe's message screening.
    Everything the server blocks or flags is defined here, in one place,
    with unit tests in patterns.test.ts. If you are changing safety policy,
    this file IS the policy.
@@ -11,7 +11,7 @@
    1. HARD BLOCK (checkHardBlock): the message is rejected and never
       stored. Categories: phone numbers, email addresses, street
       addresses, and requests to move the conversation off-platform.
-      RATIONALE: CoachMe's safety model is on-platform-only contact
+      RATIONALE: KoachMe's safety model is on-platform-only contact
       between minors and adults, the standard kid-safety marketplace
       pattern. Off-platform contact defeats every other safeguard
       (flagging, review, blocking, the admin trail), so the platform
@@ -59,7 +59,7 @@ export interface SafetyHit {
 /** Kid-readable rejection shown when a message is hard-blocked. Short,
  *  warm, sentence case, not scary. */
 export const BLOCK_MESSAGE =
-  "This message can't be sent. To keep everyone safe, conversations stay inside CoachMe. Please don't share phone numbers, emails, addresses, or ask to chat on other apps.";
+  "This message can't be sent. To keep everyone safe, conversations stay inside KoachMe. Please don't share phone numbers, emails, addresses, or ask to chat on other apps.";
 
 /* ----------------------------- normalization ----------------------------- */
 

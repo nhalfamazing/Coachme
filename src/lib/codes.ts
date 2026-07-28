@@ -1,5 +1,5 @@
 // @ts-nocheck
-// CoachMe 3-word login codes.
+// KoachMe 3-word login codes.
 //
 // Format:  athlete  ->  firstname-word-word   (alex-tiger-moon)
 //          coach    ->  name-coach-word       (sam-coach-tiger)

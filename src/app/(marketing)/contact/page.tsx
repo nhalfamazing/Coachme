@@ -4,9 +4,9 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "Contact",
   description:
-    "How to reach the CoachMe team: questions, data deletion requests, coach applications, and bug reports.",
+    "How to reach the KoachMe team: questions, data deletion requests, coach applications, and bug reports.",
   alternates: { canonical: "/contact" },
-  openGraph: { title: "Contact CoachMe", url: "/contact" },
+  openGraph: { title: "Contact KoachMe", url: "/contact" },
 };
 
 // [CONTACT_EMAIL]: Rasheid, drop the real support address in here (it
@@ -18,7 +18,7 @@ export default function ContactPage() {
       <p className="mk-prose-meta mono">Contact</p>
       <h1 className="display">Talk to a human</h1>
       <p>
-        CoachMe is built by a small family team, and mail to us is read by
+        KoachMe is built by a small family team, and mail to us is read by
         someone who actually works on the product.
       </p>
       <ul>

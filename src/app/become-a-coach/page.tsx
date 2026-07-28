@@ -229,7 +229,7 @@ export default function BecomeACoachPage() {
             APPLICATION RECEIVED
           </div>
           <div style={{ fontSize: 15, color: "#9CA0A8", lineHeight: 1.6, marginBottom: 26, maxWidth: 440, margin: "0 auto 26px" }}>
-            Thanks for applying to CoachMe, {form.firstName}. We review every coach personally. Expect a verification email at <strong style={{ color: "#F4F4F5" }}>{form.email}</strong> within 1-2 business days.
+            Thanks for applying to KoachMe, {form.firstName}. We review every coach personally. Expect a verification email at <strong style={{ color: "#F4F4F5" }}>{form.email}</strong> within 1-2 business days.
           </div>
 
           {coachCode && (
@@ -316,14 +316,14 @@ export default function BecomeACoachPage() {
             <ChevronLeft size={16} /> BACK
           </a>
           <span className="mono" style={{ fontSize: 11, color: "#5F636B", letterSpacing: "0.15em" }}>
-            COACHME &middot; FOR COACHES
+            KOACHME &middot; FOR COACHES
           </span>
         </div>
       </div>
 
       <div style={{ maxWidth: 720, margin: "0 auto", padding: "40px 24px 80px" }}>
         <div className="display bc-title" style={{ fontSize: 56, lineHeight: 0.95, marginBottom: 14, textTransform: "uppercase" }}>
-          JOIN COACHME<br/>
+          JOIN KOACHME<br/>
           <span style={{ color: "#C5FF3D" }}>AS A COACH.</span>
         </div>
         <div style={{ fontSize: 15, color: "#9CA0A8", lineHeight: 1.6, marginBottom: 36, maxWidth: 560 }}>
@@ -426,7 +426,7 @@ export default function BecomeACoachPage() {
         </button>
 
         <div style={{ marginTop: 24, fontSize: 12, color: "#5F636B", lineHeight: 1.6 }}>
-          By submitting, you confirm the information above is accurate and that you consent to being listed on CoachMe after verification. We never list anyone who hasn't applied.
+          By submitting, you confirm the information above is accurate and that you consent to being listed on KoachMe after verification. We never list anyone who hasn't applied.
         </div>
         </div>
       </div>

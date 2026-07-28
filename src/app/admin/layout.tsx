@@ -47,7 +47,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <style>{adminStyles}</style>
       <header className="adm-head">
         <span className="display" style={{ fontSize: 22 }}>
-          COACH<span style={{ color: "#38BDF8" }}>ME</span> <span className="adm-muted" style={{ fontSize: 16 }}>ADMIN</span>
+          KOACH<span style={{ color: "#38BDF8" }}>ME</span> <span className="adm-muted" style={{ fontSize: 16 }}>ADMIN</span>
         </span>
         {authed && (
           <>

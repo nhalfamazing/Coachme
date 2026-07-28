@@ -3,9 +3,9 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Terms of use",
   description:
-    "CoachMe's terms in plain language: who the platform is for, how coaches are expected to behave, content rules, and what CoachMe does not promise.",
+    "KoachMe's terms in plain language: who the platform is for, how coaches are expected to behave, content rules, and what KoachMe does not promise.",
   alternates: { canonical: "/terms" },
-  openGraph: { title: "CoachMe terms of use", url: "/terms" },
+  openGraph: { title: "KoachMe terms of use", url: "/terms" },
 };
 
 // DRAFT: plain-language terms matching actual current practice. Requires
@@ -19,13 +19,13 @@ export default function TermsPage() {
 
       <p className="mk-notice body">
         Draft: these terms were written in plain language to match how
-        CoachMe actually works today and have not yet been reviewed by a
-        lawyer. Legal review happens before CoachMe leaves its early phase.
+        KoachMe actually works today and have not yet been reviewed by a
+        lawyer. Legal review happens before KoachMe leaves its early phase.
       </p>
 
-      <h2 className="display">Who CoachMe is for</h2>
+      <h2 className="display">Who KoachMe is for</h2>
       <p>
-        CoachMe is for athletes ages 6 to 25, their families, and the coaches
+        KoachMe is for athletes ages 6 to 25, their families, and the coaches
         who train them. If an athlete is a minor, a parent or guardian should
         set up the profile with them and stay involved in how they use it,
         including messaging.
@@ -41,7 +41,7 @@ export default function TermsPage() {
 
       <h2 className="display">Coach conduct</h2>
       <p>
-        Coaches on CoachMe work with minors, and we expect them to act like
+        Coaches on KoachMe work with minors, and we expect them to act like
         it. That means honest credentials on their application, professional
         communication, and no contact that a parent would object to. Coaches
         start as pending while verification is built out; claiming to be
@@ -59,9 +59,9 @@ export default function TermsPage() {
         We can remove content or profiles that break these rules.
       </p>
 
-      <h2 className="display">What CoachMe does not promise</h2>
+      <h2 className="display">What KoachMe does not promise</h2>
       <p>
-        CoachMe does not promise scholarships, recruitment, playing time, or
+        KoachMe does not promise scholarships, recruitment, playing time, or
         athletic results. We give athletes a place to record real work and
         connect with coaches; what happens on the field is up to them.
         Drill demos labeled AI COACH are AI-generated instructional content,
@@ -70,7 +70,7 @@ export default function TermsPage() {
 
       <h2 className="display">The service today</h2>
       <p>
-        CoachMe is early-stage software provided as is, free for athletes.
+        KoachMe is early-stage software provided as is, free for athletes.
         Features may change, and we may update these terms as the product
         grows; the date at the top reflects the latest version.
       </p>

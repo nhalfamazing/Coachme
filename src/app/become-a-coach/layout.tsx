@@ -5,10 +5,10 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Become a coach",
   description:
-    "Apply to coach on CoachMe: set your own rate, choose how you train (in person, live online, or async video review), and keep 90% of what you charge.",
+    "Apply to coach on KoachMe: set your own rate, choose how you train (in person, live online, or async video review), and keep 90% of what you charge.",
   alternates: { canonical: "/become-a-coach" },
   openGraph: {
-    title: "Become a coach on CoachMe",
+    title: "Become a coach on KoachMe",
     description:
       "Set your own rate, train your way, and keep 90% of what you charge.",
     url: "/become-a-coach",

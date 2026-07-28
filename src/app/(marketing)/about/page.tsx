@@ -5,10 +5,10 @@ import { AboutJsonLd } from "@/components/marketing/json-ld";
 export const metadata: Metadata = {
   title: "About",
   description:
-    "CoachMe is a family-built platform from Miami that gives young athletes an honest training profile: real logged work, honestly labeled stats, and labeled AI content.",
+    "KoachMe is a family-built platform from Miami that gives young athletes an honest training profile: real logged work, honestly labeled stats, and labeled AI content.",
   alternates: { canonical: "/about" },
   openGraph: {
-    title: "About CoachMe",
+    title: "About KoachMe",
     description:
       "A father and son project from Miami: an honest training profile for young athletes.",
     url: "/about",
@@ -27,11 +27,11 @@ export default function AboutPage() {
   return (
     <main className="mk-wrap mk-prose">
       <AboutJsonLd />
-      <p className="mk-prose-meta mono">About CoachMe</p>
+      <p className="mk-prose-meta mono">About KoachMe</p>
       <h1 className="display">Built at our kitchen table</h1>
 
       <p>
-        CoachMe is a father and son project from Miami. It started the way a
+        KoachMe is a father and son project from Miami. It started the way a
         lot of family projects start: with a problem we kept running into and
         no good answer for it.
       </p>
@@ -51,7 +51,7 @@ export default function AboutPage() {
       <h2 className="display">What we believe</h2>
       <ul>
         <li>
-          <strong>Real numbers only.</strong> Nothing in CoachMe is invented:
+          <strong>Real numbers only.</strong> Nothing in KoachMe is invented:
           no fake coaches, no padded stats, no fabricated reviews. Every stat
           is labeled with how it was verified, and self-reported means
           self-reported, right on the card.
@@ -59,7 +59,7 @@ export default function AboutPage() {
         <li>
           <strong>AI is labeled, always.</strong> Our drill demos are
           AI-generated today, and every one of them says so where you watch
-          it. If something on CoachMe is not a real person, we tell you.
+          it. If something on KoachMe is not a real person, we tell you.
         </li>
         <li>
           <strong>Kids are not accounts.</strong> Athletes sign in with a
@@ -76,7 +76,7 @@ export default function AboutPage() {
 
       <h2 className="display">Where we are</h2>
       <p>
-        CoachMe is young and we say so on the front page. The athlete side is
+        KoachMe is young and we say so on the front page. The athlete side is
         free and working today: profiles, workout logging, streaks, drills,
         and messaging. Coach verification is being built in the open, with
         honest pending states instead of pretend badges.

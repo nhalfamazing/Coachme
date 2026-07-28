@@ -22,12 +22,12 @@ const SAMPLE_DRILLS = [
 ].filter((d): d is Drill => d !== null);
 
 export const metadata: Metadata = {
-  title: "CoachMe - A real training profile for young athletes",
+  title: "KoachMe - A real training profile for young athletes",
   description:
-    "CoachMe gives young athletes a free training profile: log workouts, build honestly labeled stats, watch drills, and connect with real coaches. No email needed, kids log in with a 3-word code.",
+    "KoachMe gives young athletes a free training profile: log workouts, build honestly labeled stats, watch drills, and connect with real coaches. No email needed, kids log in with a 3-word code.",
   alternates: { canonical: "/" },
   openGraph: {
-    title: "CoachMe - A real training profile for young athletes",
+    title: "KoachMe - A real training profile for young athletes",
     description:
       "Log workouts, build honestly labeled stats, and connect with real coaches. Free for athletes, no email needed.",
     url: "/",
@@ -53,7 +53,7 @@ export default function LandingPage() {
               A real training profile for your <span>young athlete</span>
             </h1>
             <p className="mk-hero-sub body">
-              CoachMe is where kids log their training, build a stat sheet
+              KoachMe is where kids log their training, build a stat sheet
               that says how each number was verified, and connect with real
               coaches. No email needed. Free for athletes.
             </p>
@@ -73,7 +73,7 @@ export default function LandingPage() {
             <div className="mk-shot">
               <Image
                 src="/marketing/profile.png"
-                alt="A CoachMe athlete profile: sample athlete card with level bar, training streak, and stats each labeled SELF for self-reported"
+                alt="A KoachMe athlete profile: sample athlete card with level bar, training streak, and stats each labeled SELF for self-reported"
                 width={390}
                 height={844}
                 priority
@@ -147,7 +147,7 @@ export default function LandingPage() {
               <div className="mk-shot">
                 <Image
                   src="/marketing/signup.png"
-                  alt="The CoachMe signup form asking only for a first and last name"
+                  alt="The KoachMe signup form asking only for a first and last name"
                   width={390}
                   height={844}
                   sizes="(min-width: 641px) 330px, 88vw"
@@ -165,7 +165,7 @@ export default function LandingPage() {
               <div className="mk-shot">
                 <Image
                   src="/marketing/log-workout.png"
-                  alt="Logging a workout in CoachMe: workout type, duration in minutes, and intensity from light to all-out"
+                  alt="Logging a workout in KoachMe: workout type, duration in minutes, and intensity from light to all-out"
                   width={390}
                   height={844}
                   sizes="(min-width: 641px) 330px, 88vw"
@@ -182,7 +182,7 @@ export default function LandingPage() {
               <div className="mk-shot">
                 <Image
                   src="/marketing/drills.png"
-                  alt="A CoachMe drill open in the app: Tee Work coach intro and slow demo videos, with the disclosure label saying the coach is AI-generated"
+                  alt="A KoachMe drill open in the app: Tee Work coach intro and slow demo videos, with the disclosure label saying the coach is AI-generated"
                   width={390}
                   height={844}
                   sizes="(min-width: 641px) 330px, 88vw"
@@ -201,7 +201,7 @@ export default function LandingPage() {
             Built honest, on purpose
           </h2>
           <p className="mk-lead body">
-            Everything in CoachMe is labeled with what it really is. That is
+            Everything in KoachMe is labeled with what it really is. That is
             the product.
           </p>
           <div className="mk-grid mk-grid--2">
@@ -311,7 +311,7 @@ export default function LandingPage() {
             Young product. Real rules.
           </h2>
           <p className="mk-lead body">
-            CoachMe is early, and we would rather tell you that plainly than
+            KoachMe is early, and we would rather tell you that plainly than
             dress it up. Here is what is true right now.
           </p>
           <div className="mk-truth body">
@@ -320,7 +320,7 @@ export default function LandingPage() {
               <div>
                 <strong>Free for athletes</strong>
                 <p>
-                  The athlete side of CoachMe costs nothing: profile,
+                  The athlete side of KoachMe costs nothing: profile,
                   logging, drills, messaging.
                 </p>
               </div>
@@ -342,7 +342,7 @@ export default function LandingPage() {
                 <p>
                   No invented coaches, no padded numbers, no fabricated
                   reviews anywhere in the product or on this page. If a stat
-                  is on CoachMe, someone really did the work.
+                  is on KoachMe, someone really did the work.
                 </p>
               </div>
             </div>

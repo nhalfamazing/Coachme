@@ -5,6 +5,21 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: import.meta.dirname,
   },
+  // TODO(Rasheid: enable after DNS): permanent redirect vercel.app -> koachme.ai.
+  // As of 2026-07-28 koachme.ai has DNS A records but no working HTTPS
+  // (SSL handshake fails - domain not yet connected in Vercel). Enabling
+  // this redirect now would send every visitor to a dead host. Once the
+  // domain is added to the Vercel project and serves the app, uncomment:
+  // async redirects() {
+  //   return [
+  //     {
+  //       source: "/:path*",
+  //       has: [{ type: "host", value: "coachme-y4vx.vercel.app" }],
+  //       destination: "https://koachme.ai/:path*",
+  //       permanent: true,
+  //     },
+  //   ];
+  // },
   images: {
     // Drill posters and coach portraits are served from our Vercel Blob
     // store (mirrored there by scripts/mirror-drills.mjs; we never serve

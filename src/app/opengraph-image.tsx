@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "CoachMe - The performance graph for emerging athletes";
+export const alt = "KoachMe - The performance graph for emerging athletes";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -58,7 +58,7 @@ export default function OG() {
               letterSpacing: "0.18em",
             }}
           >
-            COACHME
+            KOACHME
           </div>
         </div>
         <div

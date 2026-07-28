@@ -3,9 +3,9 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Privacy policy",
   description:
-    "What CoachMe collects (name, age, sport, city, logged workouts), what it never collects from athletes (email, phone, birthdate, payment), and how to request deletion.",
+    "What KoachMe collects (name, age, sport, city, logged workouts), what it never collects from athletes (email, phone, birthdate, payment), and how to request deletion.",
   alternates: { canonical: "/privacy" },
-  openGraph: { title: "CoachMe privacy policy", url: "/privacy" },
+  openGraph: { title: "KoachMe privacy policy", url: "/privacy" },
 };
 
 // DRAFT: written to match actual current practice in the codebase as of
@@ -19,10 +19,10 @@ export default function PrivacyPage() {
       <h1 className="display">Privacy, in plain language</h1>
 
       <p className="mk-notice body">
-        Draft: this policy was written to describe CoachMe&apos;s actual
+        Draft: this policy was written to describe KoachMe&apos;s actual
         current practice and has not yet been reviewed by a lawyer. We
         publish it anyway because we think you should see it. It will be
-        refined with legal review before CoachMe leaves its early phase.
+        refined with legal review before KoachMe leaves its early phase.
       </p>
 
       <h2 className="display">What we collect</h2>
@@ -34,7 +34,7 @@ export default function PrivacyPage() {
         <li>City and state</li>
         <li>Optional starting stats the athlete enters, labeled self-reported</li>
       </ul>
-      <p>As the athlete uses CoachMe, we also store what they create:</p>
+      <p>As the athlete uses KoachMe, we also store what they create:</p>
       <ul>
         <li>Workout logs (type, duration, intensity, notes)</li>
         <li>Posts they share to the community feed</li>
@@ -63,7 +63,7 @@ export default function PrivacyPage() {
 
       <h2 className="display">Where your data lives</h2>
       <p>
-        CoachMe stores data in two places: on your own device (so the app
+        KoachMe stores data in two places: on your own device (so the app
         works offline and loads fast) and in our database, so a profile can
         follow its athlete across devices. Messages between an athlete and a
         coach are stored so both sides can read their conversation.
@@ -71,7 +71,7 @@ export default function PrivacyPage() {
 
       <h2 className="display">What we never do</h2>
       <ul>
-        <li>No ads on CoachMe</li>
+        <li>No ads on KoachMe</li>
         <li>We do not sell or rent anyone&apos;s data, ever</li>
         <li>We do not show fabricated stats, coaches, or reviews</li>
       </ul>
@@ -93,7 +93,7 @@ export default function PrivacyPage() {
 
       <h2 className="display">Children</h2>
       <p>
-        CoachMe is built for athletes ages 6 to 25, and for minors we expect
+        KoachMe is built for athletes ages 6 to 25, and for minors we expect
         a parent or guardian to create the profile together with their
         athlete and stay involved. We keep the data we collect from children
         to the minimum listed above.
@@ -101,7 +101,7 @@ export default function PrivacyPage() {
 
       <h2 className="display">Questions</h2>
       <p>
-        Write to [CONTACT_EMAIL]. A human who works on CoachMe will answer.
+        Write to [CONTACT_EMAIL]. A human who works on KoachMe will answer.
       </p>
     </main>
   );

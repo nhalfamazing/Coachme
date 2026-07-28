@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 const REASON_LABELS: Record<string, string> = {
   uncomfortable: "Made them uncomfortable",
   personal_info: "Asked for personal info",
-  move_off_platform: "Asked to move off CoachMe",
+  move_off_platform: "Asked to move off KoachMe",
   other: "Something else",
 };
 

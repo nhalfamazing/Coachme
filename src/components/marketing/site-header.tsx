@@ -5,8 +5,8 @@ export function SiteHeader() {
   return (
     <header className="mk-header">
       <div className="mk-wrap mk-header-in">
-        <Link href="/" className="mk-logo display" aria-label="CoachMe home">
-          COACH<span>ME</span>
+        <Link href="/" className="mk-logo display" aria-label="KoachMe home">
+          KOACH<span>ME</span>
         </Link>
         <nav className="mk-nav" aria-label="Main">
           <a href="/#how-it-works">How it works</a>

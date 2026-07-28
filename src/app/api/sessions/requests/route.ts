@@ -62,7 +62,7 @@ export async function POST(req: Request) {
     if (!coach || coach.role !== "coach") return jsonError(404, "coach_not_found", "No coach with that code.");
     if (isBanned(coach)) return jsonError(403, "coach_unavailable", "This coach isn't taking requests right now.");
     if (coach.verification_status !== "verified") {
-      return jsonError(403, "coach_unverified", "This coach can take requests after CoachMe verifies them.");
+      return jsonError(403, "coach_unverified", "This coach can take requests after KoachMe verifies them.");
     }
     if (await pairBlocked(client, athlete.id, coach.id)) {
       return jsonError(403, "blocked", "You can't book with this person.");

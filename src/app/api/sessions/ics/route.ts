@@ -44,12 +44,12 @@ export async function GET(req: Request) {
 
     const ics = buildIcs({
       id: session.id,
-      title: `CoachMe training with ${otherName}`,
+      title: `KoachMe training with ${otherName}`,
       startsAt: session.starts_at,
       durationMin: session.duration_min,
       locationNote: session.location_note,
       description:
-        `${MODE_TEXT[session.mode] ?? session.mode} training session booked on CoachMe. ` +
+        `${MODE_TEXT[session.mode] ?? session.mode} training session booked on KoachMe. ` +
         `Tell your parent or guardian about this session. Sessions should happen in public training locations.`,
     });
 

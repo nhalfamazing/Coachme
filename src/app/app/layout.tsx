@@ -6,7 +6,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Open the app",
   description:
-    "Open CoachMe: your training profile, workout log, drills, and coach messages.",
+    "Open KoachMe: your training profile, workout log, drills, and coach messages.",
   robots: { index: false, follow: false },
 };
 

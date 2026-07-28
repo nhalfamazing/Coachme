@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "CoachMe",
-    short_name: "CoachMe",
+    name: "KoachMe",
+    short_name: "KoachMe",
     description:
       "The performance graph for emerging athletes. Find a real coach. Track every PR.",
     start_url: "/app",

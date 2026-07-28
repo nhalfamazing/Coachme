@@ -49,7 +49,7 @@ export const DRILL_BLOB_BASE = "https://woooi7wpsmvhydy9.public.blob.vercel-stor
 export const COACHES: DrillCoach[] = [
   {
     id: "coach-farm",
-    name: "FARM Coach",
+    name: "Koach Farm",
     style: "High-energy fundamentals coach. The original.",
     portrait: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260723_003605_9fbc7e25-4227-468f-a09a-e6658825dba0.png", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/coaches/coach-farm/portrait.png" },
     portraitVideo: null,

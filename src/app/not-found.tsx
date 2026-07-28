@@ -39,7 +39,7 @@ export default function NotFound() {
         WRONG <span style={{ color: "#C5FF3D" }}>PLAY</span>.
       </div>
       <p style={{ fontSize: 14, color: "#9CA0A8", lineHeight: 1.6, maxWidth: 320, marginBottom: 24 }}>
-        That page does not exist. Taking you back to CoachMe home in a few seconds.
+        That page does not exist. Taking you back to KoachMe home in a few seconds.
       </p>
       <a
         href="/"
@@ -53,7 +53,7 @@ export default function NotFound() {
           textDecoration: "none",
         }}
       >
-        Go to CoachMe home now
+        Go to KoachMe home now
       </a>
     </main>
   );

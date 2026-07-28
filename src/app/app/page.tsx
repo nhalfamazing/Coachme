@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable @next/next/no-img-element, react/no-unknown-property */
 // @ts-nocheck
-// This is a single-file UI prototype for the CoachMe app. Kept untyped on
+// This is a single-file UI prototype for the KoachMe app. Kept untyped on
 // purpose so it lands intact. We'll refactor and add proper types in a
 // follow-up phase.
 
@@ -1335,7 +1335,7 @@ function SUWelcome({ onNext, savedAthlete, onLogin, onCodeLogin, deviceAthletes 
               border: '1px solid rgba(197,255,61,0.4)', display: 'inline-flex', alignItems: 'center', gap: 6,
             }}>
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#C5FF3D' }} className="pulse-dot"/>
-              WELCOME TO COACHME
+              WELCOME TO KOACHME
             </span>
           </div>
         </CoverPhoto>
@@ -1498,7 +1498,7 @@ function LoginSheet({ savedAthlete, onLogin, onCodeLogin, onSignUp, onClose }) {
         return 'done';
       }
       if (am.length > 1) {
-        setNameError('More than one athlete has that name. Type your full name, or use your CoachMe code.');
+        setNameError('More than one athlete has that name. Type your full name, or use your KoachMe code.');
         return 'done';
       }
       const cm = matchCoaches(coaches);
@@ -1517,7 +1517,7 @@ function LoginSheet({ savedAthlete, onLogin, onCodeLogin, onSignUp, onClose }) {
 
     if (tryLists(loadAthleteDir(), loadCoachList()) === 'done') return;
 
-    // Nothing on this device: look across everyone on CoachMe via the
+    // Nothing on this device: look across everyone on KoachMe via the
     // server registries (they also refresh the local cache).
     setNameError('Looking for you...');
     const [remoteAthletes, remoteCoaches] = await Promise.all([
@@ -1531,7 +1531,7 @@ function LoginSheet({ savedAthlete, onLogin, onCodeLogin, onSignUp, onClose }) {
 
   const submitCode = async () => {
     // Server first: real cross-device login pulls the exact profile from
-    // CoachMe. Offline (or unknown code) falls back to the local decoder:
+    // KoachMe. Offline (or unknown code) falls back to the local decoder:
     // local profiles restore exactly, otherwise the three words rebuild a
     // working profile. Old long codes still decode.
     const remote = await sync.loginByCode(code);
@@ -1578,7 +1578,7 @@ function LoginSheet({ savedAthlete, onLogin, onCodeLogin, onSignUp, onClose }) {
           </button>
         </div>
         <div className="body" style={{ fontSize: 12.5, color: '#9CA0A8', lineHeight: 1.5, marginBottom: 18 }}>
-          Use your CoachMe code to bring your profile to any device. Full password accounts arrive with the Phase 1 backend.
+          Use your KoachMe code to bring your profile to any device. Full password accounts arrive with the Phase 1 backend.
         </div>
 
         {savedAthlete ? (
@@ -2027,7 +2027,7 @@ function SUDone({ form, onFinish }) {
         padding: '16px 24px', borderRadius: 999, fontWeight: 700, fontSize: 15, cursor: 'pointer',
         display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, margin: '0 auto',
       }} className="body">
-        Open my CoachMe <ArrowRight size={16}/>
+        Open my KoachMe <ArrowRight size={16}/>
       </button>
     </div>
   );
@@ -2231,7 +2231,7 @@ function ProfileView({ athlete, trainerIds, trainers = TRAINERS, workouts = [], 
             ARE YOU A COACH?
           </div>
           <div className="body" style={{ fontSize: 12, color: '#9CA0A8', lineHeight: 1.5, marginBottom: 14 }}>
-            Join CoachMe to train athletes, or log in to your coach dashboard.
+            Join KoachMe to train athletes, or log in to your coach dashboard.
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <a href="/become-a-coach" className="body" style={{
@@ -2383,7 +2383,7 @@ function AccountCard({ athlete }) {
       setTimeout(() => setCopied(false), 2200);
     } catch {
       // Clipboard can be blocked; fall back to a copyable prompt.
-      if (typeof window !== 'undefined') window.prompt('Copy your CoachMe code:', codeStr);
+      if (typeof window !== 'undefined') window.prompt('Copy your KoachMe code:', codeStr);
     }
   };
 
@@ -2559,10 +2559,10 @@ function TrainersView({ onOpenTrainer, athlete, trainers = TRAINERS, onOpenDrill
             background: 'rgba(197,255,61,0.08)', border: '1px solid rgba(197,255,61,0.4)',
             color: '#C5FF3D', fontWeight: 700, fontSize: 12, letterSpacing: '0.08em',
           }} className="mono">
-            ARE YOU A COACH? JOIN COACHME <ArrowRight size={12}/>
+            ARE YOU A COACH? JOIN KOACHME <ArrowRight size={12}/>
           </a>
           <div className="body" style={{ fontSize: 11, color: '#5F636B', marginTop: 16, lineHeight: 1.5 }}>
-            Share this link with coaches you know. Every trainer on CoachMe signs up themselves.
+            Share this link with coaches you know. Every trainer on KoachMe signs up themselves.
           </div>
         </div>
       </div>
@@ -2631,7 +2631,7 @@ function TrainersView({ onOpenTrainer, athlete, trainers = TRAINERS, onOpenDrill
             borderRadius: 12, padding: '12px 14px',
           }}>
             <div className="body" style={{ fontSize: 12.5, color: '#9CA0A8', lineHeight: 1.5 }}>
-              No {athlete.sport.toLowerCase()} trainers yet, but these coaches are on CoachMe. Tap one to say hi.
+              No {athlete.sport.toLowerCase()} trainers yet, but these coaches are on KoachMe. Tap one to say hi.
             </div>
           </div>
         </div>
@@ -4077,7 +4077,7 @@ function AppNav({ tab, switchTab, unread, onSignOut }) {
   return (
     <div className="app-nav">
       <div className="app-nav-brand display">
-        COACH<span style={{ color: '#C5FF3D' }}>ME</span>
+        KOACH<span style={{ color: '#C5FF3D' }}>ME</span>
       </div>
       <div className="app-nav-tabs">
         {tabs.map(t => {
@@ -4534,7 +4534,7 @@ function BookingFlow({ booking, athlete, onClose, onMessageCoach }) {
               Almost ready to book
             </div>
             <div className="body" style={{ fontSize: 12.5, color: '#9CA0A8', lineHeight: 1.55, marginBottom: 14 }}>
-              Coach {first} can take session requests after CoachMe verifies them.
+              Coach {first} can take session requests after KoachMe verifies them.
               That check protects you. You can message them in the meantime.
             </div>
             <button onClick={() => onMessageCoach(trainer.id)} className="body" style={{
@@ -4629,7 +4629,7 @@ function BookingFlow({ booking, athlete, onClose, onMessageCoach }) {
                 {slot.mode === 'in_person' ? ' Sessions should happen in public training locations.' : ''}
               </div>
               <div className="mono" style={{ fontSize: 9, color: '#9CA0A8', letterSpacing: '0.08em', marginTop: 8, display: 'flex', alignItems: 'center', gap: 5 }}>
-                <CheckCircle2 size={11} color="#C5FF3D"/> COACHME VERIFIED COACH
+                <CheckCircle2 size={11} color="#C5FF3D"/> KOACHME VERIFIED COACH
               </div>
             </div>
 

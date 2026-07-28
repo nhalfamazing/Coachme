@@ -25,17 +25,17 @@ const mono = JetBrains_Mono({
 });
 
 const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL || "https://coachme-y4vx.vercel.app";
+  process.env.NEXT_PUBLIC_SITE_URL || "https://koachme.ai";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "CoachMe - The performance graph for emerging athletes",
-    template: "%s - CoachMe",
+    default: "KoachMe - The performance graph for emerging athletes",
+    template: "%s - KoachMe",
   },
   description:
-    "Find a real coach. Train. Track every PR. Climb the ranks. CoachMe is the performance graph for emerging athletes.",
-  applicationName: "CoachMe",
+    "Find a real coach. Train. Track every PR. Climb the ranks. KoachMe is the performance graph for emerging athletes.",
+  applicationName: "KoachMe",
   keywords: [
     "athlete training",
     "youth sports",
@@ -48,15 +48,15 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     type: "website",
-    siteName: "CoachMe",
-    title: "CoachMe - The performance graph for emerging athletes",
+    siteName: "KoachMe",
+    title: "KoachMe - The performance graph for emerging athletes",
     description:
       "Find a real coach. Train. Track every PR. Climb the ranks.",
     url: siteUrl,
   },
   twitter: {
     card: "summary_large_image",
-    title: "CoachMe - The performance graph for emerging athletes",
+    title: "KoachMe - The performance graph for emerging athletes",
     description:
       "Find a real coach. Train. Track every PR. Climb the ranks.",
   },

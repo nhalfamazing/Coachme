@@ -254,7 +254,7 @@ export default function CoachConsole() {
     return () => window.removeEventListener("storage", handler);
   }, []);
 
-  // Server sync: every athlete on CoachMe for the directory, and this
+  // Server sync: every athlete on KoachMe for the directory, and this
   // coach's conversations from other devices. All of it merges into the
   // same localStorage keys, so offline the console works exactly as
   // before on the cached data.
@@ -489,7 +489,7 @@ function CoachPicker({ coaches, onSelect }) {
           <Users size={16} color={C.accent}/>
         </div>
         <span className="mono" style={{ fontSize: 11, color: C.muted, letterSpacing: "0.2em" }}>
-          COACHME · COACH CONSOLE
+          KOACHME · COACH CONSOLE
         </span>
       </div>
 
@@ -662,7 +662,7 @@ function Shell({ coach, view, setView, onSwitch, needsReplyCount, pendingBooking
             </div>
             <div>
               <div className="display" style={{ fontSize: 16, lineHeight: 1, letterSpacing: "0.04em" }}>COACH CONSOLE</div>
-              <div className="mono" style={{ fontSize: 8.5, color: C.faint, letterSpacing: "0.2em", marginTop: 2 }}>COACHME PRO</div>
+              <div className="mono" style={{ fontSize: 8.5, color: C.faint, letterSpacing: "0.2em", marginTop: 2 }}>KOACHME PRO</div>
             </div>
           </div>
 
@@ -754,7 +754,7 @@ function OverviewView({ coach, threads, directoryCount = 0, onOpenThread, onGoAt
         />
         <Tile
           icon={<User size={15} color={C.green}/>}
-          value={directoryCount} label="KIDS ON COACHME"
+          value={directoryCount} label="KIDS ON KOACHME"
           highlight={directoryCount > threads.length ? C.green : null}
         />
         <Tile
@@ -779,7 +779,7 @@ function OverviewView({ coach, threads, directoryCount = 0, onOpenThread, onGoAt
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 14, fontWeight: 700 }}>
-              {directoryCount - threads.length} athlete{directoryCount - threads.length !== 1 ? "s" : ""} on CoachMe you have not talked to yet
+              {directoryCount - threads.length} athlete{directoryCount - threads.length !== 1 ? "s" : ""} on KoachMe you have not talked to yet
             </div>
             <div style={{ fontSize: 12.5, color: C.muted, marginTop: 2 }}>
               Browse their profiles and send the first message. Great coaches recruit.
@@ -1011,7 +1011,7 @@ function InboxView({ threads, onOpen }) {
           </div>
           <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>No conversations yet</div>
           <div style={{ fontSize: 13, color: C.muted, lineHeight: 1.5, maxWidth: 340, margin: "0 auto" }}>
-            When an athlete messages you from the CoachMe app, the conversation appears here with their stats attached.
+            When an athlete messages you from the KoachMe app, the conversation appears here with their stats attached.
           </div>
         </div>
       ) : (
@@ -1476,7 +1476,7 @@ function AvailabilityView({ coach }) {
 const COACH_REPORT_REASONS = [
   { key: "uncomfortable", label: "Inappropriate messages" },
   { key: "personal_info", label: "Asked for personal information" },
-  { key: "move_off_platform", label: "Asked to move off CoachMe" },
+  { key: "move_off_platform", label: "Asked to move off KoachMe" },
   { key: "other", label: "Something else" },
 ];
 
@@ -1524,7 +1524,7 @@ function CoachSafetySheet({ mode, setMode, athlete, coach, onBlock }) {
               Conversation options
             </div>
             <div style={{ fontSize: 13, color: C.muted, lineHeight: 1.5, marginBottom: 16 }}>
-              Report this athlete to the CoachMe team, or block them so you no longer hear from each other.
+              Report this athlete to the KoachMe team, or block them so you no longer hear from each other.
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               <button className="body" onClick={() => setMode("report")} style={btn(true)}>Report this athlete</button>
@@ -1591,7 +1591,7 @@ function CoachSafetySheet({ mode, setMode, athlete, coach, onBlock }) {
               Report received
             </div>
             <div style={{ fontSize: 13, color: C.muted, lineHeight: 1.6, marginBottom: 16 }}>
-              Thanks. The CoachMe team will review this conversation. You can also block this athlete if you'd rather not hear from them.
+              Thanks. The KoachMe team will review this conversation. You can also block this athlete if you'd rather not hear from them.
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               <button className="body" onClick={() => setMode("block")} style={btn(true)}>Block this athlete</button>
@@ -1901,7 +1901,7 @@ function AthletesView({ threads, directory, onOpenThread, onStart }) {
         ATHLETES
       </div>
       <div className="mono" style={{ fontSize: 10, color: C.muted, letterSpacing: "0.12em", marginBottom: 22 }}>
-        {threads.length} TRAINING WITH YOU · {prospects.length} MORE ON COACHME
+        {threads.length} TRAINING WITH YOU · {prospects.length} MORE ON KOACHME
       </div>
 
       <SectionHead>TRAINING WITH YOU</SectionHead>
@@ -1950,7 +1950,7 @@ function AthletesView({ threads, directory, onOpenThread, onStart }) {
           </div>
           <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>No new athletes right now</div>
           <div style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.5, maxWidth: 380, margin: "0 auto" }}>
-            Every kid who signs up on CoachMe appears here so you can recruit them. Check back soon.
+            Every kid who signs up on KoachMe appears here so you can recruit them. Check back soon.
           </div>
         </div>
       ) : (
@@ -1965,7 +1965,7 @@ function AthletesView({ threads, directory, onOpenThread, onStart }) {
                   fontSize: 7.5, color: C.green, background: "rgba(52,211,153,0.1)",
                   border: "1px solid rgba(52,211,153,0.4)", borderRadius: 5,
                   padding: "2px 6px", letterSpacing: "0.08em", fontWeight: 700,
-                }}>NEW ON COACHME</span>
+                }}>NEW ON KOACHME</span>
               }
               actionLabel={`Message ${athleteFirstName(a)}`}
               onAction={() => onStart(a)}
