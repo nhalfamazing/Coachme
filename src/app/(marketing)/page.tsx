@@ -2537,11 +2537,9 @@ function DrillLibrary({ athleteSport, onOpenDrill }) {
             borderRadius: 14, overflow: 'hidden', flexShrink: 0,
           }}>
             <div style={{ height: 84, position: 'relative', overflow: 'hidden' }}>
-              {/* TODO(blob): switch to d.poster.blob once scripts/mirror-drills.mjs
-                  has run and DRILL_BLOB_BASE is set (blocked on
-                  BLOB_READ_WRITE_TOKEN). The cdn URL is the pre-mirror source,
-                  not a runtime fallback. */}
-              <img src={d.poster.cdn} alt="" referrerPolicy="no-referrer" loading="lazy"
+              {/* Served from our Blob mirror; .cdn is the original source
+                  reference only, never a runtime fallback. */}
+              <img src={d.poster.blob} alt="" referrerPolicy="no-referrer" loading="lazy"
                 style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}/>
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(15,15,20,0.05) 0%, rgba(15,15,20,0.85) 100%)' }}/>
               <div style={{
@@ -2605,12 +2603,11 @@ function DrillSheet({ drill, onClose }) {
         <div className="mono" style={{ fontSize: 10, color: '#9CA0A8', letterSpacing: '0.14em', marginBottom: 8 }}>
           1 · COACH INTRO <span style={{ color: '#5F636B' }}>(sound on)</span>
         </div>
-        {/* TODO(blob): switch src/poster to .blob once scripts/mirror-drills.mjs
-            has run and DRILL_BLOB_BASE is set (blocked on BLOB_READ_WRITE_TOKEN).
-            The cdn URL is the pre-mirror source, not a runtime fallback — a
-            broken blob upload should surface in review, not be masked. */}
+        {/* Served from our Blob mirror; .cdn is the original source reference
+            only, never a runtime fallback — a broken blob upload should
+            surface in review, not be masked. */}
         <video
-          src={drill.intro.cdn} poster={drill.poster.cdn}
+          src={drill.intro.blob} poster={drill.poster.blob}
           controls playsInline preload="metadata"
           style={{ width: '100%', borderRadius: 12, background: '#000', marginBottom: 16, display: 'block' }}
         />
@@ -2618,9 +2615,9 @@ function DrillSheet({ drill, onClose }) {
         <div className="mono" style={{ fontSize: 10, color: '#9CA0A8', letterSpacing: '0.14em', marginBottom: 8 }}>
           2 · WATCH THE DEMO <span style={{ color: '#5F636B' }}>(slow rep, copy it)</span>
         </div>
-        {/* TODO(blob): same as the intro player above. */}
+        {/* Served from our Blob mirror, same as the intro player above. */}
         <video
-          src={drill.demo.cdn} poster={drill.poster.cdn}
+          src={drill.demo.blob} poster={drill.poster.blob}
           controls playsInline loop preload="metadata"
           style={{ width: '100%', borderRadius: 12, background: '#000', marginBottom: 14, display: 'block' }}
         />

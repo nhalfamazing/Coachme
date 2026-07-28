@@ -4,14 +4,11 @@
    labeled as AI in the UI.
 
    Every asset carries two URLs:
-   - cdn:  the original Higgsfield CloudFront link. Those links can rotate
-           or die without warning, so they are a reference / re-mirror
-           source only, not something the app should serve long-term.
+   - cdn:  the original Higgsfield CloudFront link, kept as the fallback
+           reference / re-mirror source ONLY. Those links can rotate or
+           die without warning — never serve them from the app.
    - blob: our own mirrored copy on Vercel Blob (uploaded once by
-           scripts/mirror-drills.mjs). This is what the player serves.
-
-   After running the mirror script for the first time, paste the store
-   base URL it prints into DRILL_BLOB_BASE below. */
+           scripts/mirror-drills.mjs). This is what the player serves. */
 
 export type DrillSport = 'Basketball' | 'Soccer' | 'Baseball';
 
@@ -32,12 +29,10 @@ export interface Drill {
   poster: DrillAsset;
 }
 
-/* TODO(blob): replace with the real store base URL printed by
-   `node scripts/mirror-drills.mjs` (looks like
-   https://<store-id>.public.blob.vercel-storage.com). Blocked until
-   BLOB_READ_WRITE_TOKEN lands in .env.local. */
+/* Real store base, from the first scripts/mirror-drills.mjs run
+   (2026-07-27: 18 objects, 88.5 MB, zero failures). */
 export const DRILL_BLOB_BASE =
-  'https://REPLACE-WITH-STORE-ID.public.blob.vercel-storage.com';
+  'https://woooi7wpsmvhydy9.public.blob.vercel-storage.com';
 
 const CDN =
   'https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/';
