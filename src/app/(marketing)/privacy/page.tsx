@@ -4,6 +4,8 @@ export const metadata: Metadata = {
   title: "Privacy policy",
   description:
     "What CoachMe collects (name, age, sport, city, logged workouts), what it never collects from athletes (email, phone, birthdate, payment), and how to request deletion.",
+  alternates: { canonical: "/privacy" },
+  openGraph: { title: "CoachMe privacy policy", url: "/privacy" },
 };
 
 // DRAFT: written to match actual current practice in the codebase as of

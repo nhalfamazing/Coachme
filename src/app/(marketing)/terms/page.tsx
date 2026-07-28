@@ -4,6 +4,8 @@ export const metadata: Metadata = {
   title: "Terms of use",
   description:
     "CoachMe's terms in plain language: who the platform is for, how coaches are expected to behave, content rules, and what CoachMe does not promise.",
+  alternates: { canonical: "/terms" },
+  openGraph: { title: "CoachMe terms of use", url: "/terms" },
 };
 
 // DRAFT: plain-language terms matching actual current practice. Requires

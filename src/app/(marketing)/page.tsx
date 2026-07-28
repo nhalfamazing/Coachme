@@ -3,11 +3,19 @@ import Image from "next/image";
 import Link from "next/link";
 import { ReturningUserBanner } from "@/components/marketing/returning-user";
 import { FaqList } from "@/components/marketing/faq";
+import { LandingJsonLd } from "@/components/marketing/json-ld";
 
 export const metadata: Metadata = {
   title: "CoachMe - A real training profile for young athletes",
   description:
     "CoachMe gives young athletes a free training profile: log workouts, build honestly labeled stats, watch drills, and connect with real coaches. No email needed, kids log in with a 3-word code.",
+  alternates: { canonical: "/" },
+  openGraph: {
+    title: "CoachMe - A real training profile for young athletes",
+    description:
+      "Log workouts, build honestly labeled stats, and connect with real coaches. Free for athletes, no email needed.",
+    url: "/",
+  },
 };
 
 // INTEGRITY RULE for this page: zero fabricated data. No invented
@@ -17,6 +25,7 @@ export const metadata: Metadata = {
 export default function LandingPage() {
   return (
     <main>
+      <LandingJsonLd />
       <ReturningUserBanner />
 
       {/* ---------------- hero ---------------- */}

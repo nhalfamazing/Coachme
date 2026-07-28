@@ -1,10 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { AboutJsonLd } from "@/components/marketing/json-ld";
 
 export const metadata: Metadata = {
   title: "About",
   description:
     "CoachMe is a family-built platform from Miami that gives young athletes an honest training profile: real logged work, honestly labeled stats, and labeled AI content.",
+  alternates: { canonical: "/about" },
+  openGraph: {
+    title: "About CoachMe",
+    description:
+      "A father and son project from Miami: an honest training profile for young athletes.",
+    url: "/about",
+  },
 };
 
 // ============================================================
@@ -18,6 +26,7 @@ export const metadata: Metadata = {
 export default function AboutPage() {
   return (
     <main className="mk-wrap mk-prose">
+      <AboutJsonLd />
       <p className="mk-prose-meta mono">About CoachMe</p>
       <h1 className="display">Built at our kitchen table</h1>
 

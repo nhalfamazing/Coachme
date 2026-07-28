@@ -5,6 +5,8 @@ export const metadata: Metadata = {
   title: "Contact",
   description:
     "How to reach the CoachMe team: questions, data deletion requests, coach applications, and bug reports.",
+  alternates: { canonical: "/contact" },
+  openGraph: { title: "Contact CoachMe", url: "/contact" },
 };
 
 // [CONTACT_EMAIL]: Rasheid, drop the real support address in here (it
