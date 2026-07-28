@@ -194,11 +194,12 @@
 .mk-footer-note { font-size: 12px; color: #5F636B; line-height: 1.6; max-width: 560px; }
 
 /* ---------- prose pages (about, privacy, terms, contact) ---------- */
-.mk-prose { max-width: 720px; padding: 48px 0 72px; }
+.mk-prose { max-width: 720px; padding-top: 48px; padding-bottom: 72px; }
 .mk-prose h1 { font-size: clamp(38px, 6vw, 64px); line-height: 0.95; text-transform: uppercase; margin: 0 0 10px; }
 .mk-prose h2 { font-size: 26px; line-height: 1; text-transform: uppercase; margin: 36px 0 10px; }
 .mk-prose p, .mk-prose li { font-size: 15px; line-height: 1.7; color: #B9BDC4; }
-.mk-prose ul { padding-left: 22px; }
+.mk-prose ul { padding-left: 22px; list-style: disc; }
+.mk-prose li { margin-bottom: 6px; }
 .mk-prose a { color: #C5FF3D; }
 .mk-prose-meta { font-size: 12px; letter-spacing: 0.12em; color: #5F636B; text-transform: uppercase; margin-bottom: 28px; }
 .mk-notice {

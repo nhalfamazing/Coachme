@@ -4,7 +4,7 @@
     {
       "name": "coachme-dev",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["dev"],
+      "runtimeArgs": ["start"],
       "port": 3000,
       "env": {
         "SUPABASE_SERVICE_ROLE_KEY": ""
