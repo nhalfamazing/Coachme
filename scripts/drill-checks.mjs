@@ -32,6 +32,10 @@ await context.addInitScript(() => {
 });
 
 /* ---------- library checks ---------- */
+// LANDING_ONLY=1 skips the library section: it seeds a signed-in
+// athlete, which the app syncs to the cloud registry - never do that
+// against production. Landing checks are read-only.
+if (!process.env.LANDING_ONLY) {
 const page = await context.newPage();
 await page.goto(`${BASE}/app`, { waitUntil: 'networkidle' });
 await page.waitForTimeout(1000);
@@ -83,6 +87,7 @@ check(
   `saw: ${titles.join(', ') || '(none)'}`,
 );
 await page.close();
+}
 
 /* ---------- landing network assertion ---------- */
 const lp = await context.newPage();
