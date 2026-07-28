@@ -5,6 +5,21 @@ import { ReturningUserBanner } from "@/components/marketing/returning-user";
 import { FaqList } from "@/components/marketing/faq";
 import { LandingJsonLd } from "@/components/marketing/json-ld";
 import { CtaLink } from "@/components/marketing/cta-link";
+import { DrillSample } from "@/components/marketing/drill-sample";
+import { DRILLS, coachFor, type Drill } from "@/lib/drills";
+
+// One sample per sport for variety (basketball, football, soccer).
+// Preferred picks by id, falling back to the sport's first drill so the
+// section survives a manifest reshuffle; count in the CTA is computed.
+function sampleDrill(sport: Drill["sport"], preferredId: string): Drill | null {
+  const ofSport = DRILLS.filter(d => d.sport === sport);
+  return ofSport.find(d => d.id === preferredId) ?? ofSport[0] ?? null;
+}
+const SAMPLE_DRILLS = [
+  sampleDrill("Basketball", "bb-crossover"),
+  sampleDrill("Football", "fb-catch-triangle"),
+  sampleDrill("Soccer", "so-first-touch"),
+].filter((d): d is Drill => d !== null);
 
 export const metadata: Metadata = {
   title: "CoachMe - A real training profile for young athletes",
@@ -244,6 +259,46 @@ export default function LandingPage() {
                 and training modes.
               </p>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ---------------- AI drill samples ---------------- */}
+      <section className="mk-section" aria-labelledby="drills-h">
+        <div className="mk-wrap">
+          <p className="mk-label mono">Drill library</p>
+          <h2 className="mk-h2 display" id="drills-h">
+            Train free with our AI drill library
+          </h2>
+          <p className="mk-lead body">
+            Short coach clips your athlete can copy today: a spoken intro,
+            then a slow demo rep. Watch one below, sound comes with the full
+            clips in the app.
+          </p>
+          <div className="mk-drills">
+            {SAMPLE_DRILLS.map(d => (
+              <DrillSample
+                key={d.id}
+                id={d.id}
+                title={d.title}
+                sport={d.sport}
+                posterUrl={d.poster.blob}
+                videoUrl={d.demo.blob}
+                coachName={coachFor(d).name}
+              />
+            ))}
+          </div>
+          {/* Load-bearing transparency line: the AI content is a proof
+              point, not fine print. Keep it visible without interaction. */}
+          <p className="mk-drill-disclosure body">
+            <span className="mk-tag mono">AI</span>
+            These drills are AI-generated demonstrations, clearly labeled in
+            the app. Real coaches are real people - always.
+          </p>
+          <div className="mk-drills-cta">
+            <CtaLink href="/app" cta="drills_browse_all" className="mk-btn mk-btn--primary body">
+              Browse all {DRILLS.length} drills free
+            </CtaLink>
           </div>
         </div>
       </section>

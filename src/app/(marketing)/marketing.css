@@ -118,6 +118,41 @@
 .mk-shot img { display: block; width: 100%; height: auto; }
 .mk-caption { font-size: 11.5px; color: #5F636B; text-align: center; margin-top: 10px; }
 
+/* ---------- AI drill samples ---------- */
+.mk-drills { display: grid; gap: 14px; grid-template-columns: 1fr; margin-bottom: 22px; }
+.mk-drill { margin: 0; }
+.mk-drill-media {
+  position: relative; border-radius: 16px; overflow: hidden;
+  border: 1px solid #2A2A30; background: #0F0F14; aspect-ratio: 16 / 9;
+}
+.mk-drill-media img, .mk-drill-media video {
+  display: block; width: 100%; height: 100%; object-fit: cover;
+}
+.mk-drill-play {
+  display: block; width: 100%; height: 100%; padding: 0; border: none;
+  background: none; cursor: pointer; position: relative;
+}
+.mk-drill-play-btn {
+  position: absolute; inset: 0; margin: auto; width: 52px; height: 52px;
+  border-radius: 50%; background: rgba(197, 255, 61, 0.92); color: #000;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+  transition: transform 0.15s;
+}
+.mk-drill-play:hover .mk-drill-play-btn { transform: scale(1.08); }
+.mk-drill-cap { display: flex; flex-direction: column; gap: 4px; padding: 10px 2px 0; }
+.mk-drill-title { font-size: 17px; text-transform: uppercase; line-height: 1; }
+.mk-drill-meta { font-size: 9.5px; letter-spacing: 0.12em; color: #5F636B; text-transform: uppercase; }
+.mk-drill-ai { color: #C5FF3D; font-weight: 700; }
+.mk-drill-disclosure {
+  display: flex; align-items: center; gap: 10px; max-width: 640px;
+  font-size: 13.5px; line-height: 1.6; color: #9CA0A8;
+  padding: 12px 14px; border-radius: 12px;
+  background: rgba(197, 255, 61, 0.05); border: 1px solid rgba(197, 255, 61, 0.22);
+}
+.mk-drill-disclosure .mk-tag { margin-bottom: 0; flex-shrink: 0; }
+.mk-drills-cta { margin-top: 22px; }
+
 /* ---------- card grids ---------- */
 .mk-grid { display: grid; gap: 14px; grid-template-columns: 1fr; }
 .mk-card {
@@ -214,6 +249,7 @@
   .mk-section { padding: 76px 0; }
   .mk-grid--3 { grid-template-columns: repeat(3, 1fr); }
   .mk-grid--2 { grid-template-columns: repeat(2, 1fr); }
+  .mk-drills { grid-template-columns: repeat(3, 1fr); }
   .mk-steps { grid-template-columns: repeat(3, 1fr); }
   .mk-truth { grid-template-columns: repeat(2, 1fr); }
   .mk-banner-in { flex-wrap: nowrap; }
