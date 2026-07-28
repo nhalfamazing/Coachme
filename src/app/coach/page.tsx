@@ -306,6 +306,30 @@ export default function CoachConsole() {
     }
   };
 
+  // Booking state: requests + sessions for this coach (server-first,
+  // local mirror fallback).
+  const [bookingRequests, setBookingRequests] = useState([]);
+  const [bookingSessions, setBookingSessions] = useState([]);
+  const refreshBooking = () => {
+    if (!coach?.code) return;
+    booking.fetchRequests(coach.code).then(rs => setBookingRequests(rs.filter(r => r.coachCode === coach.code)));
+    booking.fetchSessions(coach.code).then(ss => setBookingSessions(ss.filter(s => s.coachCode === coach.code)));
+  };
+  useEffect(() => { if (ready && coach?.code) refreshBooking(); }, [ready, coach?.code, view]);
+  const pendingBookingCount = bookingRequests.filter(r => r.status === "pending").length;
+
+  // Session decisions drop a card into the existing message thread so
+  // the conversation carries the record. When the server handled it,
+  // the card arrives via thread sync; local-first decisions write it
+  // into the local thread directly.
+  const localSessionCard = (athleteCode, text) => {
+    const a = directory.find(x => x.code === athleteCode);
+    if (!a) return;
+    ensureThread(coach, a);
+    pushCoachReply(`${a.id}::${coach.id}`, text);
+    refresh();
+  };
+
   const myThreads = coach
     ? threads
         .filter(t => t.coachId === coach.id && !blockedAthleteIds.includes(t.athlete?.id))
@@ -384,6 +408,7 @@ export default function CoachConsole() {
           setView={(v) => { setView(v); if (v !== "messages") setOpenThreadId(null); }}
           onSwitch={() => setCoach(null)}
           needsReplyCount={myThreads.filter(needsReply).length}
+          pendingBookingCount={pendingBookingCount}
         >
           {view === "overview" && (
             <OverviewView coach={coach} threads={myThreads} directoryCount={visibleDirectory.length} onOpenThread={goToThread} onGoAthletes={() => setView("roster")}/>
@@ -405,6 +430,15 @@ export default function CoachConsole() {
           )}
           {view === "availability" && (
             <AvailabilityView coach={coach}/>
+          )}
+          {view === "sessions" && (
+            <CoachSessionsView
+              coach={coach}
+              requests={bookingRequests}
+              sessions={bookingSessions}
+              refresh={refreshBooking}
+              onLocalCard={localSessionCard}
+            />
           )}
           {view === "roster" && (
             <AthletesView threads={myThreads} directory={visibleDirectory} onOpenThread={goToThread} onStart={messageAthlete}/>
@@ -568,10 +602,11 @@ function CoachPicker({ coaches, onSelect }) {
 /* ============================================================
    SHELL: sidebar (desktop) + top nav (mobile)
    ============================================================ */
-function Shell({ coach, view, setView, onSwitch, needsReplyCount, children }) {
+function Shell({ coach, view, setView, onSwitch, needsReplyCount, pendingBookingCount, children }) {
   const NAV = [
     { id: "overview", label: "Overview", icon: Home },
     { id: "messages", label: "Messages", icon: MessageCircle, badge: needsReplyCount },
+    { id: "sessions", label: "Sessions", icon: Calendar, badge: pendingBookingCount },
     { id: "availability", label: "Availability", icon: Clock },
     { id: "roster", label: "Athletes", icon: Users },
     { id: "profile", label: "My Profile", icon: User },
@@ -1032,6 +1067,233 @@ const QUICK_OPENERS = [
 ];
 
 /* ============================================================
+   SESSIONS (requests queue + schedule)
+   ============================================================ */
+const COACH_DECLINE_REASONS = [
+  { key: "time_doesnt_work", label: "Time doesn't work" },
+  { key: "try_another", label: "Ask them to try another slot" },
+  { key: "other", label: "Other" },
+];
+
+function coachTimeLabel(iso) {
+  return new Date(iso).toLocaleString([], {
+    weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
+  });
+}
+
+function CoachSessionsView({ coach, requests, sessions, refresh, onLocalCard }) {
+  const [decliningId, setDecliningId] = useState(null);
+  const [declineReason, setDeclineReason] = useState("time_doesnt_work");
+  const [cancellingId, setCancellingId] = useState(null);
+  const [cancelReason, setCancelReason] = useState("");
+  const [busyId, setBusyId] = useState(null);
+
+  const pending = requests.filter(r => r.status === "pending")
+    .sort((a, b) => a.startIso.localeCompare(b.startIso));
+  const now = Date.now();
+  const endOf = (s) => new Date(s.startIso).getTime() + (s.durationMin || 60) * 60000;
+  const upcoming = sessions.filter(s => s.status === "scheduled" && endOf(s) > now)
+    .sort((a, b) => a.startIso.localeCompare(b.startIso));
+  const startedScheduled = sessions.filter(s => s.status === "scheduled" && endOf(s) <= now);
+  const finished = sessions.filter(s => s.status !== "scheduled")
+    .sort((a, b) => b.startIso.localeCompare(a.startIso)).slice(0, 10);
+
+  const accept = async (r) => {
+    if (busyId) return;
+    setBusyId(r.id);
+    const res = await booking.respondRequest({ coachCode: coach.code, requestId: r.id, action: "accept" });
+    setBusyId(null);
+    if (res.ok) {
+      if (res.local) {
+        onLocalCard(r.athleteCode,
+          `[session] Session confirmed for ${coachTimeLabel(r.startIso)} · ${AVAIL_MODE_LABELS[r.mode] || r.mode}${r.locationNote ? ` · ${r.locationNote}` : ""}`);
+      }
+      refresh();
+    }
+  };
+
+  const decline = async (r) => {
+    if (busyId) return;
+    setBusyId(r.id);
+    const res = await booking.respondRequest({ coachCode: coach.code, requestId: r.id, action: "decline", reason: declineReason });
+    setBusyId(null);
+    setDecliningId(null);
+    if (res.ok) {
+      if (res.local) {
+        onLocalCard(r.athleteCode,
+          `[session] Request for ${coachTimeLabel(r.startIso)} was declined. You can request another time.`);
+      }
+      refresh();
+    }
+  };
+
+  const finalize = async (s, action) => {
+    if (busyId) return;
+    setBusyId(s.id);
+    const res = await booking.updateSession({
+      coachCode: coach.code, sessionId: s.id, action,
+      reason: action === "cancel" ? (cancelReason.trim() || null) : null,
+    });
+    setBusyId(null);
+    setCancellingId(null);
+    setCancelReason("");
+    if (res.ok) {
+      if (res.local && action === "cancel") {
+        onLocalCard(s.athleteCode,
+          `[session] The session on ${coachTimeLabel(s.startIso)} was cancelled by the coach${cancelReason.trim() ? ` · ${cancelReason.trim()}` : ""}. You can request another time.`);
+      }
+      refresh();
+    }
+  };
+
+  const btn = (kind) => ({
+    border: "none", borderRadius: 9, padding: "9px 14px", fontSize: 12.5, fontWeight: 700,
+    cursor: "pointer", fontFamily: "inherit",
+    ...(kind === "ok" ? { background: C.accent, color: "#04121D" }
+      : kind === "warn" ? { background: "transparent", color: C.amber, border: `1px solid ${C.amber}55` }
+      : { background: "transparent", color: C.muted, border: `1px solid ${C.border}` }),
+  });
+
+  const card = { background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, marginBottom: 10 };
+
+  return (
+    <div style={{ maxWidth: 760, margin: "0 auto", padding: "26px 18px 60px" }}>
+      <div className="display" style={{ fontSize: 28, textTransform: "uppercase", marginBottom: 4 }}>Sessions</div>
+      <div style={{ fontSize: 13, color: C.muted, lineHeight: 1.55, marginBottom: 20 }}>
+        Requests wait for your yes. Accepting books the slot and tells the athlete; declining frees it.
+      </div>
+
+      <div className="mono" style={{ fontSize: 10, color: C.muted, letterSpacing: "0.15em", marginBottom: 8 }}>
+        REQUESTS{pending.length > 0 ? ` · ${pending.length} WAITING` : ""}
+      </div>
+      {pending.length === 0 ? (
+        <div style={{ ...card, border: `1px dashed ${C.border}`, textAlign: "center", color: C.muted, fontSize: 12.5 }}>
+          No requests waiting. Athletes see your availability windows and request times from them.
+        </div>
+      ) : pending.map(r => (
+        <div key={r.id} style={card}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <Avatar initials={(r.athleteName || "?").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase()} size={36}/>
+            <div style={{ flex: 1, minWidth: 140 }}>
+              <div style={{ fontSize: 14, fontWeight: 700 }}>{r.athleteName || "Athlete"}</div>
+              <div className="mono" style={{ fontSize: 9.5, color: C.accent, letterSpacing: "0.06em", marginTop: 3 }}>
+                {coachTimeLabel(r.startIso).toUpperCase()} · {(AVAIL_MODE_LABELS[r.mode] || r.mode).toUpperCase()}
+              </div>
+              {r.locationNote && (
+                <div className="mono" style={{ fontSize: 9, color: C.muted, marginTop: 2 }}>{r.locationNote}</div>
+              )}
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button className="body" style={btn("ok")} disabled={busyId === r.id} onClick={() => accept(r)}>Accept</button>
+              <button className="body" style={btn("plain")} onClick={() => setDecliningId(decliningId === r.id ? null : r.id)}>Decline</button>
+            </div>
+          </div>
+          {r.note && (
+            <div style={{
+              marginTop: 10, padding: "8px 12px", borderLeft: `3px solid ${C.accentBorder}`,
+              background: C.panelUp, borderRadius: 6, fontSize: 12.5, color: C.text, lineHeight: 1.5,
+            }}>
+              &quot;{r.note}&quot;
+            </div>
+          )}
+          {decliningId === r.id && (
+            <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
+              <select className="body" value={declineReason} onChange={e => setDeclineReason(e.target.value)} style={{
+                background: C.panelUp, border: `1px solid ${C.border}`, borderRadius: 8,
+                color: C.text, padding: "8px 10px", fontSize: 12.5, fontFamily: "inherit",
+              }}>
+                {COACH_DECLINE_REASONS.map(d => <option key={d.key} value={d.key}>{d.label}</option>)}
+              </select>
+              <button className="body" style={btn("warn")} disabled={busyId === r.id} onClick={() => decline(r)}>Confirm decline</button>
+            </div>
+          )}
+        </div>
+      ))}
+
+      <div className="mono" style={{ fontSize: 10, color: C.muted, letterSpacing: "0.15em", margin: "22px 0 8px" }}>
+        SCHEDULE
+      </div>
+      {upcoming.length === 0 && startedScheduled.length === 0 ? (
+        <div style={{ ...card, border: `1px dashed ${C.border}`, textAlign: "center", color: C.muted, fontSize: 12.5 }}>
+          Nothing scheduled yet. Accepted requests land here.
+        </div>
+      ) : (
+        [...startedScheduled, ...upcoming].map(s => {
+          const started = new Date(s.startIso).getTime() <= now;
+          return (
+            <div key={s.id} style={card}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                <div style={{ flex: 1, minWidth: 140 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700 }}>{s.athleteName || "Athlete"}</div>
+                  <div className="mono" style={{ fontSize: 9.5, color: C.accent, letterSpacing: "0.06em", marginTop: 3 }}>
+                    {coachTimeLabel(s.startIso).toUpperCase()} · {(AVAIL_MODE_LABELS[s.mode] || s.mode).toUpperCase()}
+                  </div>
+                  {s.locationNote && (
+                    <div className="mono" style={{ fontSize: 9, color: C.muted, marginTop: 2 }}>{s.locationNote}</div>
+                  )}
+                </div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {!String(s.id).startsWith("loc-") && coach.code && (
+                    <a className="body" href={`/api/sessions/ics?sessionId=${encodeURIComponent(s.id)}&code=${encodeURIComponent(coach.code)}`} download style={{ ...btn("plain"), textDecoration: "none" }}>
+                      Add to calendar
+                    </a>
+                  )}
+                  {started ? (
+                    <>
+                      <button className="body" style={btn("ok")} disabled={busyId === s.id} onClick={() => finalize(s, "complete")}>Mark completed</button>
+                      <button className="body" style={btn("warn")} disabled={busyId === s.id} onClick={() => finalize(s, "no_show")}>No-show</button>
+                    </>
+                  ) : (
+                    <button className="body" style={btn("warn")} onClick={() => setCancellingId(cancellingId === s.id ? null : s.id)}>Cancel</button>
+                  )}
+                </div>
+              </div>
+              {cancellingId === s.id && (
+                <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
+                  <input className="body" value={cancelReason} onChange={e => setCancelReason(e.target.value.slice(0, 120))}
+                    placeholder="Reason the athlete will see (optional)" style={{
+                      flex: 1, minWidth: 180, background: C.panelUp, border: `1px solid ${C.border}`,
+                      borderRadius: 8, color: C.text, padding: "8px 10px", fontSize: 12.5, fontFamily: "inherit",
+                    }}/>
+                  <button className="body" style={btn("warn")} disabled={busyId === s.id} onClick={() => finalize(s, "cancel")}>Confirm cancel</button>
+                </div>
+              )}
+            </div>
+          );
+        })
+      )}
+
+      {finished.length > 0 && (
+        <>
+          <div className="mono" style={{ fontSize: 10, color: C.muted, letterSpacing: "0.15em", margin: "22px 0 8px" }}>
+            PAST
+          </div>
+          {finished.map(s => (
+            <div key={s.id} style={{ ...card, opacity: 0.7 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 700 }}>{s.athleteName || "Athlete"}</div>
+                  <div className="mono" style={{ fontSize: 9, color: C.muted, letterSpacing: "0.06em", marginTop: 3 }}>
+                    {coachTimeLabel(s.startIso).toUpperCase()}
+                  </div>
+                </div>
+                <span className="mono" style={{
+                  fontSize: 9, letterSpacing: "0.08em", padding: "3px 8px", borderRadius: 5, fontWeight: 700,
+                  background: s.status === "completed" ? "rgba(125,223,160,0.12)" : "rgba(255,136,136,0.1)",
+                  color: s.status === "completed" ? "#7DDFA0" : "#FF8888",
+                }}>
+                  {s.status.replace("_", " ").toUpperCase()}
+                </span>
+              </div>
+            </div>
+          ))}
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
    AVAILABILITY (recurring weekly training windows)
    Times are the coach's local time (America/New_York assumption for
    this phase, documented in the scheduling migration).
@@ -1482,6 +1744,23 @@ function ConversationView({ thread, coach, onBack, onReply, onCall, onBlockAthle
           </div>
         ) : (
           messages.map(m => {
+            // Session system cards: the conversation carries the booking
+            // record (accept/decline/cancel) as neutral centered cards.
+            if (typeof m.text === "string" && m.text.startsWith("[session]")) {
+              return (
+                <div key={m.id} style={{ alignSelf: "center", maxWidth: "88%", margin: "4px 0" }}>
+                  <div style={{
+                    background: C.panelUp, border: `1px dashed ${C.border}`, borderRadius: 12,
+                    padding: "9px 14px", display: "flex", alignItems: "center", gap: 10,
+                  }}>
+                    <Calendar size={13} color={C.accent} style={{ flexShrink: 0 }}/>
+                    <span style={{ fontSize: 12, color: C.text, lineHeight: 1.5 }}>
+                      {m.text.slice("[session]".length).trim()}
+                    </span>
+                  </div>
+                </div>
+              );
+            }
             const mine = m.from === "coach";
             return (
               <div key={m.id} style={{ alignSelf: mine ? "flex-end" : "flex-start", maxWidth: "72%" }}>

@@ -3268,6 +3268,24 @@ function ChatSafetySheet({ mode, setMode, trainer, athlete, onBlock }) {
 }
 
 function Message({ m, trainer, isLastFromSender }) {
+  // Session system cards: booking decisions live in the conversation
+  // as neutral centered cards (same pattern as the old booked card).
+  if (typeof m.text === 'string' && m.text.startsWith('[session]')) {
+    return (
+      <div className="slide-up-msg" style={{ alignSelf: 'center', maxWidth: '88%', margin: '4px 0' }}>
+        <div style={{
+          background: '#18181C', border: '1px dashed #3A3A42', borderRadius: 16, padding: '10px 14px',
+          display: 'flex', alignItems: 'center', gap: 10,
+        }}>
+          <CalIcon size={14} color="#C5FF3D" style={{ flexShrink: 0 }}/>
+          <span className="body" style={{ fontSize: 12.5, color: '#D4D6DA', lineHeight: 1.5 }}>
+            {m.text.slice('[session]'.length).trim()}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   // Calm, non-scary notice shown when a message was not sent (safety
   // block, rate limit). Local-only, never stored server-side.
   if (m.type === 'safety_notice') {
