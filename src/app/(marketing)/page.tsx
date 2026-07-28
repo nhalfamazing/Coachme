@@ -871,6 +871,13 @@ export default function CoachMeApp() {
     .featured-row { display: flex; gap: 12px; overflow-x: auto; padding: 12px 16px 16px; }
     .drill-row { display: flex; gap: 10px; overflow-x: auto; padding: 10px 16px 18px; }
 
+    /* Landing (signed-out welcome). Stacked banner-over-content on
+       phone/tablet, split hero (content left, stadium right) on desktop. */
+    .landing { flex: 1; min-height: 0; display: flex; flex-direction: column; position: relative; overflow: hidden; }
+    .landing-media { height: 300px; position: relative; flex-shrink: 0; }
+    .landing-body { flex: 1; display: flex; flex-direction: column; padding: 20px 24px 28px; overflow-y: auto; }
+    .landing-title { font-size: 48px; line-height: 0.92; text-transform: uppercase; margin-bottom: 12px; }
+
     /* Nav: base = bottom tab bar. */
     .app-nav {
       flex-shrink: 0; display: flex;
@@ -916,6 +923,9 @@ export default function CoachMeApp() {
     @media (min-width: 641px) {
       .view { max-width: 720px; }
       .view-title { font-size: 44px; }
+      .landing-media { height: 340px; }
+      .landing-body { width: 100%; max-width: 640px; margin: 0 auto; }
+      .su-step { width: 100%; max-width: 560px; margin: 0 auto; }
     }
 
     @media (min-width: 1024px) {
@@ -973,6 +983,18 @@ export default function CoachMeApp() {
       /* Sliding up from the bottom of a centered modal looks wrong;
          fade the panel in instead on desktop. */
       .modal-panel.slide-up { animation-name: fadeUp; animation-duration: 0.25s; }
+    }
+
+    @media (min-width: 1024px) {
+      /* Split hero: content column left, stadium media right. */
+      .landing { display: grid; grid-template-columns: minmax(500px, 46%) 1fr; grid-template-rows: minmax(0, 1fr); }
+      .landing-media { grid-column: 2; grid-row: 1; height: 100%; }
+      .landing-media::after {
+        content: ''; position: absolute; inset: 0; z-index: 2; pointer-events: none;
+        background: linear-gradient(90deg, #0A0A0B 0%, rgba(10,10,11,0) 40%);
+      }
+      .landing-body { grid-column: 1; grid-row: 1; align-self: center; justify-self: center; max-width: 560px; padding: 48px; }
+      .landing-title { font-size: 72px; }
     }
 
     /* Pointer feedback on devices that hover, consistent with the
@@ -1241,24 +1263,26 @@ function SUWelcome({ onNext, savedAthlete, onLogin, onCodeLogin, deviceAthletes 
   const hiddenCount = (deviceAthletes.length - athletesShown.length) + (deviceCoaches.length - coachesShown.length);
   const displayName = (p) => (p.firstName && p.lastName) ? `${p.firstName} ${p.lastName}` : (p.firstName || p.name);
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
-      <CoverPhoto src={BASEBALL_BANNER} height={300}
-        overlay="linear-gradient(180deg, rgba(10,10,11,0.3) 0%, rgba(10,10,11,1) 100%)" color="#C5FF3D">
-        <div style={{ padding: 20, height: '100%', display: 'flex', alignItems: 'flex-end' }}>
-          <span className="mono" style={{
-            fontSize: 10, color: '#C5FF3D', padding: '5px 10px',
-            background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(10px)',
-            borderRadius: 100, letterSpacing: '0.18em', fontWeight: 700,
-            border: '1px solid rgba(197,255,61,0.4)', display: 'inline-flex', alignItems: 'center', gap: 6,
-          }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#C5FF3D' }} className="pulse-dot"/>
-            WELCOME TO COACHME
-          </span>
-        </div>
-      </CoverPhoto>
+    <div className="landing">
+      <div className="landing-media">
+        <CoverPhoto src={BASEBALL_BANNER} height="100%"
+          overlay="linear-gradient(180deg, rgba(10,10,11,0.3) 0%, rgba(10,10,11,1) 100%)" color="#C5FF3D">
+          <div style={{ padding: 20, height: '100%', display: 'flex', alignItems: 'flex-end' }}>
+            <span className="mono" style={{
+              fontSize: 10, color: '#C5FF3D', padding: '5px 10px',
+              background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(10px)',
+              borderRadius: 100, letterSpacing: '0.18em', fontWeight: 700,
+              border: '1px solid rgba(197,255,61,0.4)', display: 'inline-flex', alignItems: 'center', gap: 6,
+            }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#C5FF3D' }} className="pulse-dot"/>
+              WELCOME TO COACHME
+            </span>
+          </div>
+        </CoverPhoto>
+      </div>
 
-      <div style={{ padding: '20px 24px 28px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <div className="display" style={{ fontSize: 48, lineHeight: 0.92, textTransform: 'uppercase', marginBottom: 12 }}>
+      <div className="landing-body phone-scroll">
+        <div className="display landing-title">
           PROVE YOUR<br/><span style={{ color: '#C5FF3D' }}>GAME</span>.
         </div>
         <div className="body" style={{ fontSize: 14, color: '#9CA0A8', lineHeight: 1.55, marginBottom: 24 }}>
@@ -1289,7 +1313,7 @@ function SUWelcome({ onNext, savedAthlete, onLogin, onCodeLogin, deviceAthletes 
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {athletesShown.map(a => (
-                <button key={`a-${a.id}`} onClick={() => onPickAthlete(a)} className="body" style={{
+                <button key={`a-${a.id}`} onClick={() => onPickAthlete(a)} className="body card-hover" style={{
                   width: '100%', cursor: 'pointer', textAlign: 'left',
                   background: 'rgba(197,255,61,0.07)', border: '1px solid rgba(197,255,61,0.4)',
                   borderRadius: 14, padding: '10px 12px',
@@ -1308,7 +1332,7 @@ function SUWelcome({ onNext, savedAthlete, onLogin, onCodeLogin, deviceAthletes 
                 </button>
               ))}
               {coachesShown.map(c => (
-                <button key={`c-${c.id}`} onClick={() => onPickCoach(c)} className="body" style={{
+                <button key={`c-${c.id}`} onClick={() => onPickCoach(c)} className="body card-hover" style={{
                   width: '100%', cursor: 'pointer', textAlign: 'left',
                   background: 'rgba(93,169,255,0.07)', border: '1px solid rgba(93,169,255,0.4)',
                   borderRadius: 14, padding: '10px 12px',
@@ -1655,7 +1679,7 @@ function LoginSheet({ savedAthlete, onLogin, onCodeLogin, onSignUp, onClose }) {
 
 function SUStep({ idx, total, title, sub, children, canContinue, onNext, onBack, continueLabel }) {
   return (
-    <div className="slide-right" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div className="slide-right su-step" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <div style={{ padding: '12px 16px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
         <button onClick={onBack} style={{
           background: '#18181C', border: '1px solid #2A2A30', borderRadius: '50%',
@@ -1908,7 +1932,7 @@ function SUChip({ children, active, onClick, small }) {
 function SUDone({ form, onFinish }) {
   const initials = (form.firstName[0] || '?') + (form.lastName[0] || '');
   return (
-    <div className="fade-in" style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '24px', textAlign: 'center', justifyContent: 'center' }}>
+    <div className="fade-in su-step" style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '24px', textAlign: 'center', justifyContent: 'center' }}>
       <div style={{ position: 'relative', marginBottom: 32 }}>
         {Array.from({ length: 14 }).map((_, i) => {
           const colors = ['#C5FF3D', '#FF6B3D', '#5DA9FF', '#FF9BCD'];

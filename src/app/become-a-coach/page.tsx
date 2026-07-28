@@ -186,6 +186,18 @@ export default function BecomeACoachPage() {
     .display { font-family: var(--font-display), 'Bebas Neue', sans-serif; letter-spacing: 0.005em; }
     .body { font-family: var(--font-body), 'Manrope', system-ui, sans-serif; }
     .mono { font-family: var(--font-mono), 'JetBrains Mono', monospace; }
+
+    /* Paired fields stack on phones, sit side by side from small tablets up. */
+    .bc-row { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    @media (min-width: 520px) { .bc-row { grid-template-columns: 1fr 1fr; gap: 12px; } }
+    /* Desktop: the form itself stays a readable ~560px column while the
+       header/title keep the wider 720px measure. */
+    @media (min-width: 1024px) { .bc-form { max-width: 560px; } }
+    /* Real phones: 16px inputs stop iOS from zooming every focused field. */
+    @media (max-width: 480px) {
+      .bc-page input, .bc-page select, .bc-page textarea { font-size: 16px !important; }
+      .bc-title { font-size: 44px !important; }
+    }
   `;
 
   if (step === 1) {
@@ -274,7 +286,7 @@ export default function BecomeACoachPage() {
   }
 
   return (
-    <div className="body" style={{ background: "#000", minHeight: "100vh", color: "#F4F4F5" }}>
+    <div className="body bc-page" style={{ background: "#000", minHeight: "100vh", color: "#F4F4F5" }}>
       <style>{pageStyles}</style>
 
       <div style={{
@@ -296,7 +308,7 @@ export default function BecomeACoachPage() {
       </div>
 
       <div style={{ maxWidth: 720, margin: "0 auto", padding: "40px 24px 80px" }}>
-        <div className="display" style={{ fontSize: 56, lineHeight: 0.95, marginBottom: 14, textTransform: "uppercase" }}>
+        <div className="display bc-title" style={{ fontSize: 56, lineHeight: 0.95, marginBottom: 14, textTransform: "uppercase" }}>
           JOIN COACHME<br/>
           <span style={{ color: "#C5FF3D" }}>AS A COACH.</span>
         </div>
@@ -304,6 +316,7 @@ export default function BecomeACoachPage() {
           We're building a platform where verified coaches train emerging athletes. Tell us about your coaching and we'll verify your background before your profile goes live.
         </div>
 
+        <div className="bc-form">
         <Section label="ABOUT YOU">
           <Row>
             <Field label="FIRST NAME *">
@@ -401,6 +414,7 @@ export default function BecomeACoachPage() {
         <div style={{ marginTop: 24, fontSize: 12, color: "#5F636B", lineHeight: 1.6 }}>
           By submitting, you confirm the information above is accurate and that you consent to being listed on CoachMe after verification. We never list anyone who hasn't applied.
         </div>
+        </div>
       </div>
     </div>
   );
@@ -434,7 +448,7 @@ function Section({ label, children }) {
 
 function Row({ children }) {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+    <div className="bc-row">
       {children}
     </div>
   );
