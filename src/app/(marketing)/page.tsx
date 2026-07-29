@@ -232,25 +232,116 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ---------------- coaches strip ---------------- */}
-      <section className="mk-section mk-section--lift mk-section--layered" id="coaches" aria-labelledby="coach-h">
+      {/* ---------------- when you're ready: real coaches ---------------- */}
+      <section className="mk-section mk-section--layered" id="coaches" aria-labelledby="coach-h">
         {/* Giant numeral: the real 90% coach take. */}
         <span className="mk-numeral" aria-hidden="true" style={{ right: -40, bottom: -60 }}>90</span>
         <div className="mk-wrap">
-          <p className="stamp">For coaches</p>
+          <p className="stamp">When you&apos;re ready</p>
           <h2 className="mk-h2 display" id="coach-h">
-            Coach on your terms
+            Vetted coaches, <span style={{ color: "#C5FF3D" }}>on your terms</span>
           </h2>
           <p className="mk-lead body">
-            Apply in about five minutes: sport, specialty, rate, and how you
-            train, in person, live online, or async video review. Athletes in
-            your sport can find and message you, and you keep 90% of your
-            rate.
+            The drills and the stat sheet cost nothing, forever. When your
+            family wants a real coach in the picture, here is how that
+            works.
           </p>
-          <div className="mk-hero-ctas" style={{ justifyContent: "flex-start" }}>
-            <CtaLink href="/become-a-coach" cta="coach_strip_apply" className="mk-btn mk-btn--primary body">
+          <div className="mk-grid mk-grid--3">
+            <div className="mk-card">
+              <h3 className="display">Vetted before they&apos;re listed</h3>
+              <p className="body">
+                Every coach applies with their real identity, credentials,
+                and rate. Nobody is listed without applying and being
+                reviewed, and only verified coaches can be booked.
+              </p>
+            </div>
+            <div className="mk-card">
+              <h3 className="display">You see how we checked</h3>
+              <p className="body">
+                Each profile shows the coach&apos;s credentials and its real
+                verification state - including pending, while review is
+                still underway. We would rather show a pending badge than
+                pretend a review happened.
+              </p>
+            </div>
+            <div className="mk-card">
+              <h3 className="display">10%, not 40%</h3>
+              <p className="body">
+                Coaches set their own rates and keep 90%. KoachMe&apos;s
+                platform fee is 10%, where coaching marketplaces commonly
+                take around 40%. Fair pay is how you keep good coaches.
+              </p>
+            </div>
+          </div>
+          <div className="mk-hero-ctas" style={{ justifyContent: "flex-start", marginTop: 28 }}>
+            <CtaLink href="/app" cta="coaches_browse" className="mk-btn mk-btn--primary body">
+              Browse coaches
+            </CtaLink>
+            <CtaLink href="/become-a-coach" cta="coaches_apply" className="mk-btn mk-btn--ghost body">
               Apply as a coach
             </CtaLink>
+          </div>
+        </div>
+      </section>
+
+      {/* ---------------- family-first safety ---------------- */}
+      <section className="mk-section mk-section--lift mk-section--layered" id="safety" aria-labelledby="safety-h">
+        <FieldGeo sport="soccer" opacity={0.04} style={{ left: -170, top: 20 }} />
+        <div className="mk-wrap">
+          <p className="stamp">Family-first</p>
+          <h2 className="mk-h2 display" id="safety-h">
+            Built like a parent was in the room.{" "}
+            <span style={{ color: "#C5FF3D" }}>Because one was.</span>
+          </h2>
+          <p className="mk-lead body">
+            Safety on KoachMe is not a settings page you have to find. It
+            is how the platform works by default.
+          </p>
+          <div className="mk-truth body">
+            <div className="mk-truth-item">
+              <span className="mk-tick" aria-hidden="true">✓</span>
+              <div>
+                <strong>Messages are monitored</strong>
+                <p>
+                  Every message runs through safety filters before it sends.
+                  Sharing phone numbers, addresses, or off-platform contact
+                  is blocked automatically, and athletes can only message
+                  coaches - there are no athlete-to-athlete DMs.
+                </p>
+              </div>
+            </div>
+            <div className="mk-truth-item">
+              <span className="mk-tick" aria-hidden="true">✓</span>
+              <div>
+                <strong>Sessions keep parents in the loop</strong>
+                <p>
+                  Booking a session prompts your athlete to tell a parent or
+                  guardian the plan, and in-person sessions carry
+                  public-training-location guidance built in.
+                </p>
+              </div>
+            </div>
+            <div className="mk-truth-item">
+              <span className="mk-tick" aria-hidden="true">✓</span>
+              <div>
+                <strong>Report and block, everywhere</strong>
+                <p>
+                  Every conversation and coach profile carries report and
+                  block controls, and reports land in our review queue.
+                </p>
+              </div>
+            </div>
+            <div className="mk-truth-item">
+              <span className="mk-tick" aria-hidden="true">✓</span>
+              <div>
+                <strong>AI is always labeled</strong>
+                <p>
+                  AI-generated content carries an AI label wherever it
+                  appears, and kids log in with a 3-word code instead of an
+                  email. No ads, no data selling.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
