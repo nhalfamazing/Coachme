@@ -27,7 +27,7 @@ export function ProgressProof() {
       <div className="mk-proof-head">
         <span className="stamp stamp--flat">Sample data</span>
         <span className="mk-proof-metric mono">
-          Free throws made / {METRIC_MAX} &middot; 8 weeks
+          Free throws made / {METRIC_MAX}{" · "}8 weeks
         </span>
       </div>
       <svg

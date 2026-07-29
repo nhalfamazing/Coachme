@@ -34,7 +34,9 @@ const SAMPLE_DRILLS = [
 const SPORT_COUNT = new Set(DRILLS.map(d => d.sport)).size;
 
 export const metadata: Metadata = {
-  title: "KoachMe - Training between practices for young athletes",
+  // Root layout template appends "- KoachMe"; no brand prefix here or
+  // the tab reads "KoachMe - ... - KoachMe".
+  title: "Training between practices for young athletes",
   description:
     "The kids who start are the kids who train between practices. KoachMe gives your athlete pro-style drills at home, a stat sheet that proves the work, and vetted coaches when you're ready. Free for athletes, no email needed.",
   alternates: { canonical: "/" },
@@ -391,7 +393,9 @@ export default function LandingPage() {
           <p className="mk-lead body" style={{ margin: "0 auto 8px" }}>
             Free for athletes, 60 seconds to start, no email needed.
           </p>
-          <div className="mk-hero-ctas" style={{ marginTop: 24 }}>
+          {/* Desktop override on mk-hero-ctas is flex-start; the single
+              closing button should sit centered under the centered H2. */}
+          <div className="mk-hero-ctas" style={{ marginTop: 24, justifyContent: "center" }}>
             <CtaLink href="/app?signup=1" cta="closing_start_free" className="mk-btn mk-btn--primary body">
               Start free - no email needed
             </CtaLink>
