@@ -29,6 +29,9 @@ const SAMPLE_DRILLS = [
   sampleDrill("Soccer", "so-first-touch"),
 ].filter((d): d is Drill => d !== null);
 
+// Real sport count, derived from the manifest - never hand-written.
+const SPORT_COUNT = new Set(DRILLS.map(d => d.sport)).size;
+
 export const metadata: Metadata = {
   title: "KoachMe - Training between practices for young athletes",
   description:
@@ -132,157 +135,20 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ---------------- how it works ---------------- */}
-      <section className="mk-section" id="how-it-works" aria-labelledby="hiw-h">
-        <div className="mk-wrap">
-          <p className="stamp">How it works</p>
-          <h2 className="mk-h2 display" id="hiw-h">
-            For athletes
-          </h2>
-          <p className="mk-lead body">
-            Three steps, and the first one takes about two minutes.
-          </p>
-          <div className="mk-steps">
-            <div className="mk-step">
-              <div className="mk-step-num mono">1</div>
-              <h3 className="display">Create your card</h3>
-              <p className="body">
-                Name, sport, position, city. That is the whole form. No email
-                and no password: your athlete gets a 3-word code that logs
-                them in on any device.
-              </p>
-              <div className="mk-shot mk-halftone">
-                <Image
-                  src="/marketing/signup.png"
-                  alt="The KoachMe signup form asking only for a first and last name"
-                  width={390}
-                  height={844}
-                  sizes="(min-width: 641px) 330px, 88vw"
-                />
-              </div>
-            </div>
-            <div className="mk-step">
-              <div className="mk-step-num mono">2</div>
-              <h3 className="display">Train and log</h3>
-              <p className="body">
-                Log workouts in seconds and build streaks. The stat sheet
-                grows with them, and self-reported numbers are labeled
-                honestly until a coach verifies them.
-              </p>
-              <div className="mk-shot mk-halftone">
-                <Image
-                  src="/marketing/log-workout.png"
-                  alt="Logging a workout in KoachMe: workout type, duration in minutes, and intensity from light to all-out"
-                  width={390}
-                  height={844}
-                  sizes="(min-width: 641px) 330px, 88vw"
-                />
-              </div>
-            </div>
-            <div className="mk-step">
-              <div className="mk-step-num mono">3</div>
-              <h3 className="display">Connect with coaches</h3>
-              <p className="body">
-                Browse coaches as they join, watch labeled drill demos, and
-                message a coach directly when your family is ready.
-              </p>
-              <div className="mk-shot mk-halftone">
-                <Image
-                  src="/marketing/drills.png"
-                  alt="A KoachMe drill open in the app: Tee Work coach intro and slow demo videos, with the disclosure label saying the coach is AI-generated"
-                  width={390}
-                  height={844}
-                  sizes="(min-width: 641px) 330px, 88vw"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ---------------- feature truth grid ---------------- */}
-      <section className="mk-section mk-section--lift" aria-labelledby="features-h">
-        <div className="mk-wrap">
-          <p className="stamp">What&apos;s inside</p>
-          <h2 className="mk-h2 display" id="features-h">
-            Built honest, on purpose
-          </h2>
-          <p className="mk-lead body">
-            Everything in KoachMe is labeled with what it really is. That is
-            the product.
-          </p>
-          <div className="mk-grid mk-grid--2">
-            <div className="mk-card">
-              <span className="stamp stamp--flat">Workouts</span>
-              <h3 className="display">Tracking and streaks</h3>
-              <p className="body">
-                Type, minutes, intensity, notes. Logging takes seconds, and
-                streaks plus weekly counts keep kids coming back to the work.
-              </p>
-            </div>
-            <div className="mk-card">
-              <span className="stamp stamp--flat">Self / Trainer / Facility / Event</span>
-              <h3 className="display">Verified stat levels</h3>
-              <p className="body">
-                Every stat carries a label saying how it was verified. Today
-                most numbers are self-reported and say SELF right on the
-                card. Real verification by trainers, facilities, and events
-                is the backbone we are building toward.
-              </p>
-            </div>
-            <div className="mk-card">
-              <span className="stamp stamp--flat">AI Coach · labeled</span>
-              <h3 className="display">Drill library</h3>
-              <p className="body">
-                Short drills with a coach intro and a slow demo to copy.
-                Today&apos;s demos are AI-generated and carry an AI COACH
-                label right on the card, because transparency is trust. Real
-                verified coaches review drills as we grow.
-              </p>
-            </div>
-            <div className="mk-card">
-              <span className="stamp stamp--flat">Messaging</span>
-              <h3 className="display">Talk to real coaches</h3>
-              <p className="body">
-                Athletes message coaches directly on the platform. There are
-                no athlete-to-athlete DMs, and coaches join by application.
-              </p>
-            </div>
-            <div className="mk-card">
-              <span className="stamp stamp--flat">No email needed</span>
-              <h3 className="display">The 3-word code</h3>
-              <p className="body">
-                Kids log in with three words like alex-tiger-moon. No email,
-                no password, works across devices, and one less account tied
-                to a child. Kid-safe by design.
-              </p>
-            </div>
-            <div className="mk-card">
-              <span className="stamp stamp--flat">For coaches</span>
-              <h3 className="display">A real console</h3>
-              <p className="body">
-                Coaches get their own console: roster, athlete cards with
-                honest stats, messages, and a public profile with their rate
-                and training modes.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ---------------- AI drill samples ---------------- */}
-      <section className="mk-section mk-section--layered" aria-labelledby="drills-h">
+      {/* ---------------- train tonight: drills ---------------- */}
+      <section className="mk-section mk-section--layered" id="drills" aria-labelledby="drills-h">
         {/* Giant numeral: the REAL drill count (computed, never written). */}
         <span className="mk-numeral" aria-hidden="true" style={{ right: -20, top: -30 }}>{DRILLS.length}</span>
         <div className="mk-wrap">
-          <p className="stamp">Drill library</p>
+          <p className="stamp">Train tonight</p>
           <h2 className="mk-h2 display" id="drills-h">
-            Try our AI drill library free for a month
+            Structure for the living room, <span style={{ color: "#C5FF3D" }}>the driveway, the backyard</span>
           </h2>
           <p className="mk-lead body">
-            Short coach clips your athlete can copy today: a spoken intro,
-            then a slow demo rep. The first month is free, then the drill
-            library is $9 a month. Everything else in KoachMe stays free.
+            {DRILLS.length} drills across {SPORT_COUNT} sports, taught step
+            by step: a spoken intro, then a slow demo rep your athlete can
+            copy tonight. First month free, then $9 a month. Everything
+            else in KoachMe stays free.
           </p>
           <div className="mk-drills">
             {SAMPLE_DRILLS.map(d => (
@@ -313,60 +179,54 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ---------------- honest traction ---------------- */}
-      <section className="mk-section mk-section--layered" aria-labelledby="today-h">
-        <FieldGeo sport="track" opacity={0.05} style={{ left: -180, bottom: -20 }} />
+      {/* ---------------- receipts: the verified stat sheet ---------------- */}
+      <section className="mk-section mk-section--lift mk-section--layered" id="receipts" aria-labelledby="receipts-h">
         <div className="mk-wrap">
-          <p className="stamp">Where we are today</p>
-          <h2 className="mk-h2 display" id="today-h">
-            Young product. Real rules.
+          <p className="stamp">The receipts</p>
+          <h2 className="mk-h2 display" id="receipts-h">
+            Every kid at tryouts says they&apos;re fast.{" "}
+            <span style={{ color: "#C5FF3D" }}>Yours will have proof.</span>
           </h2>
           <p className="mk-lead body">
-            KoachMe is early, and we would rather tell you that plainly than
-            dress it up. Here is what is true right now.
+            Every stat on a KoachMe card carries a label that says how it
+            was verified. No number pretends to be more than it is - and
+            that is exactly why the verified ones mean something.
           </p>
-          <div className="mk-truth body">
-            <div className="mk-truth-item">
-              <span className="mk-tick" aria-hidden="true">✓</span>
-              <div>
-                <strong>Free for athletes</strong>
+          <div className="mk-receipts">
+            <div className="mk-ladder body">
+              <div className="mk-ladder-step">
+                <span className="stamp stamp--flat">Self</span>
                 <p>
-                  Profile, workout logging, stats, feed, messaging, and
-                  session booking cost nothing. The AI drill library is
-                  free for the first month, then $9 a month.
+                  Your athlete logged it themselves. It says so, honestly,
+                  right on the card.
                 </p>
               </div>
+              <div className="mk-ladder-step">
+                <span className="stamp stamp--flat stamp--clay">Trainer</span>
+                <p>A coach watched it happen and signed off.</p>
+              </div>
+              <div className="mk-ladder-step">
+                <span className="stamp stamp--flat stamp--clay">Facility</span>
+                <p>A training facility measured it with their own equipment.</p>
+              </div>
+              <div className="mk-ladder-step">
+                <span className="stamp stamp--flat stamp--clay">Event</span>
+                <p>Recorded at an organized event, on the record.</p>
+              </div>
+              <p className="mk-ladder-note">
+                Today most stats say SELF, and say it plainly. Climbing the
+                ladder is what KoachMe is building - verification by real
+                trainers, facilities, and events.
+              </p>
             </div>
-            <div className="mk-truth-item">
-              <span className="mk-tick" aria-hidden="true">✓</span>
-              <div>
-                <strong>Coaches keep 90%</strong>
-                <p>
-                  Coaches set their own rates. When paid bookings launch,
-                  coaches keep 90% of what they charge.
-                </p>
-              </div>
-            </div>
-            <div className="mk-truth-item">
-              <span className="mk-tick" aria-hidden="true">✓</span>
-              <div>
-                <strong>Zero fake anything</strong>
-                <p>
-                  No invented coaches, no padded numbers, no fabricated
-                  reviews anywhere in the product or on this page. If a stat
-                  is on KoachMe, someone really did the work.
-                </p>
-              </div>
-            </div>
-            <div className="mk-truth-item">
-              <span className="mk-tick" aria-hidden="true">✓</span>
-              <div>
-                <strong>Built family-first</strong>
-                <p>
-                  Made by a family in Miami. No ads, no data selling, no
-                  email required from kids, and AI content is always labeled.
-                </p>
-              </div>
+            <div className="mk-shot mk-halftone mk-receipts-shot">
+              <Image
+                src="/marketing/profile.png"
+                alt="A KoachMe athlete profile: sample athlete card with level bar, training streak, and stats each labeled SELF for self-reported"
+                width={390}
+                height={844}
+                sizes="(min-width: 641px) 330px, 88vw"
+              />
             </div>
           </div>
         </div>

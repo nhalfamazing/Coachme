@@ -11,7 +11,7 @@ export function SiteHeader() {
           <Image src="/brand/lockup.png" alt="KoachMe" width={97} height={32} priority />
         </Link>
         <nav className="mk-nav" aria-label="Main">
-          <a href="/#how-it-works">How it works</a>
+          <a href="/#progress">How it works</a>
           <a href="/#faq">FAQ</a>
           <Link href="/about">About</Link>
           <Link href="/become-a-coach">For coaches</Link>
