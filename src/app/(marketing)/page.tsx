@@ -6,6 +6,7 @@ import { FaqList } from "@/components/marketing/faq";
 import { LandingJsonLd } from "@/components/marketing/json-ld";
 import { CtaLink } from "@/components/marketing/cta-link";
 import { DrillSample } from "@/components/marketing/drill-sample";
+import { ProgressProof } from "@/components/marketing/progress-proof";
 import { HeroVideo } from "@/components/marketing/hero-video";
 import { FieldGeo } from "@/components/marketing/field-lines";
 import { DRILLS, DRILL_BLOB_BASE, SPORTS as TICKER_SPORTS, coachFor, type Drill } from "@/lib/drills";
@@ -114,44 +115,20 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* ---------------- problem ---------------- */}
-      <section className="mk-section mk-section--lift mk-section--layered" aria-labelledby="problem-h">
-        <FieldGeo sport="football" opacity={0.05} style={{ right: -160, top: -30 }} />
+      {/* ---------------- progress proof ---------------- */}
+      <section className="mk-section mk-section--lift mk-section--layered" id="progress" aria-labelledby="progress-h">
+        <FieldGeo sport="basketball" opacity={0.05} style={{ right: -160, top: -30 }} />
         <div className="mk-wrap">
-          <p className="stamp">The problem</p>
-          <h2 className="mk-h2 display" id="problem-h">
-            Talent is everywhere. <span style={{ color: "#C5FF3D" }}>Proof is not.</span>
+          <p className="stamp">Seeing it work</p>
+          <h2 className="mk-h2 display" id="progress-h">
+            Progress <span style={{ color: "#C5FF3D" }}>you can see</span>
           </h2>
           <p className="mk-lead body">
-            Families put real work into youth sports and get very little
-            record of it. Three things keep going wrong.
+            Your athlete logs training, their numbers move, and you both
+            watch it happen. Streaks and XP keep them coming back on the
+            days motivation doesn&apos;t.
           </p>
-          <div className="mk-grid mk-grid--3">
-            <div className="mk-card">
-              <h3 className="display">Finding a coach is guesswork</h3>
-              <p className="body">
-                Most families find private coaches through word of mouth and
-                hope. Credentials are hard to check and quality is hard to
-                compare from the outside.
-              </p>
-            </div>
-            <div className="mk-card">
-              <h3 className="display">Showcases sell snapshots</h3>
-              <p className="body">
-                A single showcase event can cost hundreds of dollars, and it
-                captures one day. One bad day at the plate should not be the
-                whole story of an athlete.
-              </p>
-            </div>
-            <div className="mk-card">
-              <h3 className="display">Progress lives nowhere</h3>
-              <p className="body">
-                Workouts end up in notebooks, group chats, and memory. When a
-                coach or a program asks what an athlete has been doing, there
-                is no clean answer.
-              </p>
-            </div>
-          </div>
+          <ProgressProof />
         </div>
       </section>
 

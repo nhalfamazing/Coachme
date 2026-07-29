@@ -263,6 +263,27 @@
 .mk-drill-disclosure .mk-tag { margin-bottom: 0; flex-shrink: 0; }
 .mk-drills-cta { margin-top: 22px; }
 
+/* ---------- progress proof chart ---------- */
+.mk-proof-card { max-width: 720px; }
+.mk-proof-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; flex-wrap: wrap; margin-bottom: 16px;
+}
+.mk-proof-metric {
+  font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--km-chalk-dim);
+}
+.mk-proof-chart { display: block; width: 100%; height: auto; }
+.mk-proof-axis { font-size: 10px; fill: #5F636B; letter-spacing: 0.08em; }
+.mk-proof-end { font-size: 22px; font-weight: 700; fill: #C5FF3D; }
+.mk-proof-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+.mk-proof-chip {
+  font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--km-chalk-dim); border: 1px solid var(--km-line);
+  border-radius: 999px; padding: 6px 11px; line-height: 1;
+}
+.mk-proof-chip--up { color: #C5FF3D; border-color: rgba(197, 255, 61, 0.4); }
+
 /* ---------- card grids ---------- */
 .mk-grid { display: grid; gap: 14px; grid-template-columns: 1fr; }
 .mk-card {
