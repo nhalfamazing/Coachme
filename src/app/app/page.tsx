@@ -837,9 +837,10 @@ export default function CoachMeApp() {
 
   const phoneStyles = `
     * { -webkit-tap-highlight-color: transparent; }
-    .display { font-family: var(--font-display), 'Bebas Neue', sans-serif; letter-spacing: 0.005em; }
-    .body { font-family: var(--font-body), 'Manrope', system-ui, sans-serif; }
+    .display { font-family: var(--font-display), sans-serif; letter-spacing: -0.01em; font-weight: 600; }
+    .body { font-family: var(--font-body), system-ui, sans-serif; }
     .mono { font-family: var(--font-mono), 'JetBrains Mono', monospace; }
+  .wide { font-family: var(--font-wide), sans-serif; letter-spacing: 0.14em; text-transform: uppercase; }
     .phone { -webkit-font-smoothing: antialiased; touch-action: manipulation; }
     .phone *::selection { background: #C5FF3D; color: #000; }
     .phone-scroll::-webkit-scrollbar { display: none; }

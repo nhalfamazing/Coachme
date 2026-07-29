@@ -162,9 +162,10 @@ const VERIFY_META = {
 const MODE_LABELS = { in_person: "In person", live_online: "Live online", async: "Async review" };
 
 const pageStyles = `
-  .display { font-family: var(--font-display), 'Bebas Neue', sans-serif; letter-spacing: 0.005em; }
-  .body { font-family: var(--font-body), 'Manrope', system-ui, sans-serif; }
+  .display { font-family: var(--font-display), sans-serif; letter-spacing: -0.01em; font-weight: 600; }
+  .body { font-family: var(--font-body), system-ui, sans-serif; }
   .mono { font-family: var(--font-mono), 'JetBrains Mono', monospace; }
+  .wide { font-family: var(--font-wide), sans-serif; letter-spacing: 0.14em; text-transform: uppercase; }
   .scroll::-webkit-scrollbar { width: 8px; height: 8px; }
   .scroll::-webkit-scrollbar-thumb { background: ${C.border}; border-radius: 4px; }
   .scroll::-webkit-scrollbar-track { background: transparent; }

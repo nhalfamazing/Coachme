@@ -1,18 +1,33 @@
 import type { Metadata, Viewport } from "next";
-import { Bebas_Neue, Manrope, JetBrains_Mono } from "next/font/google";
+import { Archivo, JetBrains_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
-const bebas = Bebas_Neue({
-  subsets: ["latin"],
-  weight: "400",
+/* KoachMe type stack (see docs/design-system.md):
+   display = Clash Display (Fontshare FFL, self-hosted) - headlines
+   wide    = Panchang (Fontshare FFL, self-hosted) - eyebrows/stamps/labels
+   body    = Archivo variable with width axis - prose + condensed stat contexts
+   mono    = JetBrains Mono - numbers and stat-sheet voice ONLY */
+const clash = localFont({
+  src: [
+    { path: "../fonts/ClashDisplay-Semibold.woff2", weight: "600" },
+    { path: "../fonts/ClashDisplay-Bold.woff2", weight: "700" },
+  ],
   variable: "--font-display",
   display: "swap",
 });
 
-const manrope = Manrope({
+const panchang = localFont({
+  src: "../fonts/Panchang-Semibold.woff2",
+  weight: "600",
+  variable: "--font-wide",
+  display: "swap",
+});
+
+const archivo = Archivo({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
+  axes: ["wdth"],
   variable: "--font-body",
   display: "swap",
 });
@@ -86,7 +101,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${bebas.variable} ${manrope.variable} ${mono.variable} h-full antialiased`}
+      className={`${clash.variable} ${panchang.variable} ${archivo.variable} ${mono.variable} h-full antialiased`}
     >
       <body className="min-h-dvh flex flex-col px-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
         {children}

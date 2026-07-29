@@ -11,9 +11,10 @@ export const metadata: Metadata = {
 // Plain, functional console reusing the coach-console palette. Server
 // components throughout; forms post to /api/admin/*.
 const adminStyles = `
-  .display { font-family: var(--font-display), 'Bebas Neue', sans-serif; letter-spacing: 0.005em; }
-  .body { font-family: var(--font-body), 'Manrope', system-ui, sans-serif; }
+  .display { font-family: var(--font-display), sans-serif; letter-spacing: -0.01em; font-weight: 600; }
+  .body { font-family: var(--font-body), system-ui, sans-serif; }
   .mono { font-family: var(--font-mono), 'JetBrains Mono', monospace; }
+  .wide { font-family: var(--font-wide), sans-serif; letter-spacing: 0.14em; text-transform: uppercase; }
   .adm { background: #080D14; color: #E8ECF1; min-height: 100vh; }
   .adm a { color: inherit; }
   .adm-head { display: flex; align-items: center; gap: 18px; padding: 14px 20px; border-bottom: 1px solid #1B2634; flex-wrap: wrap; }

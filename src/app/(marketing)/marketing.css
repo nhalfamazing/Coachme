@@ -5,9 +5,88 @@
 
 /* Brand font utilities (the app defines these in its own style block;
    marketing pages need their own copy). */
-.display { font-family: var(--font-display), 'Bebas Neue', sans-serif; letter-spacing: 0.005em; }
-.body { font-family: var(--font-body), 'Manrope', system-ui, sans-serif; }
+.display { font-family: var(--font-display), sans-serif; letter-spacing: -0.01em; font-weight: 600; }
+.body { font-family: var(--font-body), system-ui, sans-serif; }
 .mono { font-family: var(--font-mono), 'JetBrains Mono', monospace; }
+.wide { font-family: var(--font-wide), sans-serif; letter-spacing: 0.14em; text-transform: uppercase; }
+
+/* ============================================================
+   SCOUTING-REPORT TOKENS (docs/design-system.md)
+   ============================================================ */
+
+/* Film grain: SVG turbulence tile, fixed overlay, landing only.
+   Pure CSS/data-URI - zero network cost. */
+.mk-grain::after {
+  content: '';
+  position: fixed; inset: 0; z-index: 90; pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.04; mix-blend-mode: overlay;
+}
+
+/* Verification stamp: THE signature chip. Rubber-stamp voice - wide
+   type, hairline border, slight rotation. Replaces generic pills. */
+.stamp {
+  font-family: var(--font-wide), sans-serif;
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 9px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--km-chalk-dim);
+  border: 1px solid currentColor; border-radius: 3px;
+  padding: 5px 10px; line-height: 1;
+  transform: rotate(-1.4deg);
+}
+.stamp--r { transform: rotate(1.2deg); }
+.stamp--flat { transform: none; }
+.stamp--lime { color: var(--km-lime); }
+.stamp--clay { color: var(--km-clay); }
+.stamp b { font-weight: 600; }
+
+/* Halftone: press-print dot screen for product screenshots. */
+.mk-halftone { position: relative; }
+.mk-halftone::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background-image: radial-gradient(rgba(10, 10, 11, 0.5) 1px, transparent 1.4px);
+  background-size: 4px 4px;
+}
+
+/* Giant background numeral: jersey-number motif. One per viewport max,
+   only for numbers that MEAN something (step index, real counts). */
+.mk-numeral {
+  position: absolute; z-index: 0; pointer-events: none; user-select: none;
+  font-family: var(--font-mono), monospace; font-weight: 700;
+  font-size: clamp(200px, 28vw, 400px); line-height: 0.75;
+  color: var(--km-chalk-faint);
+}
+
+/* Field geometry sits behind section content. */
+.mk-geo {
+  position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  overflow: hidden;
+}
+.mk-geo svg { position: absolute; }
+.mk-section--layered { position: relative; }
+.mk-section--layered > .mk-wrap { position: relative; z-index: 1; }
+
+/* Kinetic sports ticker: pure transform loop, pauses on hover. */
+.mk-ticker {
+  overflow: hidden; white-space: nowrap; border-top: 1px solid var(--km-line);
+  border-bottom: 1px solid var(--km-line); background: var(--km-raised);
+  padding: 13px 0;
+}
+.mk-ticker-track {
+  display: inline-flex; gap: 0; animation: mkTicker 28s linear infinite;
+  will-change: transform;
+}
+.mk-ticker:hover .mk-ticker-track { animation-play-state: paused; }
+.mk-ticker-item {
+  font-family: var(--font-wide), sans-serif; text-transform: uppercase;
+  font-size: 12px; letter-spacing: 0.22em; color: var(--km-chalk-dim);
+  padding: 0 18px; display: inline-flex; align-items: center; gap: 36px;
+}
+.mk-ticker-item::after { content: '/'; color: var(--km-lime); font-family: var(--font-mono), monospace; }
+@keyframes mkTicker {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
 
 .mk-page {
   background: #0A0A0B;

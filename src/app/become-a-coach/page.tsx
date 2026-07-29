@@ -197,9 +197,10 @@ export default function BecomeACoachPage() {
   };
 
   const pageStyles = `
-    .display { font-family: var(--font-display), 'Bebas Neue', sans-serif; letter-spacing: 0.005em; }
-    .body { font-family: var(--font-body), 'Manrope', system-ui, sans-serif; }
+    .display { font-family: var(--font-display), sans-serif; letter-spacing: -0.01em; font-weight: 600; }
+    .body { font-family: var(--font-body), system-ui, sans-serif; }
     .mono { font-family: var(--font-mono), 'JetBrains Mono', monospace; }
+  .wide { font-family: var(--font-wide), sans-serif; letter-spacing: 0.14em; text-transform: uppercase; }
 
     /* Paired fields stack on phones, sit side by side from small tablets up. */
     .bc-row { display: grid; grid-template-columns: 1fr; gap: 12px; }

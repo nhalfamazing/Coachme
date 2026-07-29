@@ -26,6 +26,30 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
+/* ============================================================
+   KOACHME BRAND TOKENS - the scouting-report system.
+   See docs/design-system.md for usage rules.
+
+   Depth comes from surface steps, never drop shadows:
+   km-bg (page) -> km-raised (sections) -> km-card -> km-high (hover/top).
+   Chalk is the field-line white: primary text, never pure #FFF.
+   Lime is THE action color; use sparingly - CTAs and live states only.
+   Clay is EARNED: verification and trust moments exclusively
+   (verified badges, coach-verified stats, disclosure stamps).
+   ============================================================ */
+:root {
+  --km-bg: #0A0A0B;
+  --km-raised: #111113;
+  --km-card: #17181A;
+  --km-high: #1E1F23;
+  --km-chalk: #F2EFE6;
+  --km-chalk-dim: rgba(242, 239, 230, 0.62);
+  --km-chalk-faint: rgba(242, 239, 230, 0.05);
+  --km-lime: #C5FF3D;
+  --km-clay: #C96F4A;
+  --km-line: rgba(242, 239, 230, 0.09);
+}
+
 :root {
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
