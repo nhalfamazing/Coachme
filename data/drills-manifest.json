@@ -1,5 +1,16 @@
 {
-  "$comment": "Source of truth for the Drill Library. Edit this file, run `pnpm mirror:drills` (uploads any non-blob URLs to Vercel Blob), `pnpm posters:drills` (first-frame posters for drills with posterUrl null), then `pnpm build:drills` (regenerates src/lib/drills.ts). Fields: clips.* may be a CloudFront source URL (gets mirrored) or an existing Blob URL (served as-is). posterUrl null means: generate a poster from the demo clip's first frame. sourceCdn preserves the original CloudFront provenance of clips whose manifest URL is already a Blob URL. alternates are unused alternate takes, kept for reference only.",
+  "$comment": "Source of truth for the Drill Library. Edit this file, run `pnpm mirror:drills` (uploads any non-blob URLs to Vercel Blob), `pnpm posters:drills` (first-frame posters for drills with posterUrl null), then `pnpm build:drills` (regenerates src/lib/drills.ts). Fields: clips.* may be a CloudFront source URL (gets mirrored) or an existing Blob URL (served as-is). posterUrl null means: generate a poster from the demo clip's first frame. sourceCdn preserves the original CloudFront provenance of clips whose manifest URL is already a Blob URL. alternates are unused alternate takes, kept for reference only. sports maps every sport id (the lowercase value used in drills[].sport) to its display name and chip icon; add a sport here and it is fully supported — chips, icons, and counts all derive from this file, no code changes.",
+  "sports": {
+    "baseball": { "display": "Baseball", "icon": "⚾" },
+    "basketball": { "display": "Basketball", "icon": "🏀" },
+    "football": { "display": "Football", "icon": "🏈" },
+    "soccer": { "display": "Soccer", "icon": "⚽" },
+    "softball": { "display": "Softball", "icon": "🥎" },
+    "tennis": { "display": "Tennis", "icon": "🎾" },
+    "track": { "display": "Track", "icon": "🏃" },
+    "volleyball": { "display": "Volleyball", "icon": "🏐" },
+    "wrestling": { "display": "Wrestling", "icon": "🤼" }
+  },
   "coaches": [
     {
       "id": "coach-farm",

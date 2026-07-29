@@ -207,6 +207,21 @@ export const DRILLS: Drill[] = [
 /** Sports in manifest order; counts derive from DRILLS at the callsite. */
 export const SPORTS: DrillSport[] = ["Basketball", "Soccer", "Baseball", "Football", "Track"];
 
+/** Display metadata for every sport the manifest supports, keyed by
+    display name — includes sports with no drills yet. Chips render only
+    sports present in DRILLS; icons come from here. */
+export const SPORT_META: Record<string, { icon: string }> = {
+  "Baseball": { icon: "⚾" },
+  "Basketball": { icon: "🏀" },
+  "Football": { icon: "🏈" },
+  "Soccer": { icon: "⚽" },
+  "Softball": { icon: "🥎" },
+  "Tennis": { icon: "🎾" },
+  "Track": { icon: "🏃" },
+  "Volleyball": { icon: "🏐" },
+  "Wrestling": { icon: "🤼" },
+};
+
 export function coachFor(drill: Drill): DrillCoach {
   // The generator guarantees every coachId resolves.
   return COACHES.find(c => c.id === drill.coachId)!;

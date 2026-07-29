@@ -11,7 +11,7 @@ import * as sync from '@/lib/sync';
 import * as bookingApi from '@/lib/scheduling/client';
 import { checkHardBlock, BLOCK_MESSAGE } from '@/lib/safety/patterns';
 import { generateAthleteCode, decodeAnyCode } from '@/lib/codes';
-import { DRILLS, COACHES, coachFor } from '@/lib/drills';
+import { DRILLS, COACHES, SPORT_META, coachFor } from '@/lib/drills';
 import {
   CheckCircle2, MapPin, Video, Send, Calendar as CalIcon, Star,
   TrendingUp, Search, User as UserIcon, MessageCircle,
@@ -37,6 +37,7 @@ const SPORTS = [
   { name: 'Basketball', icon: '🏀' },
   { name: 'Football', icon: '🏈' },
   { name: 'Soccer', icon: '⚽' },
+  { name: 'Softball', icon: '🥎' },
   { name: 'Tennis', icon: '🎾' },
   { name: 'Track', icon: '🏃' },
   { name: 'Volleyball', icon: '🏐' },
@@ -48,6 +49,11 @@ const POSITIONS_BY_SPORT: Record<string, string[]> = {
   Basketball: ['Point Guard', 'Shooting Guard', 'Small Forward', 'Power Forward', 'Center'],
   Football: ['Quarterback', 'Running Back', 'Wide Receiver', 'Tight End', 'Offensive Line', 'Defensive Line', 'Linebacker', 'Safety', 'Cornerback', 'Kicker', 'Punter'],
   Soccer: ['Goalkeeper', 'Center Back', 'Fullback', 'Defensive Midfielder', 'Central Midfielder', 'Attacking Midfielder', 'Winger', 'Striker'],
+  // Softball is NOT in codes.ts SPORTS_CANON (the login-code word table
+  // has no room for a 9th canon sport without breaking existing custom-
+  // sport codes); it rides the custom bucket, so cold-device code
+  // restores show sport "Other". Profile data on known devices is exact.
+  Softball: ['Pitcher', 'Catcher', '1st Base', '2nd Base', '3rd Base', 'Shortstop', 'Left Field', 'Center Field', 'Right Field', 'Utility'],
   Tennis: ['Singles', 'Doubles', 'Both'],
   Track: ['Sprints', 'Middle Distance', 'Long Distance', 'Hurdles', 'Throws', 'Jumps', 'Multi-Events'],
   Volleyball: ['Setter', 'Outside Hitter', 'Middle Blocker', 'Opposite Hitter', 'Libero', 'Defensive Specialist'],
@@ -2787,7 +2793,9 @@ function DrillLibrary({ athleteSport, athleteId, onOpenDrill }) {
     ...librarySports.filter(s => s !== athleteSport),
   ];
   const sportCount = (s) => DRILLS.filter(d => d.sport === s).length;
-  const sportIcon = (name) => SPORTS.find(s => s.name === name)?.icon ?? '';
+  // Icons come from the manifest's sports config (SPORT_META), so a new
+  // sport in the drill data needs zero code changes here.
+  const sportIcon = (name) => SPORT_META[name]?.icon ?? '';
 
   // Filters combine: sport AND coach AND search text (name + focus).
   const q = query.trim().toLowerCase();

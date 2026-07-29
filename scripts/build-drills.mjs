@@ -24,6 +24,10 @@ const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
 
 const isBlobUrl = (url) => typeof url === 'string' && new URL(url).hostname.endsWith('.public.blob.vercel-storage.com');
 const titleCase = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+// manifest.sports maps sport id -> { display, icon }; a drill sport with
+// no entry still builds (title-cased, blank icon) but warns loudly.
+const sportMeta = manifest.sports ?? {};
+const sportDisplay = (id) => sportMeta[id]?.display ?? titleCase(id);
 
 async function headOk(url) {
   try {
@@ -103,12 +107,15 @@ for (const d of included) {
   }
 }
 
-const sports = [...new Set(included.map(d => titleCase(d.sport)))];
+const sports = [...new Set(included.map(d => sportDisplay(d.sport)))];
+for (const d of included) {
+  if (!sportMeta[d.sport]) console.error(`WARN: drill ${d.id} sport "${d.sport}" has no manifest.sports entry (no chip icon).`);
+}
 const q = (s) => JSON.stringify(s);
 
 const drillEntries = included.map(d => `  {
     id: ${q(d.id)},
-    sport: ${q(titleCase(d.sport))},
+    sport: ${q(sportDisplay(d.sport))},
     title: ${q(d.name)},
     cue: ${q(d.description)},
     level: ${q(d.level)},
@@ -187,6 +194,13 @@ ${drillEntries},
 
 /** Sports in manifest order; counts derive from DRILLS at the callsite. */
 export const SPORTS: DrillSport[] = [${sports.map(q).join(', ')}];
+
+/** Display metadata for every sport the manifest supports, keyed by
+    display name — includes sports with no drills yet. Chips render only
+    sports present in DRILLS; icons come from here. */
+export const SPORT_META: Record<string, { icon: string }> = {
+${Object.values(sportMeta).map(m => `  ${q(m.display)}: { icon: ${q(m.icon)} },`).join('\n')}
+};
 
 export function coachFor(drill: Drill): DrillCoach {
   // The generator guarantees every coachId resolves.
