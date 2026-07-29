@@ -15,7 +15,7 @@ import { DRILLS, COACHES, SPORT_META, coachFor } from '@/lib/drills';
 import {
   CheckCircle2, MapPin, Video, Send, Calendar as CalIcon, Star,
   TrendingUp, Search, User as UserIcon, MessageCircle,
-  ChevronRight, ChevronLeft, X, ArrowRight,
+  ChevronRight, ChevronLeft, ChevronDown, X, ArrowRight,
   Plus, Mic, MicOff, VideoOff, PhoneOff, Camera,
   Send as SendIcon, MoreHorizontal, Inbox, UserPlus,
   Users, Heart, Dumbbell, Flame, Zap, Award, Trophy, Target, Clock, Lock
@@ -2773,9 +2773,53 @@ function startDrillTrial(profileId) {
    optimizer 400s and the img renders broken. */
 const imgOpt = (url, w) => `/_next/image?url=${encodeURIComponent(url)}&w=${w}&q=75`;
 
+/* Horizontally scrolling chip row that stays usable as the library
+   grows: fade edges appear only on the side(s) with more content, chips
+   never wrap or get clipped, and the active chip (data-chip-active) is
+   scrolled into view whenever activeKey changes. */
+function ChipRow({ activeKey, padding = '0 16px 8px', children }) {
+  const ref = useRef(null);
+  const [fade, setFade] = useState({ left: false, right: false });
+  const update = () => {
+    const el = ref.current;
+    if (!el) return;
+    const max = el.scrollWidth - el.clientWidth;
+    setFade(f => {
+      const next = { left: el.scrollLeft > 4, right: el.scrollLeft < max - 4 };
+      return next.left === f.left && next.right === f.right ? f : next;
+    });
+  };
+  useEffect(() => {
+    update();
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  useEffect(() => {
+    ref.current?.querySelector('[data-chip-active="true"]')
+      ?.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
+  }, [activeKey]);
+  const mask =
+    fade.left && fade.right ? 'linear-gradient(90deg, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%)'
+    : fade.right ? 'linear-gradient(90deg, #000 0, #000 calc(100% - 24px), transparent 100%)'
+    : fade.left ? 'linear-gradient(90deg, transparent 0, #000 24px, #000 100%)'
+    : 'none';
+  return (
+    <div ref={ref} onScroll={update} className="phone-scroll" style={{
+      display: 'flex', gap: 8, overflowX: 'auto', padding,
+      maskImage: mask, WebkitMaskImage: mask,
+    }}>
+      {children}
+    </div>
+  );
+}
+
 function DrillLibrary({ athleteSport, athleteId, onOpenDrill }) {
   const [sportFilter, setSportFilter] = useState('All');
   const [coachFilter, setCoachFilter] = useState(null);
+  const [coachSheetOpen, setCoachSheetOpen] = useState(false);
   const [query, setQuery] = useState('');
   const trial = drillTrialState(athleteId);
 
@@ -2799,18 +2843,17 @@ function DrillLibrary({ athleteSport, athleteId, onOpenDrill }) {
 
   // Filters combine: sport AND coach AND search text (name + focus).
   const q = query.trim().toLowerCase();
-  let shown = DRILLS.filter(d =>
+  const shown = DRILLS.filter(d =>
     (sportFilter === 'All' || d.sport === sportFilter)
     && (!coachFilter || d.coachId === coachFilter)
     && (!q || `${d.title} ${d.focus}`.toLowerCase().includes(q)),
+  ).sort((a, b) =>
+    // Newest first so fresh drills surface immediately; the athlete's
+    // own sport breaks ties within a day (FOR YOU stays a highlight,
+    // not the primary order).
+    Date.parse(b.addedAt) - Date.parse(a.addedAt)
+    || (b.sport === athleteSport) - (a.sport === athleteSport),
   );
-  if (sportFilter === 'All') {
-    // Keep the FOR YOU ordering: the athlete's sport surfaces first.
-    shown = [
-      ...shown.filter(d => d.sport === athleteSport),
-      ...shown.filter(d => d.sport !== athleteSport),
-    ];
-  }
 
   const chipStyle = (active) => ({
     display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0, cursor: 'pointer',
@@ -2862,32 +2905,92 @@ function DrillLibrary({ athleteSport, athleteId, onOpenDrill }) {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '0 16px 8px' }} className="phone-scroll">
-        <button className="mono" style={chipStyle(sportFilter === 'All')} onClick={() => setSportFilter('All')}>
+      <ChipRow activeKey={sportFilter}>
+        <button className="mono" data-chip-active={sportFilter === 'All'} style={chipStyle(sportFilter === 'All')} onClick={() => setSportFilter('All')}>
           ALL <span style={{ opacity: 0.6 }}>{DRILLS.length}</span>
         </button>
         {orderedSports.map(s => (
-          <button key={s} className="mono" style={chipStyle(sportFilter === s)} onClick={() => setSportFilter(sportFilter === s ? 'All' : s)}>
+          <button key={s} className="mono" data-chip-active={sportFilter === s} style={chipStyle(sportFilter === s)} onClick={() => setSportFilter(sportFilter === s ? 'All' : s)}>
             <span aria-hidden="true">{sportIcon(s)}</span> {s.toUpperCase()} <span style={{ opacity: 0.6 }}>{sportCount(s)}</span>
           </button>
         ))}
-      </div>
+      </ChipRow>
 
       {/* The AI coach characters (rendered from COACHES, count never
-          hardcoded); tap to see one coach's drills. */}
-      <div style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '4px 16px 12px' }} className="phone-scroll">
-        {COACHES.map(c => {
-          const active = coachFilter === c.id;
-          return (
-            <button key={c.id} className="mono" onClick={() => setCoachFilter(active ? null : c.id)}
-              style={{ ...chipStyle(active), padding: '4px 11px 4px 4px' }}>
-              <img src={imgOpt(c.portrait.blob, 48)} alt="" referrerPolicy="no-referrer" loading="lazy"
+          hardcoded). A flat chip row stops scaling past a handful of
+          coaches, so the filter lives in a compact sheet instead. */}
+      <div style={{ padding: '4px 16px 12px', display: 'flex', gap: 8, alignItems: 'center' }}>
+        <button className="mono" onClick={() => setCoachSheetOpen(true)} aria-haspopup="dialog"
+          style={{ ...chipStyle(!!coachFilter), padding: coachFilter ? '4px 11px 4px 4px' : '6px 11px' }}>
+          {coachFilter ? (
+            <>
+              <img src={imgOpt(COACHES.find(c => c.id === coachFilter).portrait.blob, 48)} alt="" referrerPolicy="no-referrer" loading="lazy"
                 style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover', display: 'block' }}/>
-              {c.name.toUpperCase()}
-            </button>
-          );
-        })}
+              {COACHES.find(c => c.id === coachFilter).name.toUpperCase()}
+            </>
+          ) : (
+            <><Users size={11}/> COACH · ANY</>
+          )}
+          <ChevronDown size={11}/>
+        </button>
+        {coachFilter && (
+          <button className="tap" onClick={() => setCoachFilter(null)} aria-label="Clear coach filter"
+            style={{ color: '#5F636B', display: 'flex' }}>
+            <X size={13}/>
+          </button>
+        )}
       </div>
+
+      {coachSheetOpen && (
+        <div className="sheet-backdrop" style={{ zIndex: 210 }} onClick={() => setCoachSheetOpen(false)}>
+          <div className="slide-up phone-scroll sheet-panel" role="dialog" aria-label="Filter drills by coach"
+            onClick={e => e.stopPropagation()} style={{ padding: '18px 18px 22px', maxHeight: '80%', overflowY: 'auto' }}>
+            <div className="sheet-handle"/>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '6px 0 12px' }}>
+              <SectionLabel>FILTER BY COACH</SectionLabel>
+              <span className="stamp stamp--clay">AI Coach</span>
+            </div>
+            {[null, ...COACHES].map(c => {
+              const active = coachFilter === (c?.id ?? null);
+              const count = c ? DRILLS.filter(d => d.coachId === c.id).length : DRILLS.length;
+              return (
+                <button key={c?.id ?? 'all'} onClick={() => { setCoachFilter(c?.id ?? null); setCoachSheetOpen(false); }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left',
+                    padding: '9px 10px', borderRadius: 12, cursor: 'pointer', marginBottom: 4,
+                    background: active ? 'rgba(197,255,61,0.10)' : 'transparent',
+                    border: active ? '1px solid rgba(197,255,61,0.45)' : '1px solid transparent',
+                  }}>
+                  {c ? (
+                    <img src={imgOpt(c.portrait.blob, 64)} alt="" referrerPolicy="no-referrer" loading="lazy"
+                      style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', display: 'block' }}/>
+                  ) : (
+                    <span style={{
+                      width: 32, height: 32, borderRadius: '50%', background: '#18181C', border: '1px solid #2A2A30',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}><Users size={14} color="#9CA0A8"/></span>
+                  )}
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span className="display" style={{ display: 'block', fontSize: 13, textTransform: 'uppercase', color: 'var(--km-chalk)' }}>
+                      {c ? c.name : 'All coaches'}
+                    </span>
+                    {c && (
+                      <span className="mono" style={{
+                        display: 'block', fontSize: 8, color: '#5F636B', letterSpacing: '0.08em', marginTop: 2,
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      }}>{c.style.toUpperCase()}</span>
+                    )}
+                  </span>
+                  <span className="mono" style={{ fontSize: 9, color: active ? '#C5FF3D' : '#9CA0A8', letterSpacing: '0.1em', flexShrink: 0 }}>
+                    {count} DRILL{count === 1 ? '' : 'S'}
+                  </span>
+                  {active && <CheckCircle2 size={14} color="#C5FF3D" style={{ flexShrink: 0 }}/>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {shown.length === 0 ? (
         <div style={{ padding: '18px 16px 24px', textAlign: 'center' }}>
