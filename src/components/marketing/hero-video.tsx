@@ -89,8 +89,9 @@ export function HeroVideo({
           </svg>
         </span>
       )}
-      {/* The AI disclosure follows the content everywhere, including here. */}
-      <span className="mk-tag mono mk-hero-ai">AI demo</span>
+      {/* The AI disclosure follows the content everywhere, including here.
+          Clay stamp = trust moment. */}
+      <span className="stamp stamp--clay mk-hero-ai">AI demo</span>
     </div>
   );
 }
