@@ -28,7 +28,7 @@ await page.goto(url, { waitUntil: 'networkidle' });
 await page.waitForTimeout(1000);
 
 await step('landing loads', async () => {
-  await page.getByText('PROVE YOUR').first().waitFor({ timeout: 8000 });
+  await page.getByText('IMPROVE YOUR').first().waitFor({ timeout: 8000 });
 });
 
 await step('signup step 1: name', async () => {
@@ -87,7 +87,7 @@ await step('sign out', async () => {
   await page.locator('button').filter({ hasText: re }).last().click({ force: true });
   await page.waitForTimeout(600);
   await page.getByText('SIGN OUT', { exact: true }).last().click({ force: true });
-  await page.getByText('PROVE YOUR').first().waitFor({ timeout: 8000 });
+  await page.getByText('IMPROVE YOUR').first().waitFor({ timeout: 8000 });
 });
 
 console.log(errors.length ? `\nconsole errors (${errors.length}):` : '\nno console errors');
