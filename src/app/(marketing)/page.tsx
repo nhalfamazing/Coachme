@@ -7,6 +7,7 @@ import { LandingJsonLd } from "@/components/marketing/json-ld";
 import { CtaLink } from "@/components/marketing/cta-link";
 import { DrillSample } from "@/components/marketing/drill-sample";
 import { ProgressProof } from "@/components/marketing/progress-proof";
+import { SectionViews } from "@/components/marketing/section-views";
 import { HeroVideo } from "@/components/marketing/hero-video";
 import { FieldGeo } from "@/components/marketing/field-lines";
 import { DRILLS, DRILL_BLOB_BASE, SPORTS as TICKER_SPORTS, coachFor, type Drill } from "@/lib/drills";
@@ -59,6 +60,9 @@ export default function LandingPage() {
   return (
     <main className="mk-grain">
       <LandingJsonLd />
+      {/* "founder" is in the list but hidden behind FOUNDER_NOTE; the
+          observer skips ids that are not in the DOM. */}
+      <SectionViews ids={["hero", "progress", "drills", "receipts", "coaches", "safety", "founder", "faq", "closing"]} />
       <ReturningUserBanner />
 
       {/* ---------------- hero: the gap ---------------- */}
