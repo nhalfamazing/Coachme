@@ -30,6 +30,25 @@ const SAMPLE_DRILLS = [
   sampleDrill("Soccer", "so-first-touch"),
 ].filter((d): d is Drill => d !== null);
 
+// Second row, for parents of daughters. Picked by exact id and NOT via
+// sampleDrill: "features a girl athlete" is a property of the specific
+// clip, not of the sport, so there is no safe fallback. If one of these
+// ever leaves the manifest the card drops out rather than silently
+// substituting a clip nobody has looked at. Each was reviewed frame by
+// frame before being listed here.
+//   tr-bounding      Koach Zuri    track
+//   vb-forearm-pass  Koach Sol     volleyball
+//   so-juggling      Koach Nia     soccer
+//   sb-windmill      Koach Marisol softball
+// Flag football is NOT here: the library has no flag-football drill.
+// The two Football drills are tackle drills (three-point stance) demoed
+// by Koach Farm, so neither fits this row. Add a flag-football clip to
+// the manifest and it can join by id.
+const GIRLS_DRILL_IDS = ["tr-bounding", "vb-forearm-pass", "so-juggling", "sb-windmill"];
+const GIRLS_DRILLS = GIRLS_DRILL_IDS
+  .map(id => DRILLS.find(d => d.id === id) ?? null)
+  .filter((d): d is Drill => d !== null);
+
 // Real sport count, derived from the manifest - never hand-written.
 const SPORT_COUNT = new Set(DRILLS.map(d => d.sport)).size;
 
@@ -175,6 +194,36 @@ export default function LandingPage() {
               />
             ))}
           </div>
+
+          {/* Second row: the same structure in the sports a lot of girls
+              play. Sits above the AI disclosure on purpose so the one
+              disclosure covers both rows. */}
+          {GIRLS_DRILLS.length > 0 && (
+            <>
+              <div className="mk-drills-subhead">
+                <p className="stamp">For your daughter</p>
+                <p className="mk-drills-subline body">
+                  Track, volleyball, soccer and softball, taught the same
+                  way: every rep in this row is demoed by one of the
+                  library&apos;s women AI coaches.
+                </p>
+              </div>
+              <div className="mk-drills mk-drills--quad">
+                {GIRLS_DRILLS.map(d => (
+                  <DrillSample
+                    key={d.id}
+                    id={d.id}
+                    title={d.title}
+                    sport={d.sport}
+                    posterUrl={d.poster.blob}
+                    videoUrl={d.demo.blob}
+                    coachName={coachFor(d).name}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+
           {/* Load-bearing transparency line: the AI content is a proof
               point, not fine print. Keep it visible without interaction. */}
           <p className="mk-drill-disclosure body">

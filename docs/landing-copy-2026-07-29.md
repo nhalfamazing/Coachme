@@ -47,7 +47,7 @@ long-form phrasing belongs.
 
 - Stamp: TRAIN TONIGHT / H2: Structure for the living room, **the
   driveway, the backyard**
-- Lead: 10 drills across 5 sports, taught step by step: a spoken
+- Lead: 24 drills across 7 sports, taught step by step: a spoken
   intro, then a slow demo rep your athlete can copy tonight. First
   month free, then $9 a month. Everything else in KoachMe stays free.
 - ⚠ Brief said "Free forever" for drills. The drill library is first
@@ -55,7 +55,32 @@ long-form phrasing belongs.
   JSON-LD - "free forever" would be a false claim, so the honest
   pricing ships instead. Both counts are computed from the manifest.
 - 3 sample videos + AI DEMO disclosure: kept exactly.
-- CTA: Browse all 10 drills, first month free (/app)
+- CTA: Browse all 24 drills, first month free (/app)
+
+### 3b. Second row - "For your daughter" (added 2026-07-29)
+
+- Stamp: FOR YOUR DAUGHTER
+- Line: Track, volleyball, soccer and softball, taught the same way:
+  every rep in this row is demoed by one of the library's women AI
+  coaches.
+- 4 videos: Bounding (Track / Koach Zuri), Forearm passing
+  (Volleyball / Koach Sol), Juggling (Soccer / Koach Nia), Windmill
+  pitching (Softball / Koach Marisol).
+- ⚠ Requested sports were track, volleyball, soccer and FLAG FOOTBALL.
+  The library has no flag-football drill - the two Football drills are
+  tackle drills (three-point stance) demoed by Koach Farm, a man, so
+  neither fits this row. Softball ships in the fourth slot instead.
+  When a flag-football clip exists, add its id to GIRLS_DRILL_IDS in
+  page.tsx and it joins the row.
+- ⚠ The row says "women AI coaches", not "women coaches" - these are
+  AI-generated characters and the page must never imply real staff.
+  Each of the four clips was reviewed frame by frame to confirm it
+  shows a female athlete; the picks are by exact drill id with NO
+  fallback, so a manifest change drops a card rather than silently
+  swapping in an unreviewed clip.
+- Sits above the existing AI DEMO disclosure so one disclosure covers
+  both rows. Cards are the same tap-to-play component: still zero mp4
+  bytes on page load.
 
 ## 4. Receipts (#receipts)
 
