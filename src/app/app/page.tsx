@@ -1364,7 +1364,7 @@ function SUWelcome({ onNext, savedAthlete, onLogin, onCodeLogin, deviceAthletes 
         <img src="/brand/lockup.png" alt="KoachMe" width={109} height={36}
           style={{ display: 'block', margin: '18px 0 2px' }}/>
         <div className="display landing-title">
-          PROVE YOUR<br/><span style={{ color: '#C5FF3D' }}>GAME</span>.
+          IMPROVE YOUR<br/><span style={{ color: '#C5FF3D' }}>GAME</span>.
         </div>
         <div className="body" style={{ fontSize: 14, color: '#9CA0A8', lineHeight: 1.55, marginBottom: 24 }}>
           The performance graph for emerging athletes. Find a real coach. Train. Track every PR. Climb the ranks.
@@ -2865,7 +2865,8 @@ function DrillLibrary({ athleteSport, athleteId, onOpenDrill }) {
         ))}
       </div>
 
-      {/* The three AI coach characters; tap to see one coach's drills. */}
+      {/* The AI coach characters (rendered from COACHES, count never
+          hardcoded); tap to see one coach's drills. */}
       <div style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '4px 16px 12px' }} className="phone-scroll">
         {COACHES.map(c => {
           const active = coachFilter === c.id;
@@ -3018,20 +3019,25 @@ function DrillSheet({ drill, athleteId, onClose }) {
           </>
         ) : (
           <>
+        {/* Single-clip drills (intro null) skip straight to the demo and
+            drop the step numbering — one heading, one player. */}
+        {drill.intro && (
+          <>
+            <div className="mono" style={{ fontSize: 10, color: '#9CA0A8', letterSpacing: '0.14em', marginBottom: 8 }}>
+              1 · COACH INTRO <span style={{ color: '#5F636B' }}>(sound on)</span>
+            </div>
+            {/* Served from our Blob mirror; .cdn is the original source reference
+                only, never a runtime fallback — a broken blob upload should
+                surface in review, not be masked. */}
+            <video
+              src={drill.intro.blob} poster={imgOpt(drill.poster.blob, 1200)}
+              controls playsInline preload="metadata"
+              style={{ width: '100%', aspectRatio: '16 / 9', objectFit: 'contain', borderRadius: 12, background: '#000', marginBottom: 16, display: 'block' }}
+            />
+          </>
+        )}
         <div className="mono" style={{ fontSize: 10, color: '#9CA0A8', letterSpacing: '0.14em', marginBottom: 8 }}>
-          1 · COACH INTRO <span style={{ color: '#5F636B' }}>(sound on)</span>
-        </div>
-        {/* Served from our Blob mirror; .cdn is the original source reference
-            only, never a runtime fallback — a broken blob upload should
-            surface in review, not be masked. */}
-        <video
-          src={drill.intro.blob} poster={imgOpt(drill.poster.blob, 1200)}
-          controls playsInline preload="metadata"
-          style={{ width: '100%', aspectRatio: '16 / 9', objectFit: 'contain', borderRadius: 12, background: '#000', marginBottom: 16, display: 'block' }}
-        />
-
-        <div className="mono" style={{ fontSize: 10, color: '#9CA0A8', letterSpacing: '0.14em', marginBottom: 8 }}>
-          2 · WATCH THE DEMO <span style={{ color: '#5F636B' }}>(slow rep, copy it)</span>
+          {drill.intro ? '2 · ' : ''}WATCH THE DEMO <span style={{ color: '#5F636B' }}>(slow rep, copy it)</span>
         </div>
         {/* Served from our Blob mirror, same as the intro player above. */}
         <video

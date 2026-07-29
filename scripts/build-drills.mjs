@@ -38,7 +38,9 @@ async function headOk(url) {
 function drillAssets(d) {
   const blobFor = (kind, ext) => `${BLOB_BASE}/drills/${d.id}/${kind}.${ext}`;
   return {
-    intro: {
+    // Single-clip drills omit clips.intro entirely; they ship intro: null
+    // and the player renders demo-only.
+    intro: !d.clips.intro ? null : {
       blob: isBlobUrl(d.clips.intro) ? d.clips.intro : blobFor('intro', 'mp4'),
       cdn: d.sourceCdn?.intro ?? (isBlobUrl(d.clips.intro) ? '' : d.clips.intro),
     },
@@ -60,7 +62,9 @@ const excluded = [];
 for (const d of manifest.drills) {
   const assets = drillAssets(d);
   const checks = await Promise.all(
-    Object.entries(assets).map(async ([kind, a]) => ({ kind, ok: await headOk(a.blob), url: a.blob })),
+    Object.entries(assets)
+      .filter(([, a]) => a !== null)
+      .map(async ([kind, a]) => ({ kind, ok: await headOk(a.blob), url: a.blob })),
   );
   const missing = checks.filter(c => !c.ok);
   if (missing.length) {
@@ -111,7 +115,7 @@ const drillEntries = included.map(d => `  {
     focus: ${q(d.focus)},
     coachId: ${q(d.coachId)},
     addedAt: ${q(d.addedAt)},
-    intro: { cdn: ${q(d.assets.intro.cdn)}, blob: ${q(d.assets.intro.blob)} },
+    intro: ${d.assets.intro ? `{ cdn: ${q(d.assets.intro.cdn)}, blob: ${q(d.assets.intro.blob)} }` : 'null'},
     demo: { cdn: ${q(d.assets.demo.cdn)}, blob: ${q(d.assets.demo.blob)} },
     poster: { cdn: ${q(d.assets.poster.cdn)}, blob: ${q(d.assets.poster.blob)} },
   }`).join(',\n');
@@ -165,7 +169,8 @@ export interface Drill {
   coachId: string;
   /** ISO date the drill entered the library; drives the NEW tag. */
   addedAt: string;
-  intro: DrillAsset;
+  /** null = single-clip drill: no coach intro, the demo is the whole clip. */
+  intro: DrillAsset | null;
   demo: DrillAsset;
   poster: DrillAsset;
 }

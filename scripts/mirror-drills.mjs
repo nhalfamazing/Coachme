@@ -47,6 +47,8 @@ const assets = [];
 for (const d of manifest.drills) {
   for (const kind of ['intro', 'demo']) {
     const src = d.clips[kind];
+    // Single-clip drills have no intro; only mirror clips the manifest names.
+    if (!src) continue;
     if (!isBlobUrl(src)) assets.push({ src, pathname: `drills/${d.id}/${kind}.mp4`, contentType: 'video/mp4' });
   }
   if (d.posterUrl && !isBlobUrl(d.posterUrl)) {

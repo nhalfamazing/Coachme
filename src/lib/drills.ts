@@ -39,7 +39,8 @@ export interface Drill {
   coachId: string;
   /** ISO date the drill entered the library; drives the NEW tag. */
   addedAt: string;
-  intro: DrillAsset;
+  /** null = single-clip drill: no coach intro, the demo is the whole clip. */
+  intro: DrillAsset | null;
   demo: DrillAsset;
   poster: DrillAsset;
 }
