@@ -29,14 +29,14 @@ const SAMPLE_DRILLS = [
 ].filter((d): d is Drill => d !== null);
 
 export const metadata: Metadata = {
-  title: "KoachMe - A real training profile for young athletes",
+  title: "KoachMe - Training between practices for young athletes",
   description:
-    "KoachMe gives young athletes a free training profile: log workouts, build honestly labeled stats, watch drills, and connect with real coaches. No email needed, kids log in with a 3-word code.",
+    "The kids who start are the kids who train between practices. KoachMe gives your athlete pro-style drills at home, a stat sheet that proves the work, and vetted coaches when you're ready. Free for athletes, no email needed.",
   alternates: { canonical: "/" },
   openGraph: {
-    title: "KoachMe - A real training profile for young athletes",
+    title: "KoachMe - Training between practices for young athletes",
     description:
-      "Log workouts, build honestly labeled stats, and connect with real coaches. Free for athletes, no email needed.",
+      "Pro-style drills at home, a stat sheet that proves the work, and vetted coaches when you're ready. Free for athletes, no email needed.",
     url: "/",
   },
 };
@@ -51,32 +51,32 @@ export default function LandingPage() {
       <LandingJsonLd />
       <ReturningUserBanner />
 
-      {/* ---------------- hero ---------------- */}
+      {/* ---------------- hero: the gap ---------------- */}
       {/* Restraint pass cut: the hero had field geometry too - the video
           mockup, stamp, and display type are enough. One layer max. */}
-      <section className="mk-hero mk-section--layered">
+      <section className="mk-hero mk-section--layered" id="hero">
         <div className="mk-wrap mk-hero-in">
           <div className="mk-hero-copy">
             <p className="stamp">Free for athletes · Built family-first</p>
             <div style={{ height: 18 }} />
             <h1 className="mk-hero-title display">
-              A real training profile for your <span>young athlete</span>
+              Starting spots are earned <span>between practices</span>
             </h1>
             <p className="mk-hero-sub body">
-              KoachMe is where kids log their training, build a stat sheet
-              that says how each number was verified, and connect with real
-              coaches. No email needed. Free for athletes.
+              KoachMe gives your athlete a plan for the hours that separate
+              players: pro-style drills at home, a stat sheet that proves
+              the work, and real vetted coaches when you&apos;re ready.
             </p>
             <div className="mk-hero-ctas">
-              <CtaLink href="/app?signup=1" cta="hero_get_started" className="mk-btn mk-btn--primary body">
-                Get started free
+              <CtaLink href="/app?signup=1" cta="hero_start_free" className="mk-btn mk-btn--primary body">
+                Start free - no email needed
               </CtaLink>
-              <CtaLink href="/become-a-coach" cta="hero_im_a_coach" className="mk-btn mk-btn--ghost body">
-                I&apos;m a coach
+              <CtaLink href="#progress" cta="hero_see_how" className="mk-btn mk-btn--ghost body">
+                See how it works
               </CtaLink>
             </div>
             <p className="mk-hero-note body">
-              Takes about two minutes. Works on any phone, nothing to install.
+              Works on any phone, nothing to install. About a minute to start.
             </p>
           </div>
           <div className="mk-hero-shot">
@@ -430,19 +430,19 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ---------------- final CTA ---------------- */}
-      <section className="mk-final">
+      {/* ---------------- closing CTA ---------------- */}
+      <section className="mk-final" id="closing">
         <div className="mk-wrap">
           <h2 className="mk-h2 display">
-            Start the profile.<br />
-            <span className="display-speed" style={{ color: "#C5FF3D" }}>Let the work talk.</span>
+            The next practice<br />
+            <span className="display-speed" style={{ color: "#C5FF3D" }}>is tonight.</span>
           </h2>
+          <p className="mk-lead body" style={{ margin: "0 auto 8px" }}>
+            Free for athletes, 60 seconds to start, no email needed.
+          </p>
           <div className="mk-hero-ctas" style={{ marginTop: 24 }}>
-            <CtaLink href="/app?signup=1" cta="final_get_started" className="mk-btn mk-btn--primary body">
-              Get started free
-            </CtaLink>
-            <CtaLink href="/become-a-coach" cta="final_im_a_coach" className="mk-btn mk-btn--ghost body">
-              I&apos;m a coach
+            <CtaLink href="/app?signup=1" cta="closing_start_free" className="mk-btn mk-btn--primary body">
+              Start free - no email needed
             </CtaLink>
           </div>
         </div>
