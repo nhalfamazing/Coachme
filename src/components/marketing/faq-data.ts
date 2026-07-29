@@ -7,10 +7,31 @@ export type FaqItem = { q: string; a: string[] };
 
 export const FAQ_ITEMS: FaqItem[] = [
   {
-    q: "Is KoachMe free?",
+    q: "Is it really free?",
     a: [
-      "A KoachMe profile is free: creating a profile, logging workouts, building stats, posting, messaging coaches, and booking sessions cost nothing. The AI drill library is free for your first month, then $9 a month.",
+      "Yes. A KoachMe profile is free: creating a profile, logging workouts, building stats, posting, messaging coaches, and booking sessions cost nothing. The AI drill library is free for your first month, then $9 a month.",
       "Subscriptions have not launched yet. When a free month ends today, drills simply lock until payments go live - nobody is charged. Coaches set their own hourly rates for sessions, and when paid bookings launch, coaches keep 90% of their rate.",
+    ],
+  },
+  {
+    q: "Who are the coaches?",
+    a: [
+      "Real people who apply with their identity, credentials, sport, and rate. Nobody is listed without applying and being reviewed, every profile shows its real verification state, and only verified coaches can be booked.",
+      "Full verification, meaning credential and background review, is being built right now, and profiles show a pending badge honestly in the meantime. We would rather show you a pending badge than pretend a review happened.",
+    ],
+  },
+  {
+    q: "How do you keep kids safe?",
+    a: [
+      "Every message runs through safety filters before it sends, and sharing phone numbers, addresses, or off-platform contact is blocked automatically. Athletes can only message coaches - there is no athlete-to-athlete direct messaging.",
+      "Report and block controls are on every conversation and coach profile. Booking a session prompts the athlete to tell a parent or guardian the plan, in-person sessions carry public-training-location guidance, and AI content is always labeled. There are no ads and we do not sell data.",
+    ],
+  },
+  {
+    q: "Does my kid need their own device?",
+    a: [
+      "No. KoachMe runs in the browser on any phone, tablet, or computer - yours or theirs. There is nothing to install.",
+      "The profile moves between devices with the athlete's 3-word code, so training can be logged on a parent's phone tonight and a tablet tomorrow.",
     ],
   },
   {
@@ -32,13 +53,6 @@ export const FAQ_ITEMS: FaqItem[] = [
     a: [
       "No. The drill videos in the drill library are AI-generated demonstrations, and they are labeled AI COACH directly on the card so nobody mistakes them for a real trainer.",
       "Real, verified coaches review drill content as the platform grows. We label AI content everywhere it appears because trust matters more to us than polish.",
-    ],
-  },
-  {
-    q: "How do coaches get verified?",
-    a: [
-      "Every coach on KoachMe applies through our coach application and starts with a pending status. Full verification, meaning credential and background review, is being built right now, and coach profiles show their real verification state honestly in the meantime.",
-      "We would rather show you a pending badge than pretend a review happened.",
     ],
   },
   {
@@ -66,12 +80,6 @@ export const FAQ_ITEMS: FaqItem[] = [
     a: [
       "No. A KoachMe profile is free and grows from the training an athlete already does, logged workout by workout.",
       "Showcase-style verification (the EVENT label) is one way to upgrade a stat later, not the price of entry.",
-    ],
-  },
-  {
-    q: "What devices does KoachMe work on?",
-    a: [
-      "KoachMe runs in the browser on any phone, tablet, or computer. There is nothing to install, and a profile moves between devices with the athlete's 3-word code.",
     ],
   },
 ];

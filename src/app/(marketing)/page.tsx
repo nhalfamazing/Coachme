@@ -49,6 +49,12 @@ export const metadata: Metadata = {
 // testimonials, user counts, ratings, coach names, or press mentions.
 // Screenshots are real product views with a clearly sample profile.
 
+// Founder note: we have no testimonials and will not invent them. What
+// we do have is a dad and his 8-year-old building this in Miami - but
+// the story is Rasheid's to tell, not ours to write. The section stays
+// hidden until he replaces null with his own 2-3 sentences.
+const FOUNDER_NOTE: string | null = null; // [FOUNDER_NOTE]
+
 export default function LandingPage() {
   return (
     <main className="mk-grain">
@@ -345,6 +351,19 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* ---------------- founder note (hidden until written) ---------------- */}
+      {FOUNDER_NOTE && (
+        <section className="mk-section mk-section--layered" id="founder" aria-labelledby="founder-h">
+          <div className="mk-wrap">
+            <p className="stamp">From the founder</p>
+            <h2 className="mk-h2 display" id="founder-h">
+              Built by a dad and his 8-year-old
+            </h2>
+            <p className="mk-lead body">{FOUNDER_NOTE}</p>
+          </div>
+        </section>
+      )}
 
       {/* ---------------- FAQ ---------------- */}
       <section className="mk-section mk-section--layered" id="faq" aria-labelledby="faq-h">
