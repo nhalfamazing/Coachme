@@ -117,6 +117,14 @@
 }
 .mk-shot img { display: block; width: 100%; height: auto; }
 
+/* ---------- brand logo placements ---------- */
+.mk-logo-link { display: flex; align-items: center; }
+.mk-logo-link img { display: block; }
+.mk-footer-tagline {
+  font-size: 9px; letter-spacing: 0.18em; color: #5F636B;
+  margin: 10px 0 0; text-transform: uppercase;
+}
+
 /* ---------- hero autoplay video ---------- */
 .mk-hero-video { position: relative; aspect-ratio: 390 / 844; }
 .mk-hero-video img, .mk-hero-video video {

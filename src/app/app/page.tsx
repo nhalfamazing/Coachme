@@ -1342,6 +1342,10 @@ function SUWelcome({ onNext, savedAthlete, onLogin, onCodeLogin, deviceAthletes 
       </div>
 
       <div className="landing-body phone-scroll">
+        {/* Brand lockup: the welcome body is the logo's own #0A0A0B, so
+            the image sits seamlessly. Fixed size, no layout shift. */}
+        <img src="/brand/lockup.png" alt="KoachMe" width={109} height={36}
+          style={{ display: 'block', margin: '18px 0 2px' }}/>
         <div className="display landing-title">
           PROVE YOUR<br/><span style={{ color: '#C5FF3D' }}>GAME</span>.
         </div>
@@ -4174,8 +4178,10 @@ function AppNav({ tab, switchTab, unread, onSignOut }) {
   ];
   return (
     <div className="app-nav">
-      <div className="app-nav-brand display">
-        KOACH<span style={{ color: '#C5FF3D' }}>ME</span>
+      <div className="app-nav-brand">
+        {/* Fixed size: zero layout shift. Sidebar bg is near the logo's
+            own black, so the image reads as a plain lockup. */}
+        <img src="/brand/lockup.png" alt="KoachMe" width={132} height={44} style={{ display: 'block' }}/>
       </div>
       <div className="app-nav-tabs">
         {tabs.map(t => {

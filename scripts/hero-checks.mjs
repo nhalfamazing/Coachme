@@ -52,6 +52,14 @@ const check = (name, ok, detail = '') => {
     setTimeout(() => resolve(null), 3000);
   }));
   check('LCP measured (poster/image territory)', lcp !== null, lcp ? `${lcp.ms}ms on <${lcp.el}>` : 'no entry');
+  const cls = await page.evaluate(() => new Promise(resolve => {
+    let total = 0;
+    new PerformanceObserver(list => {
+      for (const e of list.getEntries()) if (!e.hadRecentInput) total += e.value;
+    }).observe({ type: 'layout-shift', buffered: true });
+    setTimeout(() => resolve(+total.toFixed(4)), 1500);
+  }));
+  check('CLS stays near zero (fixed-size logos)', cls < 0.02, `CLS=${cls}`);
   await browser.close();
 }
 

@@ -1,12 +1,14 @@
 import Link from "next/link";
+import Image from "next/image";
 
 export function SiteFooter() {
   return (
     <footer className="mk-footer">
       <div className="mk-wrap mk-footer-in">
-        <div className="mk-logo display" aria-hidden="true">
-          KOACH<span style={{ color: "#C5FF3D" }}>ME</span>
-        </div>
+        <Image src="/brand/lockup.png" alt="KoachMe" width={91} height={30} />
+        <p className="mk-footer-tagline mono">
+          THE PERFORMANCE GRAPH FOR EMERGING ATHLETES
+        </p>
         <nav className="mk-footer-links" aria-label="Footer">
           <Link href="/about">About</Link>
           <Link href="/privacy">Privacy</Link>

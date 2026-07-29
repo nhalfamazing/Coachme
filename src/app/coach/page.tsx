@@ -482,12 +482,15 @@ function CoachPicker({ coaches, onSelect }) {
   return (
     <div style={{ maxWidth: 620, margin: "0 auto", padding: "56px 24px" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
-        <div style={{
-          width: 34, height: 34, borderRadius: 9, background: C.accentDim,
-          border: `1px solid ${C.accentBorder}`, display: "flex", alignItems: "center", justifyContent: "center",
+        {/* Brand mark in a rounded #0A0A0B chip: the source logo lives on
+            black with no alpha, so on the console's navy the chip makes
+            the black background read as intentional brand treatment. */}
+        <span style={{
+          display: "inline-flex", alignItems: "center", justifyContent: "center",
+          background: "#0A0A0B", border: `1px solid ${C.border}`, borderRadius: 9, padding: 5,
         }}>
-          <Users size={16} color={C.accent}/>
-        </div>
+          <img src="/brand/mark.png" alt="KoachMe" width={24} height={24} style={{ display: "block", borderRadius: 4 }}/>
+        </span>
         <span className="mono" style={{ fontSize: 11, color: C.muted, letterSpacing: "0.2em" }}>
           KOACHME · COACH CONSOLE
         </span>
@@ -658,7 +661,7 @@ function Shell({ coach, view, setView, onSwitch, needsReplyCount, pendingBooking
               width: 30, height: 30, borderRadius: 8, background: C.accentDim,
               border: `1px solid ${C.accentBorder}`, display: "flex", alignItems: "center", justifyContent: "center",
             }}>
-              <Users size={14} color={C.accent}/>
+              <img src="/brand/mark.png" alt="KoachMe" width={20} height={20} style={{ display: "block", borderRadius: 4 }}/>
             </div>
             <div>
               <div className="display" style={{ fontSize: 16, lineHeight: 1, letterSpacing: "0.04em" }}>COACH CONSOLE</div>
