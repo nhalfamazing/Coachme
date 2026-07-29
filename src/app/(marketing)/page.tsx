@@ -252,9 +252,9 @@ export default function LandingPage() {
             Vetted coaches, <span style={{ color: "#C5FF3D" }}>on your terms</span>
           </h2>
           <p className="mk-lead body">
-            The drills and the stat sheet cost nothing, forever. When your
-            family wants a real coach in the picture, here is how that
-            works.
+            The training log and the stat sheet cost nothing, forever.
+            When your family wants a real coach in the picture, here is
+            how that works.
           </p>
           <div className="mk-grid mk-grid--3">
             <div className="mk-card">
