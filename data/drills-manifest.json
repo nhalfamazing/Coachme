@@ -20,18 +20,52 @@
       "portraitVideoUrl": null
     },
     {
-      "id": "coach-vega",
-      "name": "Coach Vega",
-      "style": "Precision and footwork. Racquet and net sports.",
-      "portraitUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260728_111340_975c9432-333e-474c-98cd-8829811d14e8.png",
+      "id": "coach-amari",
+      "name": "Koach Amari",
+      "sport": "basketball",
+      "style": "Handles and finishing. Reps until it's automatic.",
+      "portraitUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_123349_9f6ad750-54f3-4ca3-915e-ad32dbe9d836.png",
       "portraitVideoUrl": null
     },
     {
-      "id": "coach-sato",
-      "name": "Coach Sato",
-      "style": "Speed and mechanics. Track and field.",
-      "portraitUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260728_111345_129ff9f6-bbb6-454a-a3da-8e65a9f8aa57.png",
-      "portraitVideoUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260728_113430_a6b45003-a510-4fc9-96c0-0ebd7a9795fc.mp4"
+      "id": "coach-nia",
+      "name": "Koach Nia",
+      "sport": "soccer",
+      "style": "Close control and first touch. Small touches, big difference.",
+      "portraitUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_125859_3ecb475e-c0e1-4fcd-bd6a-2de7d2cd9511.png",
+      "portraitVideoUrl": null
+    },
+    {
+      "id": "coach-rio",
+      "name": "Koach Rio",
+      "sport": "baseball",
+      "style": "Swing path and glove work. Clean reps only.",
+      "portraitUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_123402_862a9fdc-54e7-44bf-ac71-77c15f5376d0.png",
+      "portraitVideoUrl": null
+    },
+    {
+      "id": "coach-sol",
+      "name": "Koach Sol",
+      "sport": "volleyball",
+      "style": "Platform and hands. Control before power.",
+      "portraitUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_125847_c56bacaf-463c-4584-bf02-5f5d580c5417.png",
+      "portraitVideoUrl": null
+    },
+    {
+      "id": "coach-zuri",
+      "name": "Koach Zuri",
+      "sport": "track",
+      "style": "Sprint mechanics. Fast is a skill you practice.",
+      "portraitUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_125853_cc01940a-20ad-486d-8ad1-e7fb03558617.png",
+      "portraitVideoUrl": null
+    },
+    {
+      "id": "coach-marisol",
+      "name": "Koach Marisol",
+      "sport": "softball",
+      "style": "Circle work and swings. Repeat it until it's yours.",
+      "portraitUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_125904_cbe49047-be4c-471d-8eb4-d96ad0777a27.png",
+      "portraitVideoUrl": null
     }
   ],
   "drills": [
@@ -206,6 +240,202 @@
       "clips": {
         "intro": "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260728_111433_f98d87d0-adbc-4c89-9782-4cd31096e7a4.mp4",
         "demo": "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260728_111446_5b56ad59-99af-47f4-9a0c-5a255f74ea50.mp4"
+      },
+      "posterUrl": null
+    },
+    {
+      "id": "bb-two-ball",
+      "sport": "basketball",
+      "name": "Two-ball dribbling",
+      "level": "beginner",
+      "coachId": "coach-amari",
+      "focus": "ball handling",
+      "description": "Dribble two balls at once. Your weak hand gets a lot better, fast.",
+      "addedAt": "2026-07-29",
+      "clips": {
+        "demo": "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_125029_efbc8089-ec49-4939-a9bc-df46f1e7691e.mp4"
+      },
+      "posterUrl": null
+    },
+    {
+      "id": "bb-mikan",
+      "sport": "basketball",
+      "name": "Mikan drill",
+      "level": "beginner",
+      "coachId": "coach-amari",
+      "focus": "finishing",
+      "description": "Layups off both hands, back and forth under the rim.",
+      "addedAt": "2026-07-29",
+      "clips": {
+        "demo": "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_125035_2d08f7ed-a2b8-4f02-8531-46b8e41ea322.mp4"
+      },
+      "posterUrl": null
+    },
+    {
+      "id": "so-cone-dribble",
+      "sport": "soccer",
+      "name": "Cone dribbling",
+      "level": "beginner",
+      "coachId": "coach-nia",
+      "focus": "close control",
+      "description": "Weave through cones with small touches. Keep the ball close.",
+      "addedAt": "2026-07-29",
+      "clips": {
+        "demo": "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_125041_14c2318e-75c0-43cc-969a-2a143fc546af.mp4"
+      },
+      "posterUrl": null
+    },
+    {
+      "id": "so-juggling",
+      "sport": "soccer",
+      "name": "Juggling",
+      "level": "beginner",
+      "coachId": "coach-nia",
+      "focus": "touch",
+      "description": "Keep it off the ground. Start with two, then beat your record.",
+      "addedAt": "2026-07-29",
+      "clips": {
+        "demo": "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_125053_df3e3dcb-287c-4c8c-8721-130305c2349d.mp4"
+      },
+      "posterUrl": null
+    },
+    {
+      "id": "ba-tee-drive",
+      "sport": "baseball",
+      "name": "Tee drive",
+      "level": "beginner",
+      "coachId": "coach-rio",
+      "focus": "hitting",
+      "description": "Load the back hip and drive through the ball. Finish balanced.",
+      "addedAt": "2026-07-29",
+      "clips": {
+        "demo": "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_125059_c5de3c1a-74cd-4cbf-813d-f885a5e204f8.mp4"
+      },
+      "posterUrl": null
+    },
+    {
+      "id": "ba-ground-balls",
+      "sport": "baseball",
+      "name": "Ground balls",
+      "level": "beginner",
+      "coachId": "coach-rio",
+      "focus": "fielding",
+      "description": "Glove down, field it out front with two hands, step into the throw.",
+      "addedAt": "2026-07-29",
+      "clips": {
+        "demo": "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_125106_b728f667-3c0a-4bcd-893f-cf1c9aad7de5.mp4"
+      },
+      "posterUrl": null
+    },
+    {
+      "id": "vb-forearm-pass",
+      "sport": "volleyball",
+      "name": "Forearm passing",
+      "level": "beginner",
+      "coachId": "coach-sol",
+      "focus": "passing",
+      "description": "Flat platform, low stance. Let the ball come to you.",
+      "addedAt": "2026-07-29",
+      "clips": {
+        "demo": "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_130409_503f0071-c091-46a2-92e1-bbeba263d703.mp4"
+      },
+      "posterUrl": null
+    },
+    {
+      "id": "vb-setting",
+      "sport": "volleyball",
+      "name": "Overhead setting",
+      "level": "beginner",
+      "coachId": "coach-sol",
+      "focus": "setting",
+      "description": "Hands make a window above your forehead. Push with your legs.",
+      "addedAt": "2026-07-29",
+      "clips": {
+        "demo": "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_130415_c3d421ea-b832-40cc-ad62-69be750dae45.mp4"
+      },
+      "posterUrl": null
+    },
+    {
+      "id": "tr-a-skip",
+      "sport": "track",
+      "name": "A-skip",
+      "level": "beginner",
+      "coachId": "coach-zuri",
+      "focus": "mechanics",
+      "description": "Knee up, toe up, land on the ball of your foot. Rhythm over speed.",
+      "addedAt": "2026-07-29",
+      "clips": {
+        "demo": "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_130421_807efd8d-c7e5-4fd5-a0ad-d3bbcc3449ae.mp4"
+      },
+      "posterUrl": null
+    },
+    {
+      "id": "tr-bounding",
+      "sport": "track",
+      "name": "Bounding",
+      "level": "beginner",
+      "coachId": "coach-zuri",
+      "focus": "power",
+      "description": "Big leaping strides. This is how you build a stronger push.",
+      "addedAt": "2026-07-29",
+      "clips": {
+        "demo": "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_130429_a103a8b1-afe3-4114-8b17-3e5f6f5aea7f.mp4"
+      },
+      "posterUrl": null
+    },
+    {
+      "id": "so-laces-shot",
+      "sport": "soccer",
+      "name": "Laces shooting",
+      "level": "beginner",
+      "coachId": "coach-nia",
+      "focus": "shooting",
+      "description": "Plant beside the ball and strike through the middle with your laces.",
+      "addedAt": "2026-07-29",
+      "clips": {
+        "demo": "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_130436_9cdaf7b3-54f4-4af3-9966-13a801099fc2.mp4"
+      },
+      "posterUrl": null
+    },
+    {
+      "id": "so-sole-rolls",
+      "sport": "soccer",
+      "name": "Sole rolls and pull-backs",
+      "level": "beginner",
+      "coachId": "coach-nia",
+      "focus": "footwork",
+      "description": "Roll it side to side, then pull it back and turn away.",
+      "addedAt": "2026-07-29",
+      "clips": {
+        "demo": "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_130442_cd811bc2-62d6-415b-b4dc-4f18c9921d1a.mp4"
+      },
+      "posterUrl": null
+    },
+    {
+      "id": "sb-windmill",
+      "sport": "softball",
+      "name": "Windmill pitching",
+      "level": "beginner",
+      "coachId": "coach-marisol",
+      "focus": "pitching",
+      "description": "Full circle over the top, release past the hip, finish balanced.",
+      "addedAt": "2026-07-29",
+      "clips": {
+        "demo": "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_130454_bc84a859-456c-4fa4-b28d-5f642f39bc65.mp4"
+      },
+      "posterUrl": null
+    },
+    {
+      "id": "sb-soft-toss",
+      "sport": "softball",
+      "name": "Soft toss",
+      "level": "beginner",
+      "coachId": "coach-marisol",
+      "focus": "hitting",
+      "description": "Someone tosses from the side, you drive it into the net. Level swing.",
+      "addedAt": "2026-07-29",
+      "clips": {
+        "demo": "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_130500_e7705650-9b74-4ac4-827e-a871f93c5b88.mp4"
       },
       "posterUrl": null
     }
