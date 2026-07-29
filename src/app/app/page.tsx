@@ -89,10 +89,13 @@ const MODE_META = {
   async: { label: 'Async', icon: Send, color: '#FF9BCD' },
 };
 
+/* Clay = earned on the field (design-system.md): every level above
+   self-reported wears the verification color. Self stays muted - it is
+   the not-yet-earned state. */
 const VERIFY_META = {
-  event: { label: 'EVENT', color: '#C5FF3D' },
-  facility: { label: 'FACILITY', color: '#5DA9FF' },
-  trainer: { label: 'TRAINER', color: '#FF9BCD' },
+  event: { label: 'EVENT', color: '#C96F4A' },
+  facility: { label: 'FACILITY', color: '#C96F4A' },
+  trainer: { label: 'TRAINER', color: '#C96F4A' },
   self: { label: 'SELF', color: '#5F636B' },
 };
 
@@ -379,7 +382,7 @@ function CoverPhoto({ src, height = 120, overlay, color = '#C5FF3D', children, b
     <div style={{
       height, position: 'relative', overflow: 'hidden',
       background: showFallback
-        ? `linear-gradient(135deg, ${color}30 0%, #0F0F14 80%), repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.02) 10px, rgba(255,255,255,0.02) 20px)`
+        ? `linear-gradient(135deg, ${color}30 0%, var(--km-card) 80%), repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.02) 10px, rgba(255,255,255,0.02) 20px)`
         : 'transparent',
     }}>
       {!showFallback && (
@@ -841,6 +844,19 @@ export default function CoachMeApp() {
     .body { font-family: var(--font-body), system-ui, sans-serif; }
     .mono { font-family: var(--font-mono), 'JetBrains Mono', monospace; }
   .wide { font-family: var(--font-wide), sans-serif; letter-spacing: 0.14em; text-transform: uppercase; }
+    /* Verification stamp: the scouting-report chip (docs/design-system.md).
+       Clay = earned verification; the app inherits voice, not costume. */
+    .stamp {
+      font-family: var(--font-wide), sans-serif;
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 8.5px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
+      border: 1px solid currentColor; border-radius: 3px;
+      padding: 4px 8px; line-height: 1; transform: rotate(-1.4deg);
+      color: rgba(242, 239, 230, 0.62);
+    }
+    .stamp--flat { transform: none; }
+    .stamp--clay { color: #C96F4A; }
+    .stamp--lime { color: #C5FF3D; }
     .phone { -webkit-font-smoothing: antialiased; touch-action: manipulation; }
     .phone *::selection { background: #C5FF3D; color: #000; }
     .phone-scroll::-webkit-scrollbar { display: none; }
@@ -947,7 +963,7 @@ export default function CoachMeApp() {
       display: flex; align-items: flex-end;
     }
     .sheet-panel {
-      width: 100%; background: #0F0F14; position: relative;
+      width: 100%; background: var(--km-card); position: relative;
       border-top-left-radius: 24px; border-top-right-radius: 24px;
       border-top: 1px solid #2A2A30;
     }
@@ -1047,9 +1063,9 @@ export default function CoachMeApp() {
     @media (hover: hover) {
       .card-hover { transition: border-color 0.15s, background 0.15s; }
       .card-hover:hover { border-color: #4A4A54 !important; }
-      .app-nav-btn:hover { color: #F4F4F5; background: rgba(255,255,255,0.05); }
+      .app-nav-btn:hover { color: var(--km-chalk); background: rgba(255,255,255,0.05); }
       .app-nav-btn.is-active:hover { color: #C5FF3D; background: rgba(197,255,61,0.08); }
-      .app-nav-signout:hover { color: #F4F4F5; border-color: #3A3A42; }
+      .app-nav-signout:hover { color: var(--km-chalk); border-color: #3A3A42; }
     }
   `;
 
@@ -1060,7 +1076,7 @@ export default function CoachMeApp() {
       <div className="phone" style={{
         width: '100%', background: '#0A0A0B',
         position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column',
-        color: '#F4F4F5',
+        color: 'var(--km-chalk)',
       }}>
         {!athlete ? (
           <SignUpFlow onComplete={completeSignup} savedAthlete={savedAthlete} onLogin={loginSavedAthlete} onCodeLogin={completeSignup} deviceAthletes={deviceAthletes} deviceCoaches={deviceCoaches} onPickAthlete={pickDeviceAthlete} onPickCoach={pickDeviceCoach} />
@@ -1363,7 +1379,7 @@ function SUWelcome({ onNext, savedAthlete, onLogin, onCodeLogin, deviceAthletes 
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0' }}>
               <div style={{
                 width: 30, height: 30, borderRadius: 8, background: 'rgba(197,255,61,0.1)',
-                border: '1px solid rgba(197,255,61,0.25)',
+                border: '1px solid rgba(201,111,74,0.3)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
               }}>{f.icon}</div>
               <span className="body" style={{ fontSize: 13, color: '#D4D6DA' }}>{f.text}</span>
@@ -1386,7 +1402,7 @@ function SUWelcome({ onNext, savedAthlete, onLogin, onCodeLogin, deviceAthletes 
                 }}>
                   <Avatar initials={a.initials} photo={a.photo} size={38} color="#C5FF3D" square/>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: '#F4F4F5', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--km-chalk)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {displayName(a)}
                     </div>
                     <div className="mono" style={{ fontSize: 9, color: '#9CA0A8', marginTop: 2, letterSpacing: '0.06em' }}>
@@ -1405,7 +1421,7 @@ function SUWelcome({ onNext, savedAthlete, onLogin, onCodeLogin, deviceAthletes 
                 }}>
                   <Avatar initials={c.initials} size={38} color="#5DA9FF" square/>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: '#F4F4F5', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--km-chalk)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {c.name}
                     </div>
                     <div className="mono" style={{ fontSize: 9, color: '#5DA9FF', marginTop: 2, letterSpacing: '0.06em' }}>
@@ -1427,7 +1443,7 @@ function SUWelcome({ onNext, savedAthlete, onLogin, onCodeLogin, deviceAthletes 
         <button onClick={onNext} style={{
           width: '100%',
           background: hasProfiles ? 'transparent' : '#C5FF3D',
-          color: hasProfiles ? '#F4F4F5' : '#000',
+          color: hasProfiles ? 'var(--km-chalk)' : '#000',
           border: hasProfiles ? '1px solid #3A3A42' : 'none',
           padding: '16px 20px', borderRadius: 999, fontWeight: 700, fontSize: 15, cursor: 'pointer',
           display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8,
@@ -1438,7 +1454,7 @@ function SUWelcome({ onNext, savedAthlete, onLogin, onCodeLogin, deviceAthletes 
 
         <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
           <button onClick={() => setLoginOpen(true)} className="body" style={{
-            flex: 1, background: 'transparent', color: '#F4F4F5', border: '1px solid #3A3A42',
+            flex: 1, background: 'transparent', color: 'var(--km-chalk)', border: '1px solid #3A3A42',
             padding: '13px 14px', borderRadius: 999, fontWeight: 600, fontSize: 14, cursor: 'pointer',
             display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 7,
           }}>
@@ -1589,13 +1605,13 @@ function LoginSheet({ savedAthlete, onLogin, onCodeLogin, onSignUp, onClose }) {
         {savedAthlete ? (
           <button onClick={onLogin} style={{
             width: '100%', cursor: 'pointer', textAlign: 'left',
-            background: 'linear-gradient(160deg, rgba(197,255,61,0.08) 0%, #0F0F14 100%)',
+            background: 'linear-gradient(160deg, rgba(197,255,61,0.08) 0%, var(--km-card) 100%)',
             border: '1px solid rgba(197,255,61,0.4)', borderRadius: 14, padding: 14,
             display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12,
           }}>
             <Avatar initials={savedAthlete.initials} size={46} color="#C5FF3D" square/>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div className="display" style={{ fontSize: 18, lineHeight: 1, textTransform: 'uppercase', color: '#F4F4F5' }}>
+              <div className="display" style={{ fontSize: 18, lineHeight: 1, textTransform: 'uppercase', color: 'var(--km-chalk)' }}>
                 Continue as {savedAthlete.name}
               </div>
               <div className="mono" style={{ fontSize: 9.5, color: '#9CA0A8', marginTop: 5, letterSpacing: '0.06em' }}>
@@ -1630,7 +1646,7 @@ function LoginSheet({ savedAthlete, onLogin, onCodeLogin, onSignUp, onClose }) {
           className="body"
           style={{
             width: '100%', background: '#18181C', border: '1px solid #2A2A30',
-            borderRadius: 12, padding: '12px 14px', color: '#F4F4F5',
+            borderRadius: 12, padding: '12px 14px', color: 'var(--km-chalk)',
             fontSize: 14, outline: 'none', marginBottom: 8,
           }}
           onFocus={e => e.currentTarget.style.borderColor = '#C5FF3D'}
@@ -1664,7 +1680,7 @@ function LoginSheet({ savedAthlete, onLogin, onCodeLogin, onSignUp, onClose }) {
         <button onClick={onSignUp} className="body" style={{
           width: '100%',
           background: 'transparent',
-          color: '#F4F4F5',
+          color: 'var(--km-chalk)',
           border: '1px solid #3A3A42',
           padding: '13px 16px', borderRadius: 999, fontWeight: 700, fontSize: 14, cursor: 'pointer',
           display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginBottom: 16,
@@ -1685,7 +1701,7 @@ function LoginSheet({ savedAthlete, onLogin, onCodeLogin, onSignUp, onClose }) {
           className="mono"
           style={{
             width: '100%', background: '#18181C', border: '1px solid #2A2A30',
-            borderRadius: 12, padding: '11px 13px', color: '#F4F4F5',
+            borderRadius: 12, padding: '11px 13px', color: 'var(--km-chalk)',
             fontSize: 11, outline: 'none', resize: 'none', marginBottom: 8,
             fontFamily: 'inherit', lineHeight: 1.5,
           }}
@@ -1729,7 +1745,7 @@ function LoginSheet({ savedAthlete, onLogin, onCodeLogin, onSignUp, onClose }) {
             Coach log in
           </a>
           <a href="/become-a-coach" className="body" style={{
-            flex: 1, background: 'transparent', color: '#F4F4F5', textDecoration: 'none',
+            flex: 1, background: 'transparent', color: 'var(--km-chalk)', textDecoration: 'none',
             border: '1px solid #3A3A42',
             padding: '12px 14px', borderRadius: 999, fontWeight: 600, fontSize: 13,
             display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6,
@@ -1749,7 +1765,7 @@ function SUStep({ idx, total, title, sub, children, canContinue, onNext, onBack,
         <button onClick={onBack} style={{
           background: '#18181C', border: '1px solid #2A2A30', borderRadius: '50%',
           width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: '#F4F4F5', cursor: 'pointer', flexShrink: 0,
+          color: 'var(--km-chalk)', cursor: 'pointer', flexShrink: 0,
         }}>
           <ChevronLeft size={18}/>
         </button>
@@ -1807,7 +1823,7 @@ function SUInput({ label, placeholder, value, onChange, autoFocus }) {
         placeholder={placeholder} className="body"
         style={{
           width: '100%', background: '#18181C', border: '1px solid #2A2A30',
-          borderRadius: 12, padding: '14px 16px', color: '#F4F4F5',
+          borderRadius: 12, padding: '14px 16px', color: 'var(--km-chalk)',
           fontSize: 15, outline: 'none', transition: 'border-color 0.15s',
         }}
         onFocus={e => e.currentTarget.style.borderColor = '#C5FF3D'}
@@ -1828,7 +1844,7 @@ function SUSelect({ label, value, onChange, options, placeholder }) {
           className="body"
           style={{
             width: '100%', background: '#18181C', border: '1px solid #2A2A30',
-            borderRadius: 12, padding: '14px 40px 14px 16px', color: value ? '#F4F4F5' : '#5F636B',
+            borderRadius: 12, padding: '14px 40px 14px 16px', color: value ? 'var(--km-chalk)' : '#5F636B',
             fontSize: 15, outline: 'none', appearance: 'none',
             WebkitAppearance: 'none', MozAppearance: 'none',
             cursor: 'pointer', fontFamily: 'inherit',
@@ -1837,7 +1853,7 @@ function SUSelect({ label, value, onChange, options, placeholder }) {
           onBlur={e => e.currentTarget.style.borderColor = '#2A2A30'}
         >
           {placeholder && <option value="">{placeholder}</option>}
-          {options.map(o => <option key={o.value} value={o.value} style={{ background: '#18181C', color: '#F4F4F5' }}>{o.label}</option>)}
+          {options.map(o => <option key={o.value} value={o.value} style={{ background: '#18181C', color: 'var(--km-chalk)' }}>{o.label}</option>)}
         </select>
         <span style={{
           position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)',
@@ -1874,7 +1890,7 @@ function SUSelectOrType({ label, value, onChange, options, placeholder, typePlac
             className="body"
             style={{
               flex: 1, minWidth: 0, background: '#18181C', border: '1px solid #C5FF3D',
-              borderRadius: 12, padding: '14px 16px', color: '#F4F4F5',
+              borderRadius: 12, padding: '14px 16px', color: 'var(--km-chalk)',
               fontSize: 15, outline: 'none',
             }}
           />
@@ -1906,7 +1922,7 @@ function SUSelectOrType({ label, value, onChange, options, placeholder, typePlac
           className="body"
           style={{
             width: '100%', background: '#18181C', border: '1px solid #2A2A30',
-            borderRadius: 12, padding: '14px 40px 14px 16px', color: value ? '#F4F4F5' : '#5F636B',
+            borderRadius: 12, padding: '14px 40px 14px 16px', color: value ? 'var(--km-chalk)' : '#5F636B',
             fontSize: 15, outline: 'none', appearance: 'none',
             WebkitAppearance: 'none', MozAppearance: 'none',
             cursor: 'pointer', fontFamily: 'inherit',
@@ -1915,7 +1931,7 @@ function SUSelectOrType({ label, value, onChange, options, placeholder, typePlac
           onBlur={e => e.currentTarget.style.borderColor = '#2A2A30'}
         >
           {placeholder && <option value="">{placeholder}</option>}
-          {options.map(o => <option key={o.value} value={o.value} style={{ background: '#18181C', color: '#F4F4F5' }}>{o.label}</option>)}
+          {options.map(o => <option key={o.value} value={o.value} style={{ background: '#18181C', color: 'var(--km-chalk)' }}>{o.label}</option>)}
           <option value={SU_OTHER} style={{ background: '#18181C', color: '#C5FF3D' }}>Other (type it in)</option>
         </select>
         <span style={{
@@ -1939,7 +1955,7 @@ function SUAutocomplete({ label, value, onChange, options, placeholder, autoFocu
         placeholder={placeholder} list={listId} className="body"
         style={{
           width: '100%', background: '#18181C', border: '1px solid #2A2A30',
-          borderRadius: 12, padding: '14px 16px', color: '#F4F4F5',
+          borderRadius: 12, padding: '14px 16px', color: 'var(--km-chalk)',
           fontSize: 15, outline: 'none', transition: 'border-color 0.15s',
         }}
         onFocus={e => e.currentTarget.style.borderColor = '#C5FF3D'}
@@ -1970,7 +1986,7 @@ function SUStatInput({ def, value, onChange }) {
           placeholder={def.placeholder} className="display"
           style={{
             flex: 1, minWidth: 0, background: 'transparent', border: 'none',
-            color: '#F4F4F5', fontSize: 26, outline: 'none', padding: 0,
+            color: 'var(--km-chalk)', fontSize: 26, outline: 'none', padding: 0,
           }}
         />
         <span className="mono" style={{ fontSize: 11, color: '#9CA0A8' }}>{def.unit}</span>
@@ -2067,7 +2083,7 @@ function ProfileView({ athlete, trainerIds, trainers = TRAINERS, workouts = [], 
     <div className="view view--profile" style={{ padding: '0 0 24px' }}>
       <div style={{
         margin: '12px 16px 20px', borderRadius: 24, position: 'relative', overflow: 'hidden',
-        background: 'linear-gradient(160deg, #1C1C24 0%, #0F0F14 100%)',
+        background: 'linear-gradient(160deg, #1C1C24 0%, var(--km-card) 100%)',
         border: '1px solid #2A2A30',
       }}>
         {athlete.banner ? (
@@ -2088,7 +2104,7 @@ function ProfileView({ athlete, trainerIds, trainers = TRAINERS, workouts = [], 
             </div>
           </CoverPhoto>
         ) : (
-          <div style={{ height: 100, background: 'linear-gradient(135deg, #C5FF3D20 0%, #0F0F14 80%)' }}/>
+          <div style={{ height: 100, background: 'linear-gradient(135deg, #C5FF3D20 0%, var(--km-card) 80%)' }}/>
         )}
 
         <div style={{ padding: '0 20px 22px', marginTop: -42, position: 'relative', zIndex: 3 }}>
@@ -2159,14 +2175,14 @@ function ProfileView({ athlete, trainerIds, trainers = TRAINERS, workouts = [], 
                   <button onClick={() => onOpenChat && onOpenChat(id)} style={{
                     background: '#18181C', border: '1px solid #2A2A30', borderRadius: 10,
                     padding: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                    color: '#F4F4F5', cursor: 'pointer', fontWeight: 600, fontSize: 12,
+                    color: 'var(--km-chalk)', cursor: 'pointer', fontWeight: 600, fontSize: 12,
                   }} className="body">
                     <MessageCircle size={14} color="#C5FF3D"/> Message
                   </button>
                   <button onClick={() => onOpenTrainer(id)} style={{
                     background: '#18181C', border: '1px solid #2A2A30', borderRadius: 10,
                     padding: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                    color: '#F4F4F5', cursor: 'pointer', fontWeight: 600, fontSize: 12,
+                    color: 'var(--km-chalk)', cursor: 'pointer', fontWeight: 600, fontSize: 12,
                   }} className="body">
                     <Video size={14} color="#5DA9FF"/> Book session
                   </button>
@@ -2229,7 +2245,7 @@ function ProfileView({ athlete, trainerIds, trainers = TRAINERS, workouts = [], 
       {/* For coaches footer */}
       <div style={{ padding: '8px 16px 12px' }}>
         <div style={{
-          background: 'linear-gradient(160deg, #1A1A20 0%, #0F0F14 100%)',
+          background: 'linear-gradient(160deg, #1A1A20 0%, var(--km-card) 100%)',
           border: '1px solid #2A2A30', borderRadius: 14, padding: 16, textAlign: 'center',
         }}>
           <div className="display" style={{ fontSize: 18, lineHeight: 1, textTransform: 'uppercase', marginBottom: 6 }}>
@@ -2247,7 +2263,7 @@ function ProfileView({ athlete, trainerIds, trainers = TRAINERS, workouts = [], 
               <UserPlus size={13}/> Join as coach
             </a>
             <a href="/coach" className="body" style={{
-              flex: 1, background: 'transparent', color: '#F4F4F5', textDecoration: 'none',
+              flex: 1, background: 'transparent', color: 'var(--km-chalk)', textDecoration: 'none',
               padding: '10px', borderRadius: 999, fontWeight: 600, fontSize: 12.5,
               border: '1px solid #3A3A42',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
@@ -2285,13 +2301,13 @@ function ProfileView({ athlete, trainerIds, trainers = TRAINERS, workouts = [], 
 function TrainBadge({ icon, value, label }) {
   return (
     <div style={{
-      background: 'linear-gradient(160deg, #1A1A20 0%, #0F0F14 100%)',
+      background: 'linear-gradient(160deg, #1A1A20 0%, var(--km-card) 100%)',
       border: '1px solid #2A2A30', borderRadius: 12, padding: '10px 8px',
       textAlign: 'center',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, marginBottom: 4 }}>
         {icon}
-        <span className="display" style={{ fontSize: 22, lineHeight: 1, color: '#F4F4F5' }}>{value}</span>
+        <span className="display" style={{ fontSize: 22, lineHeight: 1, color: 'var(--km-chalk)' }}>{value}</span>
       </div>
       <div className="mono" style={{ fontSize: 8.5, color: '#5F636B', letterSpacing: '0.1em' }}>{label}</div>
     </div>
@@ -2303,7 +2319,7 @@ function WorkoutRow({ workout, onDelete }) {
   const ago = workoutDayLabel(workout.date);
   return (
     <div style={{
-      background: 'linear-gradient(160deg, #1A1A20 0%, #0F0F14 100%)',
+      background: 'linear-gradient(160deg, #1A1A20 0%, var(--km-card) 100%)',
       border: '1px solid #2A2A30', borderRadius: 12, padding: 12,
       display: 'flex', alignItems: 'center', gap: 12, position: 'relative', overflow: 'hidden',
     }}>
@@ -2354,7 +2370,7 @@ function AchievementCard({ achievement, earned }) {
     <div style={{
       background: earned
         ? 'linear-gradient(160deg, rgba(197,255,61,0.10) 0%, rgba(197,255,61,0.03) 100%)'
-        : 'linear-gradient(160deg, #1A1A20 0%, #0F0F14 100%)',
+        : 'linear-gradient(160deg, #1A1A20 0%, var(--km-card) 100%)',
       border: earned ? '1px solid rgba(197,255,61,0.4)' : '1px solid #2A2A30',
       borderRadius: 12, padding: 12, opacity: earned ? 1 : 0.6,
       display: 'flex', alignItems: 'center', gap: 10,
@@ -2368,7 +2384,7 @@ function AchievementCard({ achievement, earned }) {
         <Icon size={16} color={earned ? '#C5FF3D' : '#5F636B'}/>
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div className="display" style={{ fontSize: 14, lineHeight: 1, textTransform: 'uppercase', color: earned ? '#F4F4F5' : '#9CA0A8' }}>{achievement.label}</div>
+        <div className="display" style={{ fontSize: 14, lineHeight: 1, textTransform: 'uppercase', color: earned ? 'var(--km-chalk)' : '#9CA0A8' }}>{achievement.label}</div>
         <div className="body" style={{ fontSize: 10.5, color: '#5F636B', marginTop: 3, lineHeight: 1.4 }}>{achievement.hint}</div>
       </div>
     </div>
@@ -2394,7 +2410,7 @@ function AccountCard({ athlete }) {
 
   return (
     <div style={{
-      background: 'linear-gradient(160deg, #1A1A20 0%, #0F0F14 100%)',
+      background: 'linear-gradient(160deg, #1A1A20 0%, var(--km-card) 100%)',
       border: '1px solid #2A2A30', borderRadius: 14, padding: 16,
     }}>
       <div className="display" style={{ fontSize: 18, lineHeight: 1, textTransform: 'uppercase', marginBottom: 6 }}>
@@ -2417,7 +2433,7 @@ function AccountCard({ athlete }) {
       <button onClick={copy} className="body" style={{
         width: '100%',
         background: copied ? 'rgba(197,255,61,0.12)' : '#18181C',
-        color: copied ? '#C5FF3D' : '#F4F4F5',
+        color: copied ? '#C5FF3D' : 'var(--km-chalk)',
         border: copied ? '1px solid #C5FF3D' : '1px solid #3A3A42',
         padding: '11px 16px', borderRadius: 999, fontWeight: 700, fontSize: 13, cursor: 'pointer',
         display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8,
@@ -2439,7 +2455,7 @@ function EmptyCard({ icon, title, sub, cta, onClick }) {
   return (
     <div style={{ padding: '0 16px', marginBottom: 24 }}>
       <div style={{
-        background: 'linear-gradient(160deg, #1A1A20 0%, #0F0F14 100%)',
+        background: 'linear-gradient(160deg, #1A1A20 0%, var(--km-card) 100%)',
         border: '1px dashed #2A2A30', borderRadius: 14, padding: 20, textAlign: 'center',
       }}>
         <div style={{
@@ -2465,7 +2481,7 @@ function StatCard({ stat }) {
   const v = VERIFY_META[stat.verified];
   return (
     <div style={{
-      background: 'linear-gradient(160deg, #1A1A20 0%, #0F0F14 100%)',
+      background: 'linear-gradient(160deg, #1A1A20 0%, var(--km-card) 100%)',
       border: '1px solid #2A2A30', borderRadius: 14, padding: '14px 14px 12px', position: 'relative',
     }}>
       <div className="mono" style={{ fontSize: 9.5, color: '#5F636B', letterSpacing: '0.1em', marginBottom: 6, textTransform: 'uppercase' }}>{stat.label}</div>
@@ -2476,8 +2492,8 @@ function StatCard({ stat }) {
         {stat.delta ? (
           <span className="mono" style={{ fontSize: 10, color: '#C5FF3D', fontWeight: 700 }}>{stat.delta} 90d</span>
         ) : <span/>}
-        <span className="mono" style={{ fontSize: 9, color: v.color, letterSpacing: '0.1em', fontWeight: 700 }}>
-          <CheckCircle2 size={10} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }}/>
+        <span className="stamp" style={{ color: v.color, fontSize: 7.5, padding: '3px 6px' }}>
+          <CheckCircle2 size={9}/>
           {v.label}
         </span>
       </div>
@@ -2498,7 +2514,7 @@ function TrainerRow({ trainer, onClick, showSport }) {
   return (
     <button onClick={onClick} className="card-hover" style={{
       width: '100%', textAlign: 'left', cursor: 'pointer',
-      background: 'linear-gradient(160deg, #1A1A20 0%, #0F0F14 100%)',
+      background: 'linear-gradient(160deg, #1A1A20 0%, var(--km-card) 100%)',
       border: '1px solid #2A2A30', borderRadius: 14, padding: 12,
       display: 'flex', alignItems: 'center', gap: 12, transition: 'border-color 0.15s, transform 0.15s',
     }}
@@ -2547,7 +2563,7 @@ function TrainersView({ onOpenTrainer, athlete, trainers = TRAINERS, onOpenDrill
           <div style={{
             width: 80, height: 80, borderRadius: 20,
             background: 'linear-gradient(135deg, rgba(197,255,61,0.1) 0%, rgba(197,255,61,0.02) 100%)',
-            border: '1px solid rgba(197,255,61,0.25)',
+            border: '1px solid rgba(201,111,74,0.3)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px',
           }}>
             <Search size={36} color="#C5FF3D"/>
@@ -2660,7 +2676,7 @@ function TrainerCardFeatured({ trainer, onClick }) {
   return (
     <button onClick={onClick} className="card-hover" style={{
       minWidth: 260, textAlign: 'left', cursor: 'pointer',
-      background: '#0F0F14', border: '1px solid #2A2A30', borderRadius: 18, position: 'relative', overflow: 'hidden',
+      background: 'var(--km-card)', border: '1px solid #2A2A30', borderRadius: 18, position: 'relative', overflow: 'hidden',
       transition: 'transform 0.15s, border-color 0.15s', padding: 0,
     }}
       onMouseDown={e => e.currentTarget.style.transform = 'scale(0.98)'}
@@ -2689,7 +2705,7 @@ function TrainerCardFeatured({ trainer, onClick }) {
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 14 }}>
-          <span className="display" style={{ fontSize: 22, color: '#F4F4F5' }}>${trainer.rate}<span className="mono" style={{ fontSize: 10, color: '#9CA0A8', marginLeft: 2 }}>/HR</span></span>
+          <span className="display" style={{ fontSize: 22, color: 'var(--km-chalk)' }}>${trainer.rate}<span className="mono" style={{ fontSize: 10, color: '#9CA0A8', marginLeft: 2 }}>/HR</span></span>
           <span className="mono" style={{ fontSize: 10, color: '#C5FF3D', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>VIEW <ArrowRight size={10}/></span>
         </div>
       </div>
@@ -2815,11 +2831,7 @@ function DrillLibrary({ athleteSport, athleteId, onOpenDrill }) {
               : trial.startedAt ? `FREE MONTH · ${trial.daysLeft} DAY${trial.daysLeft === 1 ? '' : 'S'} LEFT`
               : 'FIRST MONTH FREE'}
           </span>
-          <span className="mono" style={{
-            fontSize: 8.5, padding: '3px 8px', borderRadius: 4,
-            background: 'rgba(197,255,61,0.12)', border: '1px solid rgba(197,255,61,0.4)',
-            color: '#C5FF3D', fontWeight: 700, letterSpacing: '0.12em',
-          }}>AI COACH</span>
+          <span className="stamp stamp--clay">AI Coach</span>
         </div>
       </div>
 
@@ -2832,7 +2844,7 @@ function DrillLibrary({ athleteSport, athleteId, onOpenDrill }) {
           <input
             value={query} onChange={e => setQuery(e.target.value)} placeholder="Search drills"
             aria-label="Search drills by name or focus" className="body"
-            style={{ flex: 1, minWidth: 0, background: 'none', border: 'none', outline: 'none', color: '#F4F4F5', fontSize: 14 }}
+            style={{ flex: 1, minWidth: 0, background: 'none', border: 'none', outline: 'none', color: 'var(--km-chalk)', fontSize: 14 }}
           />
           {query !== '' && (
             <button onClick={() => setQuery('')} className="tap" aria-label="Clear search" style={{ color: '#5F636B', display: 'flex' }}>
@@ -2879,7 +2891,7 @@ function DrillLibrary({ athleteSport, athleteId, onOpenDrill }) {
             return (
               <button key={d.id} onClick={() => openDrill(d)} className="card-hover" style={{
                 textAlign: 'left', cursor: 'pointer', padding: 0,
-                background: '#0F0F14', border: d.sport === athleteSport ? '1px solid rgba(197,255,61,0.45)' : '1px solid #2A2A30',
+                background: 'var(--km-card)', border: d.sport === athleteSport ? '1px solid rgba(197,255,61,0.45)' : '1px solid #2A2A30',
                 borderRadius: 14, overflow: 'hidden',
               }}>
                 <div style={{ aspectRatio: '2 / 1', position: 'relative', overflow: 'hidden' }}>
@@ -2910,7 +2922,7 @@ function DrillLibrary({ athleteSport, athleteId, onOpenDrill }) {
                   </div>
                 </div>
                 <div style={{ padding: '9px 10px 11px' }}>
-                  <div className="display" style={{ fontSize: 15, lineHeight: 1.05, textTransform: 'uppercase', color: '#F4F4F5' }}>{d.title}</div>
+                  <div className="display" style={{ fontSize: 15, lineHeight: 1.05, textTransform: 'uppercase', color: 'var(--km-chalk)' }}>{d.title}</div>
                   <div className="mono" style={{ fontSize: 8.5, color: d.sport === athleteSport ? '#C5FF3D' : '#5F636B', letterSpacing: '0.1em', marginTop: 4 }}>
                     {d.sport.toUpperCase()}{d.sport === athleteSport ? ' · FOR YOU' : ''}
                   </div>
@@ -3032,13 +3044,10 @@ function DrillSheet({ drill, athleteId, onClose }) {
 
         <div style={{
           padding: '9px 12px', borderRadius: 10,
-          background: 'rgba(197,255,61,0.06)', border: '1px solid rgba(197,255,61,0.25)',
+          background: 'rgba(201,111,74,0.07)', border: '1px solid rgba(201,111,74,0.3)',
           display: 'flex', alignItems: 'center', gap: 8,
         }}>
-          <span className="mono" style={{
-            fontSize: 8, padding: '3px 7px', borderRadius: 4, flexShrink: 0,
-            background: '#C5FF3D', color: '#000', fontWeight: 700, letterSpacing: '0.12em',
-          }}>AI</span>
+          <span className="stamp stamp--clay" style={{ flexShrink: 0 }}>AI demo</span>
           <span className="body" style={{ fontSize: 11, color: '#9CA0A8', lineHeight: 1.45 }}>
             This coach is AI-generated for the demo. Real verified coaches review all drills before launch.
           </span>
@@ -3067,7 +3076,7 @@ function MessagesView({ conversations, trainers = TRAINERS, blockedIds = [], onO
           <div style={{
             width: 80, height: 80, borderRadius: 20,
             background: 'linear-gradient(135deg, rgba(197,255,61,0.1) 0%, rgba(197,255,61,0.02) 100%)',
-            border: '1px solid rgba(197,255,61,0.25)',
+            border: '1px solid rgba(201,111,74,0.3)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px',
           }}>
             <Inbox size={36} color="#C5FF3D"/>
@@ -3152,7 +3161,7 @@ function ConversationRow({ trainer, conv, preview, onClick }) {
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
           <span style={{
-            fontSize: 13, color: conv.unread > 0 ? '#F4F4F5' : '#9CA0A8',
+            fontSize: 13, color: conv.unread > 0 ? 'var(--km-chalk)' : '#9CA0A8',
             fontWeight: conv.unread > 0 ? 600 : 400,
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, minWidth: 0,
           }} className="body">{preview}</span>
@@ -3204,7 +3213,7 @@ function ChatView({ trainer, conversation, athlete, blocked = false, onBlock, on
         background: 'rgba(10,10,11,0.95)', backdropFilter: 'blur(12px)',
         position: 'relative', zIndex: 10, gap: 8,
       }}>
-        <button onClick={onClose} className="tap" style={{ color: '#F4F4F5' }}>
+        <button onClick={onClose} className="tap" style={{ color: 'var(--km-chalk)' }}>
           <ChevronLeft size={22}/>
         </button>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
@@ -3274,7 +3283,7 @@ function ChatView({ trainer, conversation, athlete, blocked = false, onBlock, on
           {QUICK_REPLIES.map((q, i) => (
             <button key={i} onClick={() => handleSend(q)} className="body" style={{
               fontSize: 12, padding: '8px 12px', borderRadius: 999,
-              background: 'rgba(197,255,61,0.08)', border: '1px solid rgba(197,255,61,0.25)',
+              background: 'rgba(197,255,61,0.08)', border: '1px solid rgba(201,111,74,0.3)',
               color: '#C5FF3D', whiteSpace: 'nowrap', cursor: 'pointer', fontWeight: 600,
             }}>{q}</button>
           ))}
@@ -3299,7 +3308,7 @@ function ChatView({ trainer, conversation, athlete, blocked = false, onBlock, on
           placeholder={`Message ${trainer.name.split(' ')[0]}...`} className="body"
           style={{
             flex: 1, background: '#18181C', border: '1px solid #2A2A30',
-            borderRadius: 999, padding: '10px 16px', color: '#F4F4F5',
+            borderRadius: 999, padding: '10px 16px', color: 'var(--km-chalk)',
             fontSize: 14, outline: 'none', minWidth: 0,
           }}
         />
@@ -3369,7 +3378,7 @@ function ChatSafetySheet({ mode, setMode, trainer, athlete, onBlock }) {
     width: '100%', padding: '13px 16px', borderRadius: 999, fontWeight: 700, fontSize: 14,
     cursor: 'pointer', border: primary ? 'none' : '1px solid #3A3A42',
     background: primary ? '#C5FF3D' : 'transparent',
-    color: primary ? '#000' : '#F4F4F5',
+    color: primary ? '#000' : 'var(--km-chalk)',
   });
 
   return (
@@ -3428,7 +3437,7 @@ function ChatSafetySheet({ mode, setMode, trainer, athlete, onBlock }) {
               className="body"
               style={{
                 width: '100%', background: '#18181C', border: '1px solid #2A2A30',
-                borderRadius: 12, padding: '12px 14px', color: '#F4F4F5',
+                borderRadius: 12, padding: '12px 14px', color: 'var(--km-chalk)',
                 fontSize: 13, outline: 'none', resize: 'none', marginBottom: 12, fontFamily: 'inherit',
               }}
             />
@@ -3543,7 +3552,7 @@ function Message({ m, trainer, isLastFromSender }) {
           </div>
           <div style={{ flex: 1 }}>
             <div className="mono" style={{ fontSize: 9.5, color: '#9CA0A8', letterSpacing: '0.15em', marginBottom: 4 }}>VERIFIED PR LOGGED</div>
-            <div className="display" style={{ fontSize: 22, lineHeight: 1, color: '#F4F4F5' }}>
+            <div className="display" style={{ fontSize: 22, lineHeight: 1, color: 'var(--km-chalk)' }}>
               {m.value} <span className="mono" style={{ fontSize: 12, color: '#9CA0A8' }}>{m.unit}</span>
               <span className="mono" style={{ fontSize: 11, color: '#C5FF3D', marginLeft: 8, fontWeight: 700 }}>{m.delta}</span>
             </div>
@@ -3587,7 +3596,7 @@ function Message({ m, trainer, isLastFromSender }) {
       <div>
         <div style={{
           background: isMe ? '#C5FF3D' : '#18181C',
-          color: isMe ? '#000' : '#F4F4F5',
+          color: isMe ? '#000' : 'var(--km-chalk)',
           border: isMe ? 'none' : '1px solid #2A2A30',
           borderRadius: 18,
           borderBottomRightRadius: isMe && isLastFromSender ? 4 : 18,
@@ -3632,7 +3641,7 @@ function VideoCallView({ trainer, athlete, onClose }) {
       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden', opacity: 0.4 }}>
         <div style={{
           position: 'absolute', left: 0, right: 0, height: 80,
-          background: 'linear-gradient(180deg, transparent 0%, rgba(197,255,61,0.06) 50%, transparent 100%)',
+          background: 'linear-gradient(180deg, transparent 0%, rgba(201,111,74,0.07) 50%, transparent 100%)',
           animation: 'scan 6s linear infinite',
         }}/>
       </div>
@@ -3821,7 +3830,7 @@ function SessionsView({ athlete, onGoToTrainers }) {
           <div style={{
             width: 80, height: 80, borderRadius: 20,
             background: 'linear-gradient(135deg, rgba(197,255,61,0.1) 0%, rgba(197,255,61,0.02) 100%)',
-            border: '1px solid rgba(197,255,61,0.25)',
+            border: '1px solid rgba(201,111,74,0.3)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px',
           }}>
             <CalIcon size={36} color="#C5FF3D"/>
@@ -3917,7 +3926,7 @@ function SessionsView({ athlete, onGoToTrainers }) {
 function BookingRow({ accent, dim, name, line1, line2, status, action, ics }) {
   return (
     <div style={{
-      background: 'linear-gradient(160deg, #1A1A20 0%, #0F0F14 100%)',
+      background: 'linear-gradient(160deg, #1A1A20 0%, var(--km-card) 100%)',
       border: '1px solid #2A2A30', borderRadius: 14, padding: 12,
       position: 'relative', overflow: 'hidden', opacity: dim ? 0.75 : 1,
     }}>
@@ -3936,7 +3945,7 @@ function BookingRow({ accent, dim, name, line1, line2, status, action, ics }) {
             {ics && (
               <a href={ics} download className="body" style={{
                 background: '#18181C', border: '1px solid #2A2A30', borderRadius: 999,
-                padding: '7px 14px', color: '#F4F4F5', fontSize: 11.5, fontWeight: 600, textDecoration: 'none',
+                padding: '7px 14px', color: 'var(--km-chalk)', fontSize: 11.5, fontWeight: 600, textDecoration: 'none',
               }}>
                 Add to calendar
               </a>
@@ -4036,7 +4045,7 @@ function CommunityView({ athlete }) {
       {/* Composer */}
       <div style={{ padding: '8px 16px 16px' }}>
         <div style={{
-          background: 'linear-gradient(160deg, #1A1A20 0%, #0F0F14 100%)',
+          background: 'linear-gradient(160deg, #1A1A20 0%, var(--km-card) 100%)',
           border: '1px solid #2A2A30', borderRadius: 16, padding: 14,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
@@ -4056,7 +4065,7 @@ function CommunityView({ athlete }) {
             rows={3}
             style={{
               width: '100%', background: 'transparent', border: 'none',
-              color: '#F4F4F5', fontSize: 14, outline: 'none', resize: 'none',
+              color: 'var(--km-chalk)', fontSize: 14, outline: 'none', resize: 'none',
               fontFamily: 'inherit', lineHeight: 1.5, padding: 0,
             }}
           />
@@ -4086,7 +4095,7 @@ function CommunityView({ athlete }) {
           <div style={{
             width: 72, height: 72, borderRadius: 18,
             background: 'linear-gradient(135deg, rgba(197,255,61,0.1) 0%, rgba(197,255,61,0.02) 100%)',
-            border: '1px solid rgba(197,255,61,0.25)',
+            border: '1px solid rgba(201,111,74,0.3)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px',
           }}>
             <Users size={32} color="#C5FF3D"/>
@@ -4113,7 +4122,7 @@ function PostCard({ post, currentId, onLike, onDelete }) {
   const ago = timeAgo(post.ts);
   return (
     <div style={{
-      background: 'linear-gradient(160deg, #1A1A20 0%, #0F0F14 100%)',
+      background: 'linear-gradient(160deg, #1A1A20 0%, var(--km-card) 100%)',
       border: '1px solid #2A2A30', borderRadius: 14, padding: 14,
     }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 10 }}>
@@ -4132,7 +4141,7 @@ function PostCard({ post, currentId, onLike, onDelete }) {
           </button>
         )}
       </div>
-      <div className="body" style={{ fontSize: 14, color: '#F4F4F5', lineHeight: 1.5, whiteSpace: 'pre-wrap', marginBottom: 12 }}>
+      <div className="body" style={{ fontSize: 14, color: 'var(--km-chalk)', lineHeight: 1.5, whiteSpace: 'pre-wrap', marginBottom: 12 }}>
         {post.text}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, paddingTop: 10, borderTop: '1px solid #1F1F25' }}>
@@ -4236,7 +4245,7 @@ function TrainerDetail({ trainer, onClose, onBook, onMessage, onCall }) {
         background: 'rgba(10,10,11,0.9)', backdropFilter: 'blur(12px)', position: 'relative', zIndex: 10,
       }}>
         <button onClick={onClose} style={{
-          background: 'none', border: 'none', color: '#F4F4F5', cursor: 'pointer',
+          background: 'none', border: 'none', color: 'var(--km-chalk)', cursor: 'pointer',
           display: 'flex', alignItems: 'center', gap: 4,
         }} className="mono">
           <ChevronLeft size={18}/> <span style={{ fontSize: 12, letterSpacing: '0.1em' }}>BACK</span>
@@ -4261,7 +4270,7 @@ function TrainerDetail({ trainer, onClose, onBook, onMessage, onCall }) {
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: 14 }}>
               <Avatar photo={trainer.photo} initials={trainer.initials} size={96} square color={trainer.color} ring/>
               <div style={{ flex: 1, paddingBottom: 8 }}>
-                <div className="display" style={{ fontSize: 30, lineHeight: 1, textTransform: 'uppercase', color: '#F4F4F5', textShadow: '0 1px 14px rgba(0,0,0,0.85)' }}>{trainer.name}</div>
+                <div className="display" style={{ fontSize: 30, lineHeight: 1, textTransform: 'uppercase', color: 'var(--km-chalk)', textShadow: '0 1px 14px rgba(0,0,0,0.85)' }}>{trainer.name}</div>
                 <div className="mono" style={{ fontSize: 11, color: '#9CA0A8', marginTop: 6, letterSpacing: '0.05em' }}>
                   {trainer.title.toUpperCase()} &middot; {trainer.years}YR
                 </div>
@@ -4287,14 +4296,14 @@ function TrainerDetail({ trainer, onClose, onBook, onMessage, onCall }) {
           <button onClick={() => onMessage(trainer.id)} style={{
             background: '#18181C', border: '1px solid #2A2A30', borderRadius: 14,
             padding: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            color: '#F4F4F5', cursor: 'pointer', fontWeight: 600, fontSize: 13,
+            color: 'var(--km-chalk)', cursor: 'pointer', fontWeight: 600, fontSize: 13,
           }} className="body">
             <MessageCircle size={16} color="#C5FF3D"/> Message
           </button>
           <button onClick={() => onCall(trainer.id)} style={{
             background: '#18181C', border: '1px solid #2A2A30', borderRadius: 14,
             padding: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            color: '#F4F4F5', cursor: 'pointer', fontWeight: 600, fontSize: 13,
+            color: 'var(--km-chalk)', cursor: 'pointer', fontWeight: 600, fontSize: 13,
           }} className="body">
             <Video size={16} color="#5DA9FF"/> Video Call
           </button>
@@ -4304,7 +4313,7 @@ function TrainerDetail({ trainer, onClose, onBook, onMessage, onCall }) {
           <SectionLabel>TRACK RECORD</SectionLabel>
           <div style={{
             marginTop: 12, padding: 18,
-            background: 'linear-gradient(160deg, #1A1A20 0%, #0F0F14 100%)',
+            background: 'linear-gradient(160deg, #1A1A20 0%, var(--km-card) 100%)',
             border: '1px solid #2A2A30', borderRadius: 14,
             display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, position: 'relative',
           }}>
@@ -4325,7 +4334,7 @@ function TrainerDetail({ trainer, onClose, onBook, onMessage, onCall }) {
                 <button key={m} onClick={() => setSelectedMode(m)} style={{
                   cursor: 'pointer', textAlign: 'left',
                   padding: 14, borderRadius: 12,
-                  background: sel ? 'rgba(197,255,61,0.06)' : 'linear-gradient(160deg, #1A1A20 0%, #0F0F14 100%)',
+                  background: sel ? 'rgba(201,111,74,0.07)' : 'linear-gradient(160deg, #1A1A20 0%, var(--km-card) 100%)',
                   border: sel ? '1px solid #C5FF3D' : '1px solid #2A2A30',
                   display: 'flex', alignItems: 'center', gap: 12, transition: 'all 0.15s',
                 }}>
@@ -4337,7 +4346,7 @@ function TrainerDetail({ trainer, onClose, onBook, onMessage, onCall }) {
                     <MIcon size={17} color={sel ? '#C5FF3D' : '#9CA0A8'}/>
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div className="display" style={{ fontSize: 18, lineHeight: 1, textTransform: 'uppercase', color: sel ? '#C5FF3D' : '#F4F4F5' }}>
+                    <div className="display" style={{ fontSize: 18, lineHeight: 1, textTransform: 'uppercase', color: sel ? '#C5FF3D' : 'var(--km-chalk)' }}>
                       {meta.label}
                     </div>
                     <div className="mono" style={{ fontSize: 10, color: '#5F636B', marginTop: 4, letterSpacing: '0.06em' }}>
@@ -4469,7 +4478,7 @@ function LogWorkoutModal({ onClose, onSave }) {
           className="body"
           style={{
             width: '100%', background: '#18181C', border: '1px solid #2A2A30',
-            borderRadius: 12, padding: '14px 16px', color: '#F4F4F5',
+            borderRadius: 12, padding: '14px 16px', color: 'var(--km-chalk)',
             fontSize: 15, outline: 'none', marginBottom: 18,
           }}
           onFocus={e => e.currentTarget.style.borderColor = '#C5FF3D'}
@@ -4509,7 +4518,7 @@ function LogWorkoutModal({ onClose, onSave }) {
           className="body"
           style={{
             width: '100%', background: '#18181C', border: '1px solid #2A2A30',
-            borderRadius: 12, padding: '12px 14px', color: '#F4F4F5',
+            borderRadius: 12, padding: '12px 14px', color: 'var(--km-chalk)',
             fontSize: 13, outline: 'none', marginBottom: 18,
             resize: 'vertical', minHeight: 70, fontFamily: 'inherit',
           }}
@@ -4692,8 +4701,8 @@ function BookingFlow({ booking, athlete, onClose, onMessageCoach }) {
                     return (
                       <button key={s.startIso + s.mode} onClick={() => { setSlot(s); setPhase('confirm'); setError(''); }} className="body" style={{
                         cursor: 'pointer', padding: '10px 14px', borderRadius: 12,
-                        background: 'linear-gradient(160deg, #1A1A20 0%, #0F0F14 100%)',
-                        border: '1px solid #2A2A30', color: '#F4F4F5', textAlign: 'left',
+                        background: 'linear-gradient(160deg, #1A1A20 0%, var(--km-card) 100%)',
+                        border: '1px solid #2A2A30', color: 'var(--km-chalk)', textAlign: 'left',
                       }}>
                         <div style={{ fontSize: 14, fontWeight: 700 }}>{sessionTimeLabel(s.startIso)}</div>
                         <div className="mono" style={{ fontSize: 8.5, color: meta?.color || '#9CA0A8', letterSpacing: '0.08em', marginTop: 3 }}>
@@ -4712,7 +4721,7 @@ function BookingFlow({ booking, athlete, onClose, onMessageCoach }) {
           <>
             <div style={{
               padding: 16, borderRadius: 14, marginBottom: 14,
-              background: 'linear-gradient(160deg, #1A1A20 0%, #0F0F14 100%)', border: '1px solid #2A2A30',
+              background: 'linear-gradient(160deg, #1A1A20 0%, var(--km-card) 100%)', border: '1px solid #2A2A30',
             }}>
               <Row k="COACH" v={trainer.name}/>
               <Row k="WHEN" v={`${sessionDayLabel(slot.startIso)} · ${sessionTimeLabel(slot.startIso)}`}/>
@@ -4724,7 +4733,7 @@ function BookingFlow({ booking, athlete, onClose, onMessageCoach }) {
             {/* Kid-safety framing: reviewed copy, keep visible. */}
             <div style={{
               padding: '12px 14px', borderRadius: 12, marginBottom: 14,
-              background: 'rgba(197,255,61,0.06)', border: '1px solid rgba(197,255,61,0.35)',
+              background: 'rgba(201,111,74,0.07)', border: '1px solid rgba(197,255,61,0.35)',
             }}>
               <div className="mono" style={{ fontSize: 9, color: '#C5FF3D', letterSpacing: '0.14em', marginBottom: 6 }}>
                 BEFORE YOU REQUEST
@@ -4746,7 +4755,7 @@ function BookingFlow({ booking, athlete, onClose, onMessageCoach }) {
               className="body"
               style={{
                 width: '100%', background: '#18181C', border: '1px solid #2A2A30',
-                borderRadius: 12, padding: '11px 13px', color: '#F4F4F5',
+                borderRadius: 12, padding: '11px 13px', color: 'var(--km-chalk)',
                 fontSize: 13, outline: 'none', resize: 'none', marginBottom: 12, fontFamily: 'inherit',
               }}
             />
@@ -4759,7 +4768,7 @@ function BookingFlow({ booking, athlete, onClose, onMessageCoach }) {
             )}
             <div style={{ display: 'flex', gap: 10 }}>
               <button onClick={() => { setPhase('slots'); setSlot(null); }} className="body" style={{
-                flex: 1, background: 'transparent', color: '#F4F4F5', border: '1px solid #3A3A42',
+                flex: 1, background: 'transparent', color: 'var(--km-chalk)', border: '1px solid #3A3A42',
                 padding: '14px', borderRadius: 999, fontWeight: 600, fontSize: 14, cursor: 'pointer',
               }}>Back</button>
               <button onClick={submit} disabled={sending} className="body" style={{
