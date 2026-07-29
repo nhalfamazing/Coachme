@@ -53,12 +53,21 @@ export const metadata: Metadata = {
     description:
       "Find a real coach. Train. Track every PR. Climb the ranks.",
     url: siteUrl,
+    images: [
+      {
+        url: "/brand/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "KoachMe - shield monogram and wordmark",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "KoachMe - The performance graph for emerging athletes",
     description:
       "Find a real coach. Train. Track every PR. Climb the ranks.",
+    images: ["/brand/og-image.png"],
   },
 };
 
