@@ -148,3 +148,96 @@ measurable number.
 24 drill pages + 7 sport hubs + 1 library index = **32 new indexable pages**,
 taking the site from 7 to 39. That is the number Phase 6 should be measured
 against.
+
+---
+
+# After phases 1-3 — 2026-07-30
+
+Same method, same target (`https://koachme.ai`), measured after
+`4ae8bf3`. Reproduce with `node scripts/seo-audit.mjs https://koachme.ai`
+and `node scripts/crawl-check.mjs https://koachme.ai`.
+
+## Crawl state
+
+| | Before | After |
+| --- | ---: | ---: |
+| Indexable pages | 7 | **38** |
+| Drill pages indexable | 0 | **24** |
+| Sport hubs | 0 | **7** |
+| URLs in sitemap | 6 | **38** |
+| Sitemap URLs with a real lastmod | 0 | **38** |
+| Audit problems | 6 | **0** |
+| Broken internal links | — | 0 |
+| Orphan pages | — | 0 |
+| Drills deeper than 3 clicks | — | 0 |
+| JSON-LD types | 5 | **9** |
+| AI crawlers named in robots.txt | 0 | **10** |
+
+Structured data added: `VideoObject`, `HowTo`, `BreadcrumbList`, `ItemList`
+(alongside the existing `Organization`, `WebSite`, `WebApplication`,
+`FAQPage`, `AboutPage`).
+
+All six baseline defects are closed except the `vercel.app` redirect, which
+is half-closed: a 301 rule now exists in `next.config.ts`, but Vercel's
+project-level 307 still answers first at the edge. Removing that
+project-level redirect is a dashboard action.
+
+## Lighthouse
+
+| | Before (home) | After (home) | After (drill page) |
+| --- | ---: | ---: | ---: |
+| Mobile performance | 90 | 86 | 76 |
+| Mobile SEO | 100 | **100** | **100** |
+| Mobile accessibility | 96 | 96 | 96 |
+| Mobile best practices | 100 | 100 | 100 |
+| Mobile LCP | 3.4 s | 3.4 s | **4.3 s** |
+| Mobile CLS | 0 | **0** | **0** |
+| Desktop performance | 99 | **100** | **100** |
+| Desktop LCP | 0.8 s | 0.7 s | **0.7 s** |
+
+Mobile SEO is 100 on the library index, a sport hub and a drill page too.
+
+## The LCP target was NOT met, and here is why
+
+Phase 3 targeted mobile LCP under 2.0 s on the new pages. The drill page
+measures **4.3 s**. That is a real miss, and worth being precise about
+rather than explaining away.
+
+Lighthouse's phase breakdown for that LCP:
+
+| Phase | Time |
+| --- | ---: |
+| TTFB | 659 ms |
+| Load delay | 0 ms |
+| **Load time** | **22 ms** |
+| **Render delay** | **3,653 ms** |
+
+The LCP element is the video poster, and it arrives in 22 ms. Nothing is
+slow to fetch. The 3.65 s is render delay — main-thread work, 1.7 s of it,
+with 677 ms in script evaluation under Lighthouse's 4× CPU throttle.
+
+The drill pages are not the cause. Every marketing route loads a byte-identical
+set of chunks:
+
+```
+/drills/basketball/bb-crossover   858 KB across 11 chunks
+/privacy                          858 KB across 11 chunks   (identical)
+/                                 858 KB across 11 chunks   (+9 KB landing-only)
+```
+
+The new pages contain no client component and ship no JavaScript of their
+own. They inherit the app-wide bundle that `/privacy` — a page that predates
+this work — already carried, which is the same reason the baseline home page
+sat at 3.4 s. The drill page reads worse than home only because its LCP
+element is a video poster further down the layout, so it waits longer behind
+the same main thread.
+
+**Fixing this means reducing the shared client bundle**, which is a
+site-wide piece of work rather than a tweak inside these pages, and it would
+lift the landing page by the same amount. Nothing inside Phase 3's scope
+moves it: the image is already right-sized and fetched in 22 ms, so
+preloading or shrinking the poster would optimise something that is not the
+bottleneck.
+
+Desktop, where there is no CPU throttling, lands at 100 / 0.7 s on both the
+landing page and a drill page — which is consistent with the diagnosis.
