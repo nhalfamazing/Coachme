@@ -12,7 +12,14 @@
    HEAD-checked against the Blob store here. A drill with ANY missing
    asset is EXCLUDED from the generated file (with a loud warning) — we
    never ship hotlinked CDN URLs and never ship dead players. A missing
-   coach asset fails the whole build (drills reference coaches). */
+   coach asset fails the whole build (drills reference coaches).
+
+   TEACHING CONTENT: the optional summary/builds/equipment/space/steps/
+   mistakes/trackedStat fields are copied through VERBATIM. This script
+   never generates, infers, or backfills any of them — absent stays
+   absent (emitted as null) so the UI renders no section rather than an
+   invented one. Malformed content is a FATAL build error, not a
+   silently-dropped field: bad teaching data must never reach a kid. */
 
 import { fileURLToPath } from 'node:url';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -61,6 +68,64 @@ function drillAssets(d) {
   };
 }
 
+/* ---------------------------------------------------------------
+   Teaching content: validate shape, never invent values.
+   --------------------------------------------------------------- */
+const contentErrors = [];
+const isStr = (v) => typeof v === 'string' && v.trim() !== '';
+const isStrArray = (v) => Array.isArray(v) && v.length > 0 && v.every(isStr);
+
+/** Read one optional field off a drill, validating it if present.
+    Returns undefined when the field is absent — the caller emits null. */
+function contentField(d, key, validate) {
+  const v = d[key];
+  if (v === undefined || v === null) return undefined;
+  const problem = validate(v);
+  if (problem) {
+    contentErrors.push(`${d.id}.${key}: ${problem}`);
+    return undefined;
+  }
+  return v;
+}
+
+function drillContent(d) {
+  const steps = contentField(d, 'steps', (v) => {
+    if (!Array.isArray(v) || v.length === 0) return 'must be a non-empty array';
+    for (let i = 0; i < v.length; i++) {
+      const s = v[i];
+      if (!s || typeof s !== 'object') return `step ${i + 1} must be an object`;
+      if (!Number.isInteger(s.n)) return `step ${i + 1} needs an integer n`;
+      // Contiguous 1..N: the UI renders these as a stepper, and a gap
+      // would read as a missing instruction.
+      if (s.n !== i + 1) return `step at index ${i} has n=${s.n}, expected ${i + 1}`;
+      if (!isStr(s.title)) return `step ${s.n} needs a title`;
+      if (!isStr(s.detail)) return `step ${s.n} needs a detail`;
+    }
+    return null;
+  });
+  const mistakes = contentField(d, 'mistakes', (v) => {
+    if (!Array.isArray(v) || v.length === 0) return 'must be a non-empty array';
+    for (let i = 0; i < v.length; i++) {
+      const m = v[i];
+      if (!m || typeof m !== 'object') return `entry ${i + 1} must be an object`;
+      // A mistake without its fix is worse than no entry: it names an
+      // error and leaves the kid with no correction.
+      if (!isStr(m.mistake)) return `entry ${i + 1} needs a mistake`;
+      if (!isStr(m.fix)) return `entry ${i + 1} ("${m.mistake}") needs a fix`;
+    }
+    return null;
+  });
+  return {
+    summary: contentField(d, 'summary', (v) => (isStr(v) ? null : 'must be a non-empty string')),
+    builds: contentField(d, 'builds', (v) => (isStrArray(v) ? null : 'must be a non-empty array of strings')),
+    equipment: contentField(d, 'equipment', (v) => (isStrArray(v) ? null : 'must be a non-empty array of strings')),
+    space: contentField(d, 'space', (v) => (isStr(v) ? null : 'must be a non-empty string')),
+    steps,
+    mistakes,
+    trackedStat: contentField(d, 'trackedStat', (v) => (isStr(v) ? null : 'must be a non-empty string or null')),
+  };
+}
+
 const included = [];
 const excluded = [];
 for (const d of manifest.drills) {
@@ -76,7 +141,13 @@ for (const d of manifest.drills) {
     console.error(`EXCLUDE ${d.id} — missing on Blob: ${missing.map(m => m.kind).join(', ')}`);
     continue;
   }
-  included.push({ ...d, assets });
+  included.push({ ...d, assets, content: drillContent(d) });
+}
+
+if (contentErrors.length) {
+  console.error('FATAL: malformed teaching content in the manifest — fix the data, do not write around it:');
+  for (const e of contentErrors) console.error(`  ${e}`);
+  process.exit(1);
 }
 
 const coaches = [];
@@ -112,6 +183,13 @@ for (const d of included) {
   if (!sportMeta[d.sport]) console.error(`WARN: drill ${d.id} sport "${d.sport}" has no manifest.sports entry (no chip icon).`);
 }
 const q = (s) => JSON.stringify(s);
+/** Emit an optional content field: the value, or a bare null. Never a
+    placeholder — the UI keys "render this section" off null. */
+const qOpt = (v) => (v === undefined ? 'null' : JSON.stringify(v));
+const qSteps = (steps) => (steps === undefined ? 'null' : `[\n${steps.map(s =>
+  `      { n: ${s.n}, title: ${q(s.title)}, detail: ${q(s.detail)} }`).join(',\n')},\n    ]`);
+const qMistakes = (mistakes) => (mistakes === undefined ? 'null' : `[\n${mistakes.map(m =>
+  `      { mistake: ${q(m.mistake)}, fix: ${q(m.fix)} }`).join(',\n')},\n    ]`);
 
 const drillEntries = included.map(d => `  {
     id: ${q(d.id)},
@@ -125,6 +203,13 @@ const drillEntries = included.map(d => `  {
     intro: ${d.assets.intro ? `{ cdn: ${q(d.assets.intro.cdn)}, blob: ${q(d.assets.intro.blob)} }` : 'null'},
     demo: { cdn: ${q(d.assets.demo.cdn)}, blob: ${q(d.assets.demo.blob)} },
     poster: { cdn: ${q(d.assets.poster.cdn)}, blob: ${q(d.assets.poster.blob)} },
+    summary: ${qOpt(d.content.summary)},
+    builds: ${qOpt(d.content.builds)},
+    equipment: ${qOpt(d.content.equipment)},
+    space: ${qOpt(d.content.space)},
+    steps: ${qSteps(d.content.steps)},
+    mistakes: ${qMistakes(d.content.mistakes)},
+    trackedStat: ${qOpt(d.content.trackedStat)},
   }`).join(',\n');
 
 const coachEntries = coaches.map(c => `  {
@@ -146,7 +231,11 @@ const out = `/* GENERATED FILE — do not edit by hand.
            Never serve these — they rotate and die without warning.
    - blob: our mirrored copy on Vercel Blob. This is what the app serves.
    Every blob URL below was HEAD-verified at generation time; drills with
-   missing assets are excluded by the generator. */
+   missing assets are excluded by the generator.
+
+   Teaching content (summary/builds/equipment/space/steps/mistakes/
+   trackedStat) is human-written and copied verbatim from the manifest.
+   null means not written yet — render nothing, never a placeholder. */
 
 export type DrillSport = ${sports.map(q).join(' | ')};
 
@@ -166,6 +255,21 @@ export interface DrillCoach {
   portraitVideo: DrillAsset | null;
 }
 
+/** One numbered instruction in a drill's how-to. n is 1-based and
+    contiguous; the generator refuses gaps. */
+export interface DrillStep {
+  n: number;
+  title: string;
+  detail: string;
+}
+
+/** A common error paired with its correction. Never one without the
+    other — naming a mistake with no fix leaves the athlete stuck. */
+export interface DrillMistake {
+  mistake: string;
+  fix: string;
+}
+
 export interface Drill {
   id: string;
   sport: DrillSport;
@@ -180,6 +284,27 @@ export interface Drill {
   intro: DrillAsset | null;
   demo: DrillAsset;
   poster: DrillAsset;
+
+  /* ---- Teaching content. Human-written, copied verbatim from the
+     manifest, NEVER generated. null means "not written yet": render
+     nothing at all, never an empty section and never a placeholder. ---- */
+
+  /** 2-3 plain sentences describing what the drill is. */
+  summary: string | null;
+  /** Short phrases naming what the drill develops ("soft hands"). */
+  builds: string[] | null;
+  /** Gear needed, or ["none"]. */
+  equipment: string[] | null;
+  /** Where it can be done: driveway | backyard | gym | field. */
+  space: string | null;
+  /** The numbered how-to. */
+  steps: DrillStep[] | null;
+  /** Common errors and their corrections. */
+  mistakes: DrillMistake[] | null;
+  /** Key of the athlete stat-sheet entry this drill improves, linking a
+      drill to a measurable number. null until a real stat is agreed for
+      the drill — the personal-best panel stays hidden while it is null. */
+  trackedStat: string | null;
 }
 
 export const DRILL_BLOB_BASE = ${q(BLOB_BASE)};
@@ -209,10 +334,21 @@ export function coachFor(drill: Drill): DrillCoach {
 `;
 
 writeFileSync(outPath, out);
+/* Content coverage: which drills are still missing which teaching
+   fields, so "what do we still need to write" is a build output rather
+   than something anyone has to eyeball. */
+const CONTENT_FIELDS = ['summary', 'builds', 'equipment', 'space', 'steps', 'mistakes', 'trackedStat'];
+const missingContent = {};
+for (const d of included) {
+  const missing = CONTENT_FIELDS.filter(f => d.content[f] === undefined);
+  if (missing.length) missingContent[d.id] = missing;
+}
+
 console.log(JSON.stringify({
   drills: included.length,
   excluded,
   coaches: coaches.length,
   sports,
+  missingContent,
 }, null, 2));
 process.exit(excluded.length ? 2 : 0);

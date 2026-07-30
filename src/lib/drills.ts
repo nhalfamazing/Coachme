@@ -9,7 +9,11 @@
            Never serve these — they rotate and die without warning.
    - blob: our mirrored copy on Vercel Blob. This is what the app serves.
    Every blob URL below was HEAD-verified at generation time; drills with
-   missing assets are excluded by the generator. */
+   missing assets are excluded by the generator.
+
+   Teaching content (summary/builds/equipment/space/steps/mistakes/
+   trackedStat) is human-written and copied verbatim from the manifest.
+   null means not written yet — render nothing, never a placeholder. */
 
 export type DrillSport = "Basketball" | "Soccer" | "Baseball" | "Football" | "Track" | "Volleyball" | "Softball";
 
@@ -29,6 +33,21 @@ export interface DrillCoach {
   portraitVideo: DrillAsset | null;
 }
 
+/** One numbered instruction in a drill's how-to. n is 1-based and
+    contiguous; the generator refuses gaps. */
+export interface DrillStep {
+  n: number;
+  title: string;
+  detail: string;
+}
+
+/** A common error paired with its correction. Never one without the
+    other — naming a mistake with no fix leaves the athlete stuck. */
+export interface DrillMistake {
+  mistake: string;
+  fix: string;
+}
+
 export interface Drill {
   id: string;
   sport: DrillSport;
@@ -43,6 +62,27 @@ export interface Drill {
   intro: DrillAsset | null;
   demo: DrillAsset;
   poster: DrillAsset;
+
+  /* ---- Teaching content. Human-written, copied verbatim from the
+     manifest, NEVER generated. null means "not written yet": render
+     nothing at all, never an empty section and never a placeholder. ---- */
+
+  /** 2-3 plain sentences describing what the drill is. */
+  summary: string | null;
+  /** Short phrases naming what the drill develops ("soft hands"). */
+  builds: string[] | null;
+  /** Gear needed, or ["none"]. */
+  equipment: string[] | null;
+  /** Where it can be done: driveway | backyard | gym | field. */
+  space: string | null;
+  /** The numbered how-to. */
+  steps: DrillStep[] | null;
+  /** Common errors and their corrections. */
+  mistakes: DrillMistake[] | null;
+  /** Key of the athlete stat-sheet entry this drill improves, linking a
+      drill to a measurable number. null until a real stat is agreed for
+      the drill — the personal-best panel stays hidden while it is null. */
+  trackedStat: string | null;
 }
 
 export const DRILL_BLOB_BASE = "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com";
@@ -112,6 +152,23 @@ export const DRILLS: Drill[] = [
     intro: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260723_005010_50b1a8b7-176c-4769-83a5-84d548b43193.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/bb-crossover/intro.mp4" },
     demo: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260723_005024_03687e08-51b3-46c7-971c-db1eb40f0885.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/bb-crossover/demo.mp4" },
     poster: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260723_003605_9fbc7e25-4227-468f-a09a-e6658825dba0.png", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/bb-crossover/poster.png" },
+    summary: "A crossover is how you change direction fast. You push the ball low and quick from one hand to the other, and your whole body goes with it.",
+    builds: ["ball handling","change of direction","weak hand"],
+    equipment: ["basketball"],
+    space: "driveway",
+    steps: [
+      { n: 1, title: "Get low", detail: "Bend your knees into an athletic stance. The lower you are, the faster you can move." },
+      { n: 2, title: "Dribble hard", detail: "Keep the ball below your knee. A low dribble is a fast dribble and it is much harder to steal." },
+      { n: 3, title: "Push it across", detail: "Snap the ball across your body to your other hand. One bounce, close to the ground." },
+      { n: 4, title: "Move your body", detail: "Your shoulders and hips go the same way as the ball. If only your hand moves, nobody is fooled." },
+      { n: 5, title: "Go", detail: "Push off your outside foot and accelerate. A crossover only works if you actually go somewhere." },
+    ],
+    mistakes: [
+      { mistake: "Dribbling too high", fix: "Keep the bounce below your knee." },
+      { mistake: "Only the hand moves", fix: "Turn your shoulders and hips with the ball." },
+      { mistake: "Staring at the ball", fix: "Pick a spot on the wall and keep your eyes up." },
+    ],
+    trackedStat: null,
   },
   {
     id: "bb-form-shooting",
@@ -125,6 +182,23 @@ export const DRILLS: Drill[] = [
     intro: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260723_010030_c8f4cc7c-f80c-45f3-bfdd-696672975daa.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/bb-form-shooting/intro.mp4" },
     demo: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260723_010037_17fbac40-451b-4456-9aa1-b3bb3021ac4a.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/bb-form-shooting/demo.mp4" },
     poster: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260723_003605_9fbc7e25-4227-468f-a09a-e6658825dba0.png", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/bb-form-shooting/poster.png" },
+    summary: "Form shooting is shooting from close range so you can groove a clean, repeatable motion. It is not about scoring from far away. It is about making the exact same shot every time.",
+    builds: ["shooting form","follow through","consistency"],
+    equipment: ["basketball","hoop"],
+    space: "driveway",
+    steps: [
+      { n: 1, title: "Start close", detail: "Stand a step or two from the rim. You should barely need any power." },
+      { n: 2, title: "Set your hand", detail: "Shooting hand under the ball, fingers spread. Your other hand is only a guide on the side." },
+      { n: 3, title: "Elbow under", detail: "Line your shooting elbow up under the ball, not flared out to the side." },
+      { n: 4, title: "Up and out", detail: "Push straight up and release at the top. Your legs give the power, not your arm." },
+      { n: 5, title: "Hold the finish", detail: "Snap your wrist and hold your hand in the air until the ball lands. Fingers pointed at the rim." },
+    ],
+    mistakes: [
+      { mistake: "Guide hand pushes the ball", fix: "The guide hand only rides along. Take it off right at release." },
+      { mistake: "Elbow flares out", fix: "Tuck it in so it points at the rim." },
+      { mistake: "Dropping your hand right away", fix: "Freeze the follow through on every single rep." },
+    ],
+    trackedStat: null,
   },
   {
     id: "so-inside-pass",
@@ -138,6 +212,23 @@ export const DRILLS: Drill[] = [
     intro: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260723_010043_7e65c1db-3c44-4bc2-b5d6-942ad083bdcd.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/so-inside-pass/intro.mp4" },
     demo: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260723_010051_03fe3035-a7ea-417f-97cc-d79481d65ed3.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/so-inside-pass/demo.mp4" },
     poster: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260723_005814_88206a71-adb4-4295-9ccb-66f72ce85f79.png", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/so-inside-pass/poster.png" },
+    summary: "The inside of your foot is the most accurate surface you have. Almost every pass in a real game uses it. This drill builds a pass you can trust under pressure.",
+    builds: ["passing accuracy","both feet","first touch"],
+    equipment: ["soccer ball","wall or partner"],
+    space: "backyard",
+    steps: [
+      { n: 1, title: "Plant your foot", detail: "Put your non kicking foot beside the ball, toe pointed at your target." },
+      { n: 2, title: "Turn your foot out", detail: "Open your kicking foot sideways so the flat inside surface faces where you are passing." },
+      { n: 3, title: "Lock the ankle", detail: "Keep your ankle stiff. A loose ankle sends the ball anywhere it wants." },
+      { n: 4, title: "Strike the middle", detail: "Hit the middle of the ball with the arch of your foot." },
+      { n: 5, title: "Follow through", detail: "Keep your foot moving toward the target after contact." },
+    ],
+    mistakes: [
+      { mistake: "Plant foot pointed the wrong way", fix: "Point your toe exactly where you want the ball to go." },
+      { mistake: "Poking it with your toe", fix: "Use the flat inside of your foot, never the tip." },
+      { mistake: "Only training your strong foot", fix: "Do half your reps with your weak foot every session." },
+    ],
+    trackedStat: null,
   },
   {
     id: "so-first-touch",
@@ -151,6 +242,23 @@ export const DRILLS: Drill[] = [
     intro: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260723_010057_6bcc39f8-5cd0-4edf-a583-6e80f501016a.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/so-first-touch/intro.mp4" },
     demo: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260723_010102_d75cd1f4-7c2c-42cf-8ba6-cf114d704b62.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/so-first-touch/demo.mp4" },
     poster: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260723_005814_88206a71-adb4-4295-9ccb-66f72ce85f79.png", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/so-first-touch/poster.png" },
+    summary: "Your first touch is what you do the instant the ball arrives. A good one sets up your next move. A bad one means you spend the next three seconds chasing.",
+    builds: ["control","composure","awareness"],
+    equipment: ["soccer ball","wall"],
+    space: "backyard",
+    steps: [
+      { n: 1, title: "Get behind the ball", detail: "Move your feet so your body is in line with it. Do not reach for it." },
+      { n: 2, title: "Pick your surface", detail: "Inside of the foot for most balls. Sole or thigh for balls coming in higher." },
+      { n: 3, title: "Cushion it", detail: "As the ball arrives, pull your foot back slightly so it takes the pace off instead of bouncing away." },
+      { n: 4, title: "Touch it where you are going", detail: "Push it into space in the direction you want to move, not straight down at your feet." },
+      { n: 5, title: "Look up", detail: "Head up immediately after the touch so you can see what is in front of you." },
+    ],
+    mistakes: [
+      { mistake: "Stiff foot on contact", fix: "Relax and give a little so the ball stays close." },
+      { mistake: "Touching it straight down", fix: "Angle the touch into space so you can move onto it." },
+      { mistake: "Standing still and reaching", fix: "Move your feet to the ball instead of stretching for it." },
+    ],
+    trackedStat: null,
   },
   {
     id: "ba-tee-work",
@@ -164,6 +272,23 @@ export const DRILLS: Drill[] = [
     intro: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260723_010109_4cb2b3ae-97a2-427f-91a0-656b2dad870f.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/ba-tee-work/intro.mp4" },
     demo: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260723_010115_b6969706-8ef9-4e7e-b75d-94a6110f73bf.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/ba-tee-work/demo.mp4" },
     poster: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260723_005819_0cc507c8-0f65-4461-9fb9-0f4c32f908a7.png", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/ba-tee-work/poster.png" },
+    summary: "The tee takes the pitch out of the equation so you can work on nothing but your swing. Every good hitter uses one, all the way up to the pros.",
+    builds: ["swing path","contact","balance"],
+    equipment: ["bat","tee","balls","net"],
+    space: "backyard",
+    steps: [
+      { n: 1, title: "Set the tee", detail: "Belt high to start, positioned out in front of your front hip." },
+      { n: 2, title: "Take your stance", detail: "Feet a little wider than your shoulders, knees soft, hands back." },
+      { n: 3, title: "Load", detail: "Small shift of weight back onto your back hip. Nothing dramatic." },
+      { n: 4, title: "Swing through", detail: "Turn your back hip and let your hands follow. Swing through the ball, not at it." },
+      { n: 5, title: "Finish balanced", detail: "End with your weight on your front side and your eyes still down where the ball was." },
+    ],
+    mistakes: [
+      { mistake: "Swinging with only your arms", fix: "Start the swing with your hips and let your hands follow." },
+      { mistake: "Hitting the tee", fix: "Adjust the height and focus on the top half of the ball." },
+      { mistake: "Falling off balance", fix: "Slow the swing down until you can finish under control." },
+    ],
+    trackedStat: null,
   },
   {
     id: "ba-ready-position",
@@ -177,6 +302,23 @@ export const DRILLS: Drill[] = [
     intro: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260723_010121_3000a2d9-82c3-4a3b-938b-5695173150b5.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/ba-ready-position/intro.mp4" },
     demo: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260723_010128_fb22663c-6dce-4d51-ab3a-5a1fd1cb8dd5.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/ba-ready-position/demo.mp4" },
     poster: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260723_005819_0cc507c8-0f65-4461-9fb9-0f4c32f908a7.png", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/ba-ready-position/poster.png" },
+    summary: "Ready position is what you do before every single pitch. Fielders who look fast are usually just the ones who started ready.",
+    builds: ["reaction","fielding","first step"],
+    equipment: ["glove"],
+    space: "backyard",
+    steps: [
+      { n: 1, title: "Feet wide", detail: "A little wider than your shoulders." },
+      { n: 2, title: "Bend your knees", detail: "Get your weight onto the balls of your feet, not back on your heels." },
+      { n: 3, title: "Glove out front", detail: "Hands out in front of your body, glove open and low." },
+      { n: 4, title: "Small hop", detail: "As the pitch reaches the plate, take a tiny hop so you land right as the ball is hit. This is what makes fielders quick." },
+      { n: 5, title: "React", detail: "Push off in the direction of the ball on your very first step." },
+    ],
+    mistakes: [
+      { mistake: "Standing straight up", fix: "Get in your stance before the pitch, not after the ball is hit." },
+      { mistake: "Weight on your heels", fix: "Stay on the balls of your feet so you can move either direction." },
+      { mistake: "Hands hanging at your sides", fix: "Keep them out front and ready." },
+    ],
+    trackedStat: null,
   },
   {
     id: "fb-catch-triangle",
@@ -190,6 +332,24 @@ export const DRILLS: Drill[] = [
     intro: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260728_113706_49cd786b-0ba5-47e0-a9bd-436422f0fb54.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/fb-catch-triangle/intro.mp4" },
     demo: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260728_111401_7d87283c-7141-496d-a04d-7a07923b4d07.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/fb-catch-triangle/demo.mp4" },
     poster: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260728_111401_7d87283c-7141-496d-a04d-7a07923b4d07.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/fb-catch-triangle/poster.png" },
+    summary: "Catching with your hands instead of your body is the difference between a receiver and everyone else. The triangle is how you make sure your hands get there first.",
+    builds: ["hands","catching","focus"],
+    equipment: ["football","partner"],
+    space: "backyard",
+    steps: [
+      { n: 1, title: "Hands up", detail: "Bring both hands up in front of your face before the ball arrives." },
+      { n: 2, title: "Make the triangle", detail: "Thumbs together and pointer fingers together so there is a triangle window between them." },
+      { n: 3, title: "Palms out", detail: "Turn your palms toward the ball. You should be able to see the throw through the triangle." },
+      { n: 4, title: "Catch the point", detail: "Let the front point of the ball come through the middle of the triangle and squeeze with your fingers." },
+      { n: 5, title: "Tuck it away", detail: "Pull the ball into your body immediately after the catch." },
+      { n: 6, title: "Low balls flip", detail: "For anything below your waist, flip your hands so your pinkies touch instead of your thumbs." },
+    ],
+    mistakes: [
+      { mistake: "Catching against your chest", fix: "Reach out and catch with your hands away from your body." },
+      { mistake: "Blinking or looking away", fix: "Watch the ball all the way into your hands." },
+      { mistake: "Palms facing each other", fix: "Turn your palms toward the ball so the triangle faces the throw." },
+    ],
+    trackedStat: null,
   },
   {
     id: "fb-stance-start",
@@ -203,6 +363,23 @@ export const DRILLS: Drill[] = [
     intro: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260728_111407_2973dd63-74fb-4077-b7c6-fc408e275624.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/fb-stance-start/intro.mp4" },
     demo: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260728_111413_951b3500-d8e4-48f8-bbbb-6dbfc41a71fa.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/fb-stance-start/demo.mp4" },
     poster: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260728_111413_951b3500-d8e4-48f8-bbbb-6dbfc41a71fa.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/fb-stance-start/poster.png" },
+    summary: "A three point stance is how linemen and a lot of skill players start every play. Done right, you are already moving forward before anyone else has reacted.",
+    builds: ["explosiveness","first step","balance"],
+    equipment: ["none"],
+    space: "backyard",
+    steps: [
+      { n: 1, title: "Stagger your feet", detail: "Feet about shoulder width, one foot slightly behind the other." },
+      { n: 2, title: "Squat down", detail: "Bend your knees and drop your hips. Do not bend at the waist." },
+      { n: 3, title: "Hand down", detail: "Put one hand on the ground out in front, fingertips down, with only a little weight on it." },
+      { n: 4, title: "Flat back, head up", detail: "Your back is flat like a tabletop and your eyes look forward, not down." },
+      { n: 5, title: "Explode", detail: "Push off your back foot and drive out low and forward. Stay low for the first few steps." },
+    ],
+    mistakes: [
+      { mistake: "Too much weight on your hand", fix: "You should be able to lift the hand without falling. Keep the weight in your legs." },
+      { mistake: "Popping straight up", fix: "Drive out low. Standing up kills all your power." },
+      { mistake: "Rounded back", fix: "Flatten your back and lift your eyes." },
+    ],
+    trackedStat: null,
   },
   {
     id: "tr-sprint-start",
@@ -216,6 +393,23 @@ export const DRILLS: Drill[] = [
     intro: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260728_111420_23ed7667-8ffb-490d-95a0-f025c24eed36.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/tr-sprint-start/intro.mp4" },
     demo: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260728_111427_c4b6122f-8d55-4957-b9b1-fdc250c2702b.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/tr-sprint-start/demo.mp4" },
     poster: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260728_111427_c4b6122f-8d55-4957-b9b1-fdc250c2702b.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/tr-sprint-start/poster.png" },
+    summary: "Most races and almost every play start from a standing position. How you start decides a lot of what happens after.",
+    builds: ["acceleration","first step","drive phase"],
+    equipment: ["none"],
+    space: "field",
+    steps: [
+      { n: 1, title: "Stagger your feet", detail: "Strong foot forward, other foot about a shoe length back." },
+      { n: 2, title: "Lean forward", detail: "Shift your weight over your front foot until you almost feel like you are falling." },
+      { n: 3, title: "Load your arms", detail: "Opposite arm to your front leg, both elbows bent and ready." },
+      { n: 4, title: "Drive out", detail: "Push hard off the front foot and drive your back knee forward." },
+      { n: 5, title: "Stay low", detail: "Keep your body angled forward for the first five or six steps before you stand tall." },
+    ],
+    mistakes: [
+      { mistake: "Standing straight up immediately", fix: "Hold the forward lean for five to six steps." },
+      { mistake: "Short choppy first steps", fix: "Drive your knee forward and cover ground." },
+      { mistake: "Arms swinging across your body", fix: "Drive them straight forward and back." },
+    ],
+    trackedStat: null,
   },
   {
     id: "tr-arm-drive",
@@ -229,6 +423,23 @@ export const DRILLS: Drill[] = [
     intro: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260728_111433_f98d87d0-adbc-4c89-9782-4cd31096e7a4.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/tr-arm-drive/intro.mp4" },
     demo: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260728_111446_5b56ad59-99af-47f4-9a0c-5a255f74ea50.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/tr-arm-drive/demo.mp4" },
     poster: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260728_111446_5b56ad59-99af-47f4-9a0c-5a255f74ea50.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/tr-arm-drive/poster.png" },
+    summary: "Your arms set the rhythm your legs follow. Fast, clean arms make your legs faster without you having to think about them.",
+    builds: ["sprint mechanics","rhythm","relaxation"],
+    equipment: ["none"],
+    space: "driveway",
+    steps: [
+      { n: 1, title: "Stand tall", detail: "Feet under your hips, chest up, shoulders relaxed." },
+      { n: 2, title: "Bend to ninety", detail: "Both elbows bent at about a right angle, and keep them there the whole time." },
+      { n: 3, title: "Cheek to pocket", detail: "Drive your hand up toward your cheek, then back down past your hip pocket." },
+      { n: 4, title: "Straight lines", detail: "Arms move straight forward and back, never across your body." },
+      { n: 5, title: "Stay loose", detail: "Hands relaxed, shoulders down. Tight shoulders make you slower." },
+    ],
+    mistakes: [
+      { mistake: "Arms crossing your body", fix: "Move them front to back like pistons." },
+      { mistake: "Clenched fists and shrugged shoulders", fix: "Relax your hands and drop your shoulders." },
+      { mistake: "Elbows opening up", fix: "Hold the ninety degree bend for the whole set." },
+    ],
+    trackedStat: null,
   },
   {
     id: "bb-two-ball",
@@ -242,6 +453,23 @@ export const DRILLS: Drill[] = [
     intro: null,
     demo: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_125029_efbc8089-ec49-4939-a9bc-df46f1e7691e.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/bb-two-ball/demo.mp4" },
     poster: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_125029_efbc8089-ec49-4939-a9bc-df46f1e7691e.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/bb-two-ball/poster.png" },
+    summary: "Dribbling two balls at once forces both hands to work at the same time. Your weak hand gets exposed fast, which is exactly the point.",
+    builds: ["weak hand","ball control","coordination"],
+    equipment: ["two basketballs"],
+    space: "driveway",
+    steps: [
+      { n: 1, title: "Get low", detail: "Athletic stance, knees bent, eyes up before you start." },
+      { n: 2, title: "Start together", detail: "Dribble both balls at the same time, same height, below your waist." },
+      { n: 3, title: "Find the rhythm", detail: "Twenty dribbles in sync. Keep the bounces matched to each other." },
+      { n: 4, title: "Go alternating", detail: "Now dribble them opposite, one ball up while the other is down. This is the hard part." },
+      { n: 5, title: "Stay in control", detail: "If you lose one, pick it up and reset. Control beats speed every time." },
+    ],
+    mistakes: [
+      { mistake: "Watching the balls", fix: "Eyes up. Feel the dribble instead of looking at it." },
+      { mistake: "Standing tall", fix: "Stay low for the whole set, not just the start." },
+      { mistake: "Rushing", fix: "Slow and controlled first. Speed comes after control." },
+    ],
+    trackedStat: null,
   },
   {
     id: "bb-mikan",
@@ -255,6 +483,23 @@ export const DRILLS: Drill[] = [
     intro: null,
     demo: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_125035_2d08f7ed-a2b8-4f02-8531-46b8e41ea322.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/bb-mikan/demo.mp4" },
     poster: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_125035_2d08f7ed-a2b8-4f02-8531-46b8e41ea322.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/bb-mikan/poster.png" },
+    summary: "The Mikan drill is one of the oldest finishing drills in basketball and it still works. It teaches you to score with both hands around the rim without having to think about it.",
+    builds: ["finishing","both hands","footwork"],
+    equipment: ["basketball","hoop"],
+    space: "driveway",
+    steps: [
+      { n: 1, title: "Start under the rim", detail: "Stand directly under the basket facing the backboard." },
+      { n: 2, title: "Right hand first", detail: "Step with your left foot and lay the ball in off the backboard with your right hand." },
+      { n: 3, title: "Catch it clean", detail: "Grab the ball out of the net before it hits the ground." },
+      { n: 4, title: "Switch sides", detail: "Step across with your right foot and lay it in left handed off the other side of the square." },
+      { n: 5, title: "Keep going", detail: "Back and forth without stopping. Ten makes on each side." },
+    ],
+    mistakes: [
+      { mistake: "Letting the ball hit the ground", fix: "Catch it out of the net to keep the rhythm going." },
+      { mistake: "Using your strong hand on both sides", fix: "The whole point of this drill is your weak hand. Use it." },
+      { mistake: "Fading away from the rim", fix: "Stay close and go straight up." },
+    ],
+    trackedStat: null,
   },
   {
     id: "so-cone-dribble",
@@ -268,6 +513,23 @@ export const DRILLS: Drill[] = [
     intro: null,
     demo: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_125041_14c2318e-75c0-43cc-969a-2a143fc546af.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/so-cone-dribble/demo.mp4" },
     poster: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_125041_14c2318e-75c0-43cc-969a-2a143fc546af.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/so-cone-dribble/poster.png" },
+    summary: "Cone dribbling teaches your feet to make lots of small touches instead of a few big ones. Close control is what lets you keep the ball when defenders are close.",
+    builds: ["close control","both feet","footwork"],
+    equipment: ["soccer ball","cones or shoes"],
+    space: "backyard",
+    steps: [
+      { n: 1, title: "Set up your cones", detail: "Five or six in a line, about two steps apart." },
+      { n: 2, title: "Small touches", detail: "Weave through using the inside and outside of both feet. Try to touch the ball every step." },
+      { n: 3, title: "Keep it close", detail: "The ball should never get more than one step away from you." },
+      { n: 4, title: "Head up", detail: "Glance up between cones. You will never see a teammate while staring at your feet." },
+      { n: 5, title: "Come back weak footed", detail: "Go through again leading with your weaker foot." },
+    ],
+    mistakes: [
+      { mistake: "Touches too big", fix: "More touches, smaller ones. Aim for one per step." },
+      { mistake: "Only using the inside of your foot", fix: "Use the outside too. It is faster and it is what you will need in a game." },
+      { mistake: "Slowing to a walk", fix: "Move at a jog. Control at speed is the whole goal." },
+    ],
+    trackedStat: null,
   },
   {
     id: "so-juggling",
@@ -281,6 +543,23 @@ export const DRILLS: Drill[] = [
     intro: null,
     demo: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_125053_df3e3dcb-287c-4c8c-8721-130305c2349d.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/so-juggling/demo.mp4" },
     poster: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_125053_df3e3dcb-287c-4c8c-8721-130305c2349d.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/so-juggling/poster.png" },
+    summary: "You will not juggle in a game, but juggling builds the touch you use in every game. It teaches your foot to be soft and your eyes to track the ball all the way in.",
+    builds: ["touch","balance","focus"],
+    equipment: ["soccer ball"],
+    space: "backyard",
+    steps: [
+      { n: 1, title: "Start with a bounce", detail: "Drop the ball, let it bounce once, then flick it up with your laces." },
+      { n: 2, title: "Use your laces", detail: "Contact the flat top of your foot with your toe pulled up slightly." },
+      { n: 3, title: "Small and soft", detail: "Keep the ball around waist height. Big kicks are much harder to control." },
+      { n: 4, title: "Stay relaxed", detail: "Soft knees, loose ankle, small steps to stay underneath the ball." },
+      { n: 5, title: "Count and beat it", detail: "Count your best, then go for one more. That is the whole game." },
+    ],
+    mistakes: [
+      { mistake: "Kicking too hard", fix: "Little taps. Waist high is plenty." },
+      { mistake: "Stiff ankle", fix: "Relax it so the ball does not fly off your foot." },
+      { mistake: "Only using your strong foot", fix: "Once you can do ten, start alternating feet." },
+    ],
+    trackedStat: null,
   },
   {
     id: "ba-tee-drive",
@@ -294,6 +573,23 @@ export const DRILLS: Drill[] = [
     intro: null,
     demo: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_125059_c5de3c1a-74cd-4cbf-813d-f885a5e204f8.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/ba-tee-drive/demo.mp4" },
     poster: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_125059_c5de3c1a-74cd-4cbf-813d-f885a5e204f8.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/ba-tee-drive/poster.png" },
+    summary: "Same tee, different focus. This one is about where your power actually comes from: your hips and your back side, not your arms.",
+    builds: ["hip rotation","power","swing path"],
+    equipment: ["bat","tee","balls","net"],
+    space: "backyard",
+    steps: [
+      { n: 1, title: "Set up", detail: "Tee out in front of your front hip, belt high." },
+      { n: 2, title: "Load the back hip", detail: "Shift your weight back and coil slightly. Small move, big difference." },
+      { n: 3, title: "Start with the hips", detail: "Turn your back hip toward the pitcher first, before your hands move at all." },
+      { n: 4, title: "Hands follow", detail: "Let your hands come through the zone level, driving through the ball." },
+      { n: 5, title: "Finish tall", detail: "Back foot turned, weight forward, balanced, eyes down where the ball was." },
+    ],
+    mistakes: [
+      { mistake: "Hands start before hips", fix: "Hips lead, hands follow. Slow it down until you can feel the order." },
+      { mistake: "No weight shift", fix: "Load back before you go forward. No load means no power." },
+      { mistake: "Uppercutting", fix: "Swing level through the ball instead of up at it." },
+    ],
+    trackedStat: null,
   },
   {
     id: "ba-ground-balls",
@@ -307,6 +603,23 @@ export const DRILLS: Drill[] = [
     intro: null,
     demo: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_125106_b728f667-3c0a-4bcd-893f-cf1c9aad7de5.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/ba-ground-balls/demo.mp4" },
     poster: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_125106_b728f667-3c0a-4bcd-893f-cf1c9aad7de5.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/ba-ground-balls/poster.png" },
+    summary: "Fielding a ground ball cleanly is mostly about your feet and your position, not your glove. Get there early and the catch becomes easy.",
+    builds: ["fielding","footwork","throwing transition"],
+    equipment: ["glove","ball","partner or wall"],
+    space: "backyard",
+    steps: [
+      { n: 1, title: "Ready position", detail: "Wide feet, knees bent, glove out front before the ball is ever hit." },
+      { n: 2, title: "Move to the ball", detail: "Shuffle so your body is lined up with it. Do not reach sideways." },
+      { n: 3, title: "Get low and wide", detail: "Butt down, glove on the ground out in front of you where you can see it." },
+      { n: 4, title: "Two hands", detail: "Field it out front with your throwing hand right above the glove, ready to grab." },
+      { n: 5, title: "Into the throw", detail: "Bring it to your chest, step toward your target, and throw." },
+    ],
+    mistakes: [
+      { mistake: "Glove between your legs", fix: "Field it out in front where your eyes can follow it into the glove." },
+      { mistake: "Standing too tall", fix: "Get your butt down and your glove on the ground." },
+      { mistake: "Waiting for the ball", fix: "Move toward it. Waiting lets the ball play you instead." },
+    ],
+    trackedStat: null,
   },
   {
     id: "vb-forearm-pass",
@@ -320,6 +633,23 @@ export const DRILLS: Drill[] = [
     intro: null,
     demo: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_130409_503f0071-c091-46a2-92e1-bbeba263d703.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/vb-forearm-pass/demo.mp4" },
     poster: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_130409_503f0071-c091-46a2-92e1-bbeba263d703.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/vb-forearm-pass/poster.png" },
+    summary: "The forearm pass, or bump, is the first contact on almost every play. A good platform sends the ball where you want without you swinging at it.",
+    builds: ["passing","platform","footwork"],
+    equipment: ["volleyball","partner or wall"],
+    space: "gym",
+    steps: [
+      { n: 1, title: "Ready stance", detail: "Feet wider than your shoulders, knees bent, weight forward on the balls of your feet." },
+      { n: 2, title: "Build the platform", detail: "Put one hand inside the other, thumbs side by side pointing down, and straighten both arms." },
+      { n: 3, title: "Move your feet", detail: "Get your body behind the ball. Move first, then pass." },
+      { n: 4, title: "Angle, do not swing", detail: "Point your platform where you want the ball and let it rebound off." },
+      { n: 5, title: "Push with your legs", detail: "If you need more power, straighten your legs. Never swing your arms for it." },
+    ],
+    mistakes: [
+      { mistake: "Swinging your arms", fix: "Hold the platform still and let the ball bounce off it." },
+      { mistake: "Bent elbows", fix: "Lock your arms straight so the surface stays flat." },
+      { mistake: "Reaching instead of moving", fix: "Move your feet so the ball comes to your middle." },
+    ],
+    trackedStat: null,
   },
   {
     id: "vb-setting",
@@ -333,6 +663,23 @@ export const DRILLS: Drill[] = [
     intro: null,
     demo: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_130415_c3d421ea-b832-40cc-ad62-69be750dae45.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/vb-setting/demo.mp4" },
     poster: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_130415_c3d421ea-b832-40cc-ad62-69be750dae45.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/vb-setting/poster.png" },
+    summary: "Setting is the softest and most precise touch in volleyball. Your hands make a window and the ball goes exactly where you point them.",
+    builds: ["hands","accuracy","footwork"],
+    equipment: ["volleyball","wall"],
+    space: "gym",
+    steps: [
+      { n: 1, title: "Get under it", detail: "Move so the ball is dropping onto your forehead, not out in front of you." },
+      { n: 2, title: "Make the window", detail: "Hands above your forehead with thumbs and pointer fingers forming a triangle you can see through." },
+      { n: 3, title: "Soft fingers", detail: "Contact with the pads of your fingers, never your palms. Quiet hands." },
+      { n: 4, title: "Push through", detail: "Extend your legs and arms together toward your target." },
+      { n: 5, title: "Finish pointing", detail: "End with arms extended and fingers pointed where the ball went." },
+    ],
+    mistakes: [
+      { mistake: "Ball hitting your palms", fix: "Contact only with the pads of your fingers." },
+      { mistake: "Setting from in front of your face", fix: "Move your feet and get all the way underneath it." },
+      { mistake: "Using arms only", fix: "Push with your legs at the same time." },
+    ],
+    trackedStat: null,
   },
   {
     id: "tr-a-skip",
@@ -346,6 +693,23 @@ export const DRILLS: Drill[] = [
     intro: null,
     demo: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_130421_807efd8d-c7e5-4fd5-a0ad-d3bbcc3449ae.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/tr-a-skip/demo.mp4" },
     poster: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_130421_807efd8d-c7e5-4fd5-a0ad-d3bbcc3449ae.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/tr-a-skip/poster.png" },
+    summary: "The A-skip teaches your legs the exact pattern good sprinting uses, just slower so you can learn it. Almost every track team in the world starts practice with this.",
+    builds: ["sprint mechanics","knee drive","rhythm"],
+    equipment: ["none"],
+    space: "field",
+    steps: [
+      { n: 1, title: "Stand tall", detail: "Chest up, shoulders relaxed, eyes forward." },
+      { n: 2, title: "Drive one knee", detail: "Bring one knee up to about hip height with your toe pulled up toward your shin." },
+      { n: 3, title: "Add a skip", detail: "Small hop on your ground foot as the knee comes up." },
+      { n: 4, title: "Strike down", detail: "Bring the foot down underneath your hip, landing on the ball of your foot. Not out in front." },
+      { n: 5, title: "Alternate", detail: "Switch legs and hold a steady bouncy rhythm for about twenty meters." },
+    ],
+    mistakes: [
+      { mistake: "Reaching your foot out in front", fix: "Land underneath your hip, not ahead of it." },
+      { mistake: "Toes pointed down", fix: "Pull your toe up toward your shin." },
+      { mistake: "Leaning back", fix: "Stay tall with a very slight forward lean." },
+    ],
+    trackedStat: null,
   },
   {
     id: "tr-bounding",
@@ -359,6 +723,23 @@ export const DRILLS: Drill[] = [
     intro: null,
     demo: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_130429_a103a8b1-afe3-4114-8b17-3e5f6f5aea7f.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/tr-bounding/demo.mp4" },
     poster: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_130429_a103a8b1-afe3-4114-8b17-3e5f6f5aea7f.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/tr-bounding/poster.png" },
+    summary: "Bounding is exaggerated running where every step is a leap. It builds the power that makes your normal stride longer and stronger.",
+    builds: ["power","stride length","single leg strength"],
+    equipment: ["none"],
+    space: "field",
+    steps: [
+      { n: 1, title: "Start jogging", detail: "A few easy steps to get moving before the first bound." },
+      { n: 2, title: "Leap into it", detail: "Push hard off one foot and jump forward, not up." },
+      { n: 3, title: "Drive the knee", detail: "Bring your lead knee up and forward as you travel through the air." },
+      { n: 4, title: "Land and go", detail: "Land on the ball of your foot and immediately push off into the next bound." },
+      { n: 5, title: "Keep it short", detail: "Six to eight bounds, then walk back. This is a hard drill, not a long one." },
+    ],
+    mistakes: [
+      { mistake: "Bouncing up instead of forward", fix: "Aim your push forward down the track." },
+      { mistake: "Doing too many", fix: "Quality over quantity. Stop the set as soon as your form gets sloppy." },
+      { mistake: "Bounding cold or on concrete", fix: "Warm up first and bound on grass or a track. Your knees and ankles will thank you." },
+    ],
+    trackedStat: null,
   },
   {
     id: "so-laces-shot",
@@ -372,6 +753,23 @@ export const DRILLS: Drill[] = [
     intro: null,
     demo: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_130436_9cdaf7b3-54f4-4af3-9966-13a801099fc2.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/so-laces-shot/demo.mp4" },
     poster: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_130436_9cdaf7b3-54f4-4af3-9966-13a801099fc2.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/so-laces-shot/poster.png" },
+    summary: "The laces shot is how you hit a ball hard. It is a completely different motion from a pass, and it depends on a clean plant foot and a locked ankle.",
+    builds: ["shooting power","technique","follow through"],
+    equipment: ["soccer ball","goal or wall"],
+    space: "field",
+    steps: [
+      { n: 1, title: "Approach at an angle", detail: "Take a few steps at a slight angle to the ball rather than straight on." },
+      { n: 2, title: "Plant beside it", detail: "Non kicking foot right next to the ball, toe pointed at your target." },
+      { n: 3, title: "Point your toe down", detail: "Lock your ankle with your toe pointed down and strike with your laces." },
+      { n: 4, title: "Hit the middle", detail: "Contact the middle of the ball to keep the shot low. Get under it and the ball flies over the goal." },
+      { n: 5, title: "Land forward", detail: "Follow through so you land on your shooting foot, moving toward the target." },
+    ],
+    mistakes: [
+      { mistake: "Leaning back", fix: "Keep your chest over the ball. Leaning back is why shots go over the bar." },
+      { mistake: "Toe up at contact", fix: "Point your toe down and lock the ankle before you strike." },
+      { mistake: "Plant foot too far from the ball", fix: "Put it right beside the ball, not a step away." },
+    ],
+    trackedStat: null,
   },
   {
     id: "so-sole-rolls",
@@ -385,6 +783,23 @@ export const DRILLS: Drill[] = [
     intro: null,
     demo: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_130442_cd811bc2-62d6-415b-b4dc-4f18c9921d1a.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/so-sole-rolls/demo.mp4" },
     poster: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_130442_cd811bc2-62d6-415b-b4dc-4f18c9921d1a.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/so-sole-rolls/poster.png" },
+    summary: "Sole rolls and pull backs are how you change direction with the ball glued to your foot. They are the base of almost every move you will ever learn.",
+    builds: ["footwork","change of direction","control"],
+    equipment: ["soccer ball"],
+    space: "driveway",
+    steps: [
+      { n: 1, title: "Ball in front", detail: "Stand with the ball just in front of you, knees bent." },
+      { n: 2, title: "Roll it across", detail: "Use the sole of one foot to roll the ball sideways to your other foot." },
+      { n: 3, title: "Roll it back", detail: "Same thing in the other direction. Build a steady rhythm." },
+      { n: 4, title: "Add the pull back", detail: "Put your sole on top of the ball, drag it backward, then turn and go with it." },
+      { n: 5, title: "Lead with each foot", detail: "Run the whole pattern leading with your left, then your right." },
+    ],
+    mistakes: [
+      { mistake: "Standing straight up", fix: "Stay on the balls of your feet with your knees bent." },
+      { mistake: "Stomping on the ball", fix: "Light touches on top. Do not stand on it." },
+      { mistake: "Only using your strong foot", fix: "Both feet, every single set." },
+    ],
+    trackedStat: null,
   },
   {
     id: "sb-windmill",
@@ -398,6 +813,23 @@ export const DRILLS: Drill[] = [
     intro: null,
     demo: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_130454_bc84a859-456c-4fa4-b28d-5f642f39bc65.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/sb-windmill/demo.mp4" },
     poster: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_130454_bc84a859-456c-4fa4-b28d-5f642f39bc65.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/sb-windmill/poster.png" },
+    summary: "The windmill is the softball pitching motion. Your arm makes one full circle beside your body and the ball leaves at the bottom, right as your hand passes your hip.",
+    builds: ["pitching mechanics","arm circle","timing"],
+    equipment: ["softball","glove","catcher or net"],
+    space: "field",
+    steps: [
+      { n: 1, title: "Start on the rubber", detail: "Both feet on the pitching rubber, ball in your glove, hands together in front of you." },
+      { n: 2, title: "Separate and step", detail: "Push off your back foot and stride forward as your hands separate." },
+      { n: 3, title: "Swing the circle", detail: "Bring your arm straight up past your ear, over the top, and down behind you. It stays beside your body and never crosses your chest." },
+      { n: 4, title: "Release at your hip", detail: "Let the ball go at the bottom of the circle as your hand passes your hip, and snap your wrist." },
+      { n: 5, title: "Finish balanced", detail: "Land on your stride foot with your weight forward and your arm following through naturally." },
+    ],
+    mistakes: [
+      { mistake: "Arm crossing in front of your body", fix: "The circle stays flat beside you, like a wheel spinning next to your side." },
+      { mistake: "Releasing too early or too late", fix: "The ball leaves right at your hip. Early sends it high, late puts it in the dirt." },
+      { mistake: "Throwing too many, too fast", fix: "Pitching stresses your arm. Build up slowly over weeks and stop as soon as you feel tired." },
+    ],
+    trackedStat: null,
   },
   {
     id: "sb-soft-toss",
@@ -411,6 +843,23 @@ export const DRILLS: Drill[] = [
     intro: null,
     demo: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_130500_e7705650-9b74-4ac4-827e-a871f93c5b88.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/sb-soft-toss/demo.mp4" },
     poster: { cdn: "https://d8j0ntlcm91z4.cloudfront.net/user_3EtZhOwg7pbdjJOUJ7nU0ZlzLCS/hf_20260729_130500_e7705650-9b74-4ac4-827e-a871f93c5b88.mp4", blob: "https://woooi7wpsmvhydy9.public.blob.vercel-storage.com/drills/sb-soft-toss/poster.png" },
+    summary: "Soft toss puts a moving ball in front of you without a full pitch. It is the step between tee work and hitting live pitching.",
+    builds: ["timing","contact","swing path"],
+    equipment: ["bat","softballs","net","partner"],
+    space: "backyard",
+    steps: [
+      { n: 1, title: "Set up", detail: "Stand in your stance facing a net. Your partner kneels off to the side, slightly in front of you." },
+      { n: 2, title: "Get the toss", detail: "Partner tosses underhand into your hitting zone, out in front of your front hip." },
+      { n: 3, title: "Load as it comes", detail: "Small shift back as the ball is tossed. Be loaded before it arrives, not after." },
+      { n: 4, title: "Swing level", detail: "Turn your hips and drive your hands through the ball on a level path." },
+      { n: 5, title: "Finish and reset", detail: "Balanced finish, eyes on the contact point, then set up for the next one." },
+    ],
+    mistakes: [
+      { mistake: "Partner kneeling in front of the hitter", fix: "Always toss from the side, slightly in front, well clear of the swing path." },
+      { mistake: "Tossing too fast", fix: "Slow down. One good swing beats five rushed ones." },
+      { mistake: "Reaching for the ball", fix: "Let it come to your hitting zone instead of lunging at it." },
+    ],
+    trackedStat: null,
   },
 ];
 
