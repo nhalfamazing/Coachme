@@ -241,3 +241,80 @@ bottleneck.
 
 Desktop, where there is no CPU throttling, lands at 100 / 0.7 s on both the
 landing page and a drill page — which is consistent with the diagnosis.
+
+---
+
+# Phase B — mobile LCP, 2026-07-30
+
+## What was measured, and what changed
+
+The addendum's prime suspect was the autoplaying hero video. That was
+correct, and it was a real contributor — but it was not the whole cost.
+
+Before, mobile `/`:
+
+| Phase | Time |
+| --- | ---: |
+| TTFB | 686 ms |
+| Load delay | 551 ms |
+| Load time | 309 ms |
+| Render delay | 1,809 ms |
+
+The LCP element is the hero poster. Its load was being delayed 551 ms and
+slowed 309 ms because the 1.4 MB hero WebM was downloading alongside it.
+
+After deferring the video past window load on desktop and removing mobile
+autoplay entirely:
+
+| Phase | Before | After |
+| --- | ---: | ---: |
+| Load delay | 551 ms | **0 ms** |
+| Load time | 309 ms | **0 ms** |
+| Video bytes fetched on mobile | 399 KB | **815 bytes** |
+| Render delay | 1,809 ms | 2,500–3,800 ms |
+
+The video's interference is gone completely. What remains is render delay.
+
+## The target was not met, and single runs cannot tell you why
+
+Three consecutive Lighthouse runs against the same production build:
+
+| Run | Performance | LCP | TBT |
+| ---: | ---: | ---: | ---: |
+| 1 | 87 | 3,307 ms | 282 ms |
+| 2 | 93 | **2,518 ms** | 241 ms |
+| 3 | 76 | 4,416 ms | 302 ms |
+| **Median** | **87** | **3,307 ms** | **282 ms** |
+
+A 1.9-second spread on an identical build. Any single number in this range
+is measurement noise as much as signal, so the earlier "4.5 s" reading was
+not a regression and the "3.4 s" baseline was not a stable floor either.
+
+Median mobile LCP is **3,307 ms against a 2,500 ms target**. The best run
+landed at 2,518 ms — 18 ms over.
+
+## What is actually left
+
+With load delay and load time both at 0 ms, the LCP image is available
+almost immediately and the page still cannot paint it. That is main-thread
+work during hydration, on Lighthouse's 4× CPU throttle.
+
+Ruled out by measurement, not assumption:
+
+- **Not the video** — 815 bytes now fetched on mobile.
+- **Not layout dependency** — `.mk-hero-video` has a fixed
+  `aspect-ratio: 390/844` inside a fixed `min(340px, 82vw)` container, so
+  the poster's box never depends on the text above it. CLS stays 0.
+- **Not app code leaking into the marketing bundle** — every chunk was
+  fetched and searched for app-only identifiers (`POSITIONS_BY_SPORT`,
+  `drillTrialState`, `lucide`, `supabase`, and others). No matches: all
+  858 KB is React and Next runtime.
+
+The remaining lever is shipping less framework JavaScript to pages that are
+almost entirely static — removing client components from the marketing tree
+(`CtaLink`, `SectionViews`, `FaqList`, `ReturningUserBanner`, `HeroVideo`).
+That is a deliberate refactor with a CRO cost, since `CtaLink` is what
+Phase 5 wants for funnel tracking, and it should be decided rather than
+slipped in at the end of a performance pass.
+
+Desktop remains 100 / 0.7 s throughout.
