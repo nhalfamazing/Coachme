@@ -5,21 +5,27 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: import.meta.dirname,
   },
-  // TODO(Rasheid: enable after DNS): permanent redirect vercel.app -> koachme.ai.
-  // As of 2026-07-28 koachme.ai has DNS A records but no working HTTPS
-  // (SSL handshake fails - domain not yet connected in Vercel). Enabling
-  // this redirect now would send every visitor to a dead host. Once the
-  // domain is added to the Vercel project and serves the app, uncomment:
-  // async redirects() {
-  //   return [
-  //     {
-  //       source: "/:path*",
-  //       has: [{ type: "host", value: "coachme-y4vx.vercel.app" }],
-  //       destination: "https://koachme.ai/:path*",
-  //       permanent: true,
-  //     },
-  //   ];
-  // },
+  // Permanent redirect vercel.app -> koachme.ai. Enabled 2026-07-30 after
+  // verifying with a real request (not just DNS) that https://koachme.ai
+  // serves the app: /admin/login and / both return 200.
+  //
+  // Vercel's own domain settings currently answer this host with a 307
+  // at the edge, before Next runs, so in practice this rule is a backstop
+  // rather than the active redirect. It matters because 307 is temporary
+  // and does not consolidate ranking signals into the canonical host —
+  // when that project-level redirect is removed, this one takes over and
+  // answers 301. No chain either way: the destination host does not match
+  // the `has` condition, so it cannot redirect again.
+  async redirects() {
+    return [
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "coachme-y4vx.vercel.app" }],
+        destination: "https://koachme.ai/:path*",
+        permanent: true,
+      },
+    ];
+  },
   images: {
     // Drill posters and coach portraits are served from our Vercel Blob
     // store (mirrored there by scripts/mirror-drills.mjs; we never serve

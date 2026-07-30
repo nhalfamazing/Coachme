@@ -5,7 +5,7 @@ import { AboutJsonLd } from "@/components/marketing/json-ld";
 export const metadata: Metadata = {
   title: "About",
   description:
-    "KoachMe is a family-built platform from Miami that gives young athletes an honest training profile: real logged work, honestly labeled stats, and labeled AI content.",
+    "KoachMe is a family-built platform from Miami giving young athletes an honest training profile: real logged work, honestly labeled stats and AI content.",
   alternates: { canonical: "/about" },
   openGraph: {
     title: "About KoachMe",

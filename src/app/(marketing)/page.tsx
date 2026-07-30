@@ -56,7 +56,7 @@ export const metadata: Metadata = {
   // the tab reads "KoachMe - ... - KoachMe".
   title: "Training between practices for young athletes",
   description:
-    "The kids who start are the kids who train between practices. KoachMe gives your athlete pro-style drills at home, a stat sheet that proves the work, and vetted coaches when you're ready. Free for athletes, no email needed.",
+    "The kids who start are the kids who train between practices. Pro-style drills at home, a stat sheet that proves the work, vetted coaches. Free, no email.",
   alternates: { canonical: "/" },
   openGraph: {
     title: "KoachMe - Training between practices for young athletes",

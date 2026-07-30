@@ -323,10 +323,12 @@ export default function BecomeACoachPage() {
       </div>
 
       <div style={{ maxWidth: 720, margin: "0 auto", padding: "40px 24px 80px" }}>
-        <div className="display bc-title" style={{ fontSize: 56, lineHeight: 0.95, marginBottom: 14, textTransform: "uppercase" }}>
+        {/* A real h1: this is the page's heading, and it was a div, which
+            left the page with no h1 at all. */}
+        <h1 className="display bc-title" style={{ fontSize: 56, lineHeight: 0.95, margin: "0 0 14px", textTransform: "uppercase" }}>
           JOIN KOACHME<br/>
           <span style={{ color: "#C5FF3D" }}>AS A COACH.</span>
-        </div>
+        </h1>
         <div style={{ fontSize: 15, color: "#9CA0A8", lineHeight: 1.6, marginBottom: 36, maxWidth: 560 }}>
           We're building a platform where verified coaches train emerging athletes. Tell us about your coaching and we'll verify your background before your profile goes live.
         </div>

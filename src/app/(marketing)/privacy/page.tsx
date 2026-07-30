@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Privacy policy",
   description:
-    "What KoachMe collects (name, age, sport, city, logged workouts), what it never collects from athletes (email, phone, birthdate, payment), and how to request deletion.",
+    "What KoachMe collects from athletes (name, age, sport, city, workouts), what it never collects (email, phone, birthdate, payment), and how to delete it.",
   alternates: { canonical: "/privacy" },
   openGraph: { title: "KoachMe privacy policy", url: "/privacy" },
 };

@@ -100,6 +100,13 @@ async function auditRoute(path) {
   };
 }
 
+/** Sitemap URLs are absolute and point at the canonical host by design. When
+ *  auditing a different origin (localhost), follow the same PATH on the
+ *  origin under test rather than wandering off to production. */
+const onBase = (loc) => {
+  try { return base + new URL(loc).pathname; } catch { return loc; }
+};
+
 async function sitemapUrls() {
   const out = [];
   const seen = new Set();
@@ -109,7 +116,7 @@ async function sitemapUrls() {
     try {
       const xml = await (await fetch(url)).text();
       // A sitemap index points at more sitemaps; follow one level.
-      const children = [...xml.matchAll(/<sitemap>[\s\S]*?<loc>([^<]+)<\/loc>/gi)].map(m => m[1]);
+      const children = [...xml.matchAll(/<sitemap>[\s\S]*?<loc>([^<]+)<\/loc>/gi)].map(m => onBase(m[1]));
       if (children.length) { for (const c of children) await pull(c); return; }
       for (const m of xml.matchAll(/<url>[\s\S]*?<loc>([^<]+)<\/loc>(?:[\s\S]*?<lastmod>([^<]+)<\/lastmod>)?/gi)) {
         out.push({ loc: m[1], lastmod: m[2] ?? null });
