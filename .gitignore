@@ -45,3 +45,6 @@ next-env.d.ts
 
 # responsive verification screenshots
 /.screenshots/
+
+# lighthouse raw reports (regenerable; numbers live in docs/seo-baseline.md)
+/.lighthouse/
