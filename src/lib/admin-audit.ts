@@ -22,6 +22,9 @@ export type AdminAction =
   | "link_redeemed"
   | "link_redemption_failed"
   | "signed_out"
+  // TEMPORARY, removed with the shared-secret fallback.
+  | "legacy_secret_signin"
+  | "legacy_secret_failed"
   | "coach_verified"
   | "coach_rejected"
   | "flag_dismissed"

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { LINK_TTL_MINUTES } from "@/lib/admin-link";
+import { legacySecretEnabled } from "@/lib/admin-auth";
 
 export const metadata: Metadata = {
   title: "Admin sign in",
@@ -22,6 +23,7 @@ export default async function AdminLoginPage({
   searchParams: Promise<{ status?: string }>;
 }) {
   const { status } = await searchParams;
+  const legacy = legacySecretEnabled();
 
   return (
     <div style={{ maxWidth: 400, margin: "10vh auto 0" }}>
@@ -77,6 +79,46 @@ export default async function AdminLoginPage({
           change, not a setting.
         </p>
       </div>
+
+      {/* TEMPORARY — disappears on its own when ADMIN_SECRET is deleted. */}
+      {legacy && (
+        <div className="adm-card" style={{ borderColor: "#5A452C" }}>
+          <p className="body" style={{ fontSize: 12, lineHeight: 1.55, margin: "0 0 12px", color: "#FFB347" }}>
+            <strong>Temporary:</strong> shared-secret sign-in is still enabled
+            because ADMIN_SECRET is set. Delete that variable in Vercel once
+            email links work and this whole block disappears.
+          </p>
+
+          {status === "legacy_failed" && (
+            <p className="body" style={{
+              fontSize: 12, lineHeight: 1.5, padding: "9px 12px", borderRadius: 8, margin: "0 0 10px",
+              background: "rgba(255,68,68,0.1)", border: "1px solid rgba(255,68,68,0.4)", color: "#FF8888",
+            }}>
+              That address and secret combination was refused.
+            </p>
+          )}
+
+          <form
+            method="post"
+            action="/api/admin/auth/legacy"
+            style={{ display: "flex", flexDirection: "column", gap: 8 }}
+          >
+            <input
+              className="adm-input body" type="email" name="email" required
+              placeholder="Your allowlisted email" autoComplete="email"
+              style={{ width: "100%", padding: "10px 12px", fontSize: 13 }}
+            />
+            <input
+              className="adm-input body" type="password" name="secret" required
+              placeholder="Shared secret" autoComplete="off"
+              style={{ width: "100%", padding: "10px 12px", fontSize: 13 }}
+            />
+            <button className="adm-btn adm-btn--warn body" type="submit" style={{ padding: "10px 16px", fontSize: 13 }}>
+              Sign in with the shared secret
+            </button>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

@@ -16,7 +16,14 @@ import { ADMIN_COOKIE, readAdminSession } from "@/lib/admin-auth";
 // Every admin API route ALSO re-verifies the cookie itself (belt and
 // braces; a mistake in the matcher below must not silently expose the
 // moderation APIs).
-const OPEN_PATHS = ["/admin/login", "/api/admin/auth/request", "/api/admin/auth/verify"];
+const OPEN_PATHS = [
+  "/admin/login",
+  "/api/admin/auth/request",
+  "/api/admin/auth/verify",
+  // TEMPORARY, removed with the shared-secret fallback. The route itself
+  // refuses to do anything once ADMIN_SECRET is unset.
+  "/api/admin/auth/legacy",
+];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;

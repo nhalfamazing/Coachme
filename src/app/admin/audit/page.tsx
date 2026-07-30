@@ -17,6 +17,9 @@ const LABELS: Record<string, { text: string; tone: "ok" | "warn" | "danger" | "p
   link_redeemed: { text: "Signed in", tone: "ok" },
   link_redemption_failed: { text: "Sign-in refused", tone: "danger" },
   signed_out: { text: "Signed out", tone: "plain" },
+  // TEMPORARY, removed with the shared-secret fallback.
+  legacy_secret_signin: { text: "Shared-secret sign-in", tone: "warn" },
+  legacy_secret_failed: { text: "Shared-secret refused", tone: "danger" },
   coach_verified: { text: "Coach verified", tone: "ok" },
   coach_rejected: { text: "Coach rejected", tone: "warn" },
   flag_dismissed: { text: "Flag dismissed", tone: "plain" },

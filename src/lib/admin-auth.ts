@@ -24,8 +24,29 @@ export const ADMIN_COOKIE = "coachme_admin";
 export const ADMIN_SESSION_DAYS = 7;
 const SESSION_MS = ADMIN_SESSION_DAYS * 24 * 60 * 60 * 1000;
 
+/* TEMPORARY — REMOVE WHEN ADMIN_SECRET IS DELETED IN VERCEL.
+ *
+ * The magic-link flow needs ADMIN_SESSION_SECRET and RESEND_API_KEY, neither
+ * of which exists in production yet. Without this fallback the deploy that
+ * ships passwordless auth would lock everybody out of the moderation console
+ * until both are set, and that console holds safety reports about children.
+ *
+ * So, by explicit decision: while ADMIN_SECRET is still present, it doubles
+ * as the cookie signing key and the legacy sign-in route stays live.
+ *
+ * This is self-disabling. Deleting ADMIN_SECRET in Vercel removes the
+ * fallback, kills the legacy route, and invalidates any session it signed —
+ * no code change needed. The console shows a banner until that happens.
+ *
+ * It does NOT weaken the allowlist: a legacy sign-in still has to name an
+ * allowlisted address, and every session is still re-checked against
+ * ADMIN_EMAILS on every request. */
+export function legacySecretEnabled(): boolean {
+  return Boolean(process.env.ADMIN_SECRET);
+}
+
 function signingKey(): string | null {
-  return process.env.ADMIN_SESSION_SECRET || null;
+  return process.env.ADMIN_SESSION_SECRET || process.env.ADMIN_SECRET || null;
 }
 
 async function hmacHex(value: string, key: string): Promise<string> {

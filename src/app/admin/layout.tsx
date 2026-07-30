@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import Link from "next/link";
-import { ADMIN_COOKIE, readAdminSession } from "@/lib/admin-auth";
+import { ADMIN_COOKIE, legacySecretEnabled, readAdminSession } from "@/lib/admin-auth";
 
 export const metadata: Metadata = {
   title: "Admin",
@@ -82,7 +82,23 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           </>
         )}
       </header>
-      <main className="adm-wrap">{children}</main>
+      <main className="adm-wrap">
+        {/* TEMPORARY — self-removing. Loud on purpose: a fallback nobody
+            can see is a fallback nobody turns off. */}
+        {email && legacySecretEnabled() && (
+          <div className="adm-card body" style={{
+            borderColor: "#5A452C", background: "rgba(255,179,71,0.06)",
+            fontSize: 12.5, lineHeight: 1.55, color: "#FFB347",
+          }}>
+            <strong>Shared-secret sign-in is still enabled.</strong> ADMIN_SECRET
+            is set, so the old login still works and it also signs session
+            cookies. Once email links are working, delete ADMIN_SECRET in
+            Vercel — that disables the fallback, invalidates sessions it
+            signed, and removes this banner. No deploy needed.
+          </div>
+        )}
+        {children}
+      </main>
     </div>
   );
 }
