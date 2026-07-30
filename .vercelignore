@@ -1,0 +1,19 @@
+# Files the Vercel CLI must never upload.
+#
+# Without this file, `vercel deploy` uploads the working directory, and a
+# local .env.local containing the Supabase service role key, the Resend key
+# and the admin session secret would go with it. Git pushes are the normal
+# deploy path and never carry these; this exists so a manual CLI deploy —
+# the fallback when the Git integration does not fire — is equally safe.
+
+.env
+.env.*
+!.env.example
+
+.git
+node_modules
+.next
+.screenshots
+.lighthouse
+tsconfig.tsbuildinfo
+supabase/.temp
