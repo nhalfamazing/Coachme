@@ -1,20 +1,31 @@
-// Admin gate for /admin and /api/admin/*.
+// Admin session cookie for /admin and /api/admin/*.
 //
-// Model: one shared ADMIN_SECRET (env, never in the client bundle).
-// Logging in posts the secret; the server compares in constant time and
-// sets an httpOnly cookie holding an HMAC-signed expiry. The cookie
-// value is `${expiresMs}.${hmacSHA256(expiresMs, ADMIN_SECRET)}` so it
-// is unforgeable without the secret and self-expires. Web Crypto only,
-// so the same code runs in middleware (edge) and node routes.
+// Model: passwordless. The email inbox is the credential — a magic link is
+// emailed, redeemed once, and exchanged for this cookie. Nothing here is a
+// password: there is no shared secret an admin types, so there is nothing to
+// leak, forget, or phish out of them.
 //
-// This is deliberately NOT a user-auth system (house rule: no auth work
-// beyond this gate). One admin, one secret, 24h sessions.
+// The cookie value is `${email}.${expiresMs}.${hmacSHA256(email.expiresMs)}`,
+// signed with ADMIN_SESSION_SECRET. That secret is a SIGNING KEY, never a
+// credential: knowing it does not get you in, because verification also
+// re-checks the email against the code allowlist on every request. Deleting
+// somebody from ADMIN_EMAILS and deploying therefore kills their live session
+// immediately, rather than leaving it valid until the cookie expires.
+//
+// Web Crypto only, so the same code runs in edge middleware and node routes.
+//
+// Fails CLOSED: no signing key configured means no session verifies and the
+// console is inaccessible. For a console holding data about children, locked
+// out is the correct failure mode.
+
+import { isAllowedAdmin, normalizeEmail } from "./admin-allowlist";
 
 export const ADMIN_COOKIE = "coachme_admin";
-const SESSION_MS = 24 * 60 * 60 * 1000;
+export const ADMIN_SESSION_DAYS = 7;
+const SESSION_MS = ADMIN_SESSION_DAYS * 24 * 60 * 60 * 1000;
 
-function secret(): string | null {
-  return process.env.ADMIN_SECRET || null;
+function signingKey(): string | null {
+  return process.env.ADMIN_SESSION_SECRET || null;
 }
 
 async function hmacHex(value: string, key: string): Promise<string> {
@@ -37,31 +48,72 @@ export function safeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
-/** True when the posted secret matches ADMIN_SECRET. */
-export function checkAdminSecret(candidate: string): boolean {
-  const s = secret();
-  if (!s) return false;
-  return safeEqual(candidate, s);
+/** SHA-256 hex. Used to hash magic-link tokens at rest. */
+export async function sha256Hex(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
-/** Mint the signed cookie value. */
-export async function signAdminCookie(): Promise<string | null> {
-  const s = secret();
-  if (!s) return null;
+/** Mint the signed cookie value for a verified admin. Returns null when the
+ *  address is not allowlisted or no signing key is configured. */
+export async function signAdminCookie(email: string): Promise<string | null> {
+  const key = signingKey();
+  const normalized = normalizeEmail(email);
+  if (!key || !isAllowedAdmin(normalized)) return null;
   const expires = String(Date.now() + SESSION_MS);
-  return `${expires}.${await hmacHex(expires, s)}`;
+  const payload = `${normalized}.${expires}`;
+  return `${payload}.${await hmacHex(payload, key)}`;
 }
 
-/** Verify a cookie value: signature and expiry. */
-export async function verifyAdminCookie(value: string | undefined | null): Promise<boolean> {
-  const s = secret();
-  if (!s || !value) return false;
-  const dot = value.indexOf(".");
-  if (dot <= 0) return false;
-  const expires = value.slice(0, dot);
-  const mac = value.slice(dot + 1);
-  if (!/^\d{10,16}$/.test(expires)) return false;
-  if (Number(expires) < Date.now()) return false;
-  const expected = await hmacHex(expires, s);
-  return safeEqual(mac, expected);
+/** Verify a cookie value and return the signed-in address, or null.
+ *
+ *  Three independent checks, all of which must pass: the signature is ours,
+ *  the session has not expired, and the address is STILL on the allowlist.
+ *
+ *  Parsed from the right, because an email address contains dots: the last
+ *  two segments are always the expiry and the signature. */
+export async function readAdminSession(value: string | undefined | null): Promise<string | null> {
+  const key = signingKey();
+  if (!key || !value) return null;
+
+  const lastDot = value.lastIndexOf(".");
+  if (lastDot <= 0) return null;
+  const mac = value.slice(lastDot + 1);
+  const payload = value.slice(0, lastDot);
+  const secondDot = payload.lastIndexOf(".");
+  if (secondDot <= 0) return null;
+  const expires = payload.slice(secondDot + 1);
+  const email = payload.slice(0, secondDot);
+
+  if (!/^\d{10,16}$/.test(expires)) return null;
+  if (Number(expires) < Date.now()) return null;
+
+  const expected = await hmacHex(payload, key);
+  if (!safeEqual(mac, expected)) return null;
+
+  // Re-checked on every request, not only at sign-in: this is what makes
+  // removing an address from ADMIN_EMAILS take effect on the next deploy.
+  if (!isAllowedAdmin(email)) return null;
+  return email;
 }
+
+/** Convenience for callers that only need a yes/no. */
+export async function verifyAdminCookie(value: string | undefined | null): Promise<boolean> {
+  return (await readAdminSession(value)) !== null;
+}
+
+/** Pull the admin cookie value out of a raw Cookie header. */
+export function adminCookieFromHeader(cookieHeader: string | null): string | undefined {
+  const match = (cookieHeader ?? "").match(new RegExp(`(?:^|;\\s*)${ADMIN_COOKIE}=([^;]+)`));
+  return match?.[1];
+}
+
+/** The options every place that sets this cookie must use. SameSite=Strict:
+ *  the console is never legitimately reached by a cross-site navigation. */
+export const ADMIN_COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "strict" as const,
+  path: "/",
+  maxAge: SESSION_MS / 1000,
+};
