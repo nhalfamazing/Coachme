@@ -1189,6 +1189,7 @@ export default function CoachMeApp() {
     .drill-locked-icon {
       width: 44px; height: 44px; border-radius: 50%; background: rgba(197,255,61,0.92);
       display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; /* the column squashes it into an ellipse otherwise */
     }
 
     .drill-coach { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
