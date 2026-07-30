@@ -12,7 +12,8 @@ import * as bookingApi from '@/lib/scheduling/client';
 import { checkHardBlock, BLOCK_MESSAGE } from '@/lib/safety/patterns';
 import { generateAthleteCode, decodeAnyCode } from '@/lib/codes';
 import { DRILLS, COACHES, SPORT_META, coachFor } from '@/lib/drills';
-import { hasHowTo, relatedDrills } from '@/lib/drill-content';
+import { hasHowTo, relatedDrills, drillProgress, trackedStatFor } from '@/lib/drill-content';
+import { ACHIEVEMENT_DEFS, achievementState, achievementXp } from '@/lib/achievements';
 import { FieldGeo, hasFieldGeo } from '@/components/marketing/field-lines';
 import {
   CheckCircle2, MapPin, Video, Send, Calendar as CalIcon, Star,
@@ -130,17 +131,23 @@ const WORKOUT_TYPES = [
 
 const INTENSITY_LABELS = ['Light', 'Easy', 'Medium', 'Hard', 'All-out'];
 
-// Achievements are checked against derived state, never fake-awarded.
-const ACHIEVEMENTS = [
-  { id: 'first_workout',  icon: Flame,    label: 'First Workout',     hint: 'Log your first training session.' },
-  { id: 'streak_3',       icon: Zap,      label: '3-Day Streak',      hint: 'Train 3 days in a row.' },
-  { id: 'streak_7',       icon: Flame,    label: 'Week Warrior',      hint: 'Train 7 days in a row.' },
-  { id: 'workouts_10',    icon: Dumbbell, label: '10 Workouts',       hint: 'Log 10 total workouts.' },
-  { id: 'workouts_50',    icon: Trophy,   label: '50 Workouts',       hint: 'Log 50 total workouts.' },
-  { id: 'first_post',     icon: Users,    label: 'First Post',        hint: 'Share something in the Feed.' },
-  { id: 'first_pr',       icon: TrendingUp, label: 'First PR',        hint: 'Add a starting stat to your profile.' },
-  { id: 'first_trainer',  icon: Award,    label: 'Coached Up',        hint: 'Connect with a real trainer.' },
-];
+/* Achievements are checked against derived state, never fake-awarded.
+   Definitions and XP live in src/lib/achievements.ts (testable, no
+   React); only the icons are chosen here. Drill logging earns XP
+   through this same system — there is no second XP path. */
+const ACHIEVEMENT_ICONS: Record<string, unknown> = {
+  first_workout: Flame,
+  streak_3: Zap,
+  streak_7: Flame,
+  workouts_10: Dumbbell,
+  workouts_50: Trophy,
+  first_drill: Target,
+  drills_10: Video,
+  first_post: Users,
+  first_pr: TrendingUp,
+  first_trainer: Award,
+};
+const ACHIEVEMENTS = ACHIEVEMENT_DEFS.map(a => ({ ...a, icon: ACHIEVEMENT_ICONS[a.id] ?? Award }));
 
 function isSameDay(a: Date, b: Date) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
@@ -205,6 +212,22 @@ function migrateLegacyWorkouts(athleteId) {
     localStorage.setItem(workoutsKey(athleteId), JSON.stringify(legacy));
     localStorage.setItem(LEGACY_WORKOUTS_KEY, JSON.stringify([{ migrated: true }, ...legacy]));
   } catch {}
+}
+
+/* ============================================================
+   PER-DRILL SESSION STORAGE
+   Drill logs live under 'coachme_drill_sessions::<athleteId>',
+   namespaced per athlete for the same reason workouts are: two kids
+   on one browser must not share a training history. New key, so
+   there is no legacy shape to claim.
+   ============================================================ */
+function drillSessionsKey(athleteId) { return `coachme_drill_sessions::${athleteId}`; }
+
+function loadDrillSessionsFor(athleteId) {
+  try {
+    const saved = JSON.parse(localStorage.getItem(drillSessionsKey(athleteId)) || '[]');
+    return Array.isArray(saved) ? saved : [];
+  } catch { return []; }
 }
 
 /* ============================================================
@@ -607,6 +630,42 @@ export default function CoachMeApp() {
     }
   };
   const removeWorkout = (id) => saveWorkouts(workouts.filter(w => w.id !== id));
+
+  /* Per-drill log. Same local-first shape as workouts: written to
+     localStorage immediately so the progress tab updates on the tap,
+     pushed to the server after, queued for retry when offline. */
+  const [drillSessions, setDrillSessions] = useState([]);
+  useEffect(() => {
+    if (!athlete) { setDrillSessions([]); return; }
+    setDrillSessions(loadDrillSessionsFor(athlete.id));
+    if (athlete.code) {
+      let live = true;
+      sync.fetchDrillSessions(athlete.code, athlete.id).then(merged => {
+        if (live && merged) setDrillSessions(merged);
+      });
+      return () => { live = false; };
+    }
+  }, [athlete?.id]);
+  const logDrillSession = ({ drillId, reps, notes }) => {
+    if (!athlete) return;
+    // Both fields optional: one tap with nothing filled in is a real log.
+    const entry = {
+      id: Date.now(), drillId,
+      date: new Date().toISOString(),
+      reps: reps ?? null,
+      notes: notes?.trim() ? notes.trim() : null,
+    };
+    const next = [entry, ...drillSessions];
+    setDrillSessions(next);
+    try { localStorage.setItem(drillSessionsKey(athlete.id), JSON.stringify(next)); } catch {}
+    if (athlete.code) {
+      sync.logDrillSession({
+        athleteCode: athlete.code, athleteAppId: athlete.id, localId: entry.id,
+        drillId: entry.drillId, reps: entry.reps, notes: entry.notes,
+        completedAt: entry.date,
+      });
+    }
+  };
 
   // Detect what the athlete has done so achievements can unlock honestly.
   // The feed is shared across athletes on the device, so First Post only
@@ -1183,6 +1242,37 @@ export default function CoachMeApp() {
     .drill-related-title { display: block; padding: 0 10px; font-size: 14px; line-height: 1.05; text-transform: uppercase; color: var(--km-chalk); }
     .drill-related-meta { display: block; padding: 0 10px; font-size: 8px; color: #5F636B; letter-spacing: 0.1em; margin-top: 5px; }
 
+    /* Logging: one primary action, always reachable, never plan-gated. */
+    .drill-actions { margin-top: 16px; }
+    .drill-log-btn {
+      width: 100%; background: #C5FF3D; color: #000; border: none;
+      padding: 14px; border-radius: 999px; font-weight: 700; font-size: 14px; cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .drill-logged {
+      display: flex; align-items: center; gap: 8px; margin-top: 10px;
+      padding: 10px 12px; border-radius: 10px; background: rgba(197,255,61,0.09);
+      font-size: 12.5px; color: var(--km-chalk); line-height: 1.4;
+    }
+    .drill-logged-xp { color: #C5FF3D; font-size: 10px; letter-spacing: 0.1em; margin-left: 8px; font-weight: 700; }
+
+    /* Progress numbers: Mono, because they are stats. */
+    .drill-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .drill-stat { background: var(--km-high); border-radius: 12px; padding: 14px 10px; text-align: center; }
+    .drill-stat-value { display: block; font-size: 26px; line-height: 1; color: #C5FF3D; font-weight: 700; }
+    .drill-stat-label { display: block; font-size: 8px; color: #5F636B; margin-top: 8px; }
+
+    .drill-pb { background: var(--km-high); border-radius: 12px; padding: 16px; }
+    .drill-pb-value { display: block; font-size: 32px; line-height: 1; color: var(--km-chalk); font-weight: 700; }
+    .drill-pb-unit { font-size: 14px; color: #9CA0A8; margin-left: 4px; }
+    .drill-pb-label { display: block; font-size: 8.5px; color: #C96F4A; margin-top: 9px; }
+
+    .drill-log { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+    .drill-log-row { display: flex; gap: 12px; background: var(--km-high); border-radius: 10px; padding: 11px 12px; }
+    .drill-log-date { font-size: 9.5px; color: #5F636B; letter-spacing: 0.1em; width: 52px; flex-shrink: 0; padding-top: 2px; }
+    .drill-log-reps { display: block; font-size: 11px; color: var(--km-chalk); letter-spacing: 0.1em; font-weight: 700; }
+    .drill-log-note { display: block; font-size: 12px; color: #9CA0A8; line-height: 1.45; margin-top: 5px; }
+
     .drill-empty { text-align: center; padding: 34px 20px; }
     .drill-empty-icon {
       width: 52px; height: 52px; border-radius: 16px; background: var(--km-high);
@@ -1211,7 +1301,8 @@ export default function CoachMeApp() {
         display: grid; grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
         column-gap: 28px; align-items: start; margin-top: 6px;
       }
-      .drill-media { grid-column: 1; grid-row: 1 / span 2; margin-top: 8px; position: sticky; top: 8px; }
+      .drill-aside { grid-column: 1; grid-row: 1 / span 2; margin-top: 8px; position: sticky; top: 8px; }
+      .drill-media { margin-top: 0; }
       .drill-tabbar { grid-column: 2; grid-row: 1; margin-top: 0; }
       .drill-panels { grid-column: 2; grid-row: 2; margin-top: 16px; }
       .drill-facts { grid-template-columns: 1fr 1fr; }
@@ -1219,10 +1310,12 @@ export default function CoachMeApp() {
       .drill-step-n { font-size: 26px; width: 34px; }
     }
 
-    /* Phone/tablet: the video belongs to Overview. Desktop overrides
-       this above, so the rule is scoped away from wide screens. */
+    /* Phone/tablet: the video belongs to Overview, but the log action
+       stays put on every tab. Desktop shows both always (rules above),
+       so this is scoped away from wide screens. */
     @media (max-width: 1023px) {
       .drill-detail:not([data-tab="overview"]) .drill-media { display: none; }
+      .drill-detail:not([data-tab="overview"]) .drill-aside { margin-bottom: 4px; }
     }
 
     /* Pointer feedback on devices that hover, consistent with the
@@ -1255,7 +1348,7 @@ export default function CoachMeApp() {
             <div className="app-body">
               <div className="phone-scroll" style={{ flex: 1, overflow: 'auto', position: 'relative' }}>
                 <div className={`tab-fade ${tabAnim ? 'out' : ''}`}>
-                  {tab === 'profile' && <ProfileView athlete={athlete} trainerIds={trainerIds} trainers={allTrainers} workouts={workouts} hasPosts={hasPosts} hasMessagedCoach={messagedCoachEver} onOpenTrainer={openTrainer} onGoToTrainers={() => switchTab('trainers')} onOpenChat={openChat} onLogWorkout={() => setLogWorkoutOpen(true)} onRemoveWorkout={removeWorkout} onSignOut={signOut}/>}
+                  {tab === 'profile' && <ProfileView athlete={athlete} trainerIds={trainerIds} trainers={allTrainers} workouts={workouts} drillSessions={drillSessions} hasPosts={hasPosts} hasMessagedCoach={messagedCoachEver} onOpenTrainer={openTrainer} onGoToTrainers={() => switchTab('trainers')} onOpenChat={openChat} onLogWorkout={() => setLogWorkoutOpen(true)} onRemoveWorkout={removeWorkout} onSignOut={signOut}/>}
                   {tab === 'trainers' && <TrainersView onOpenTrainer={openTrainer} athlete={athlete} trainers={allTrainers} onOpenDrill={setDrillOpen}/>}
                   {tab === 'community' && <CommunityView athlete={athlete}/>}
                   {tab === 'messages' && <MessagesView conversations={conversations} trainers={allTrainers} blockedIds={blockedIds} onOpenChat={openChat} onGoToTrainers={() => switchTab('trainers')}/>}
@@ -1313,6 +1406,9 @@ export default function CoachMeApp() {
                 key={drillOpen.id}
                 drill={drillOpen}
                 athleteId={athlete?.id}
+                athleteStats={athlete?.stats}
+                sessions={drillSessions}
+                onLogDrill={logDrillSession}
                 onOpenDrill={setDrillOpen}
                 onClose={() => setDrillOpen(null)}
               />
@@ -2235,27 +2331,23 @@ function SUDone({ form, onFinish }) {
 /* ============================================================
    PROFILE VIEW
    ============================================================ */
-function ProfileView({ athlete, trainerIds, trainers = TRAINERS, workouts = [], hasPosts = false, hasMessagedCoach = false, onOpenTrainer, onGoToTrainers, onOpenChat, onLogWorkout, onRemoveWorkout, onSignOut }) {
+function ProfileView({ athlete, trainerIds, trainers = TRAINERS, workouts = [], drillSessions = [], hasPosts = false, hasMessagedCoach = false, onOpenTrainer, onGoToTrainers, onOpenChat, onLogWorkout, onRemoveWorkout, onSignOut }) {
   const hasStats = athlete.stats && athlete.stats.length > 0;
   const hasTrainers = trainerIds && trainerIds.length > 0;
   const streak = calcStreak(workouts);
   const thisWeek = countThisWeek(workouts);
   const totalWorkouts = workouts.length;
 
-  // Achievement unlock state
-  const earned: Record<string, boolean> = {
-    first_workout:  totalWorkouts >= 1,
-    streak_3:       streak >= 3,
-    streak_7:       streak >= 7,
-    workouts_10:    totalWorkouts >= 10,
-    workouts_50:    totalWorkouts >= 50,
-    first_post:     hasPosts,
-    first_pr:       hasStats,
-    // Unlocks on EITHER booking a session OR messaging any coach, since
-    // booking needs real trainer calendars to be wired in.
-    first_trainer:  hasTrainers || hasMessagedCoach,
-  };
-  const earnedCount = Object.values(earned).filter(Boolean).length;
+  /* Achievements AND the XP bar come out of the same derived state, so
+     drill logging lands on the profile through the one system rather
+     than a counter of its own. Nothing is stored: recomputed from what
+     the athlete has actually done, every render. */
+  const { earned, earnedCount, level, xpInLevel, xpMax } = achievementState({
+    totalWorkouts,
+    workoutStreak: streak,
+    totalDrillSessions: drillSessions.length,
+    hasPosts, hasStats, hasTrainers, hasMessagedCoach,
+  });
 
   return (
     <div className="view view--profile" style={{ padding: '0 0 24px' }}>
@@ -2300,12 +2392,12 @@ function ProfileView({ athlete, trainerIds, trainers = TRAINERS, workouts = [], 
 
           <div style={{ marginTop: 18 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }} className="mono">
-              <span style={{ fontSize: 10, color: '#9CA0A8', letterSpacing: '0.12em' }}>LEVEL {athlete.level}</span>
-              <span style={{ fontSize: 10, color: '#9CA0A8', letterSpacing: '0.06em' }}>{athlete.xp} / {athlete.xpMax} XP</span>
+              <span style={{ fontSize: 10, color: '#9CA0A8', letterSpacing: '0.12em' }}>LEVEL {level}</span>
+              <span style={{ fontSize: 10, color: '#9CA0A8', letterSpacing: '0.06em' }}>{xpInLevel} / {xpMax} XP</span>
             </div>
             <div style={{ height: 6, background: 'rgba(255,255,255,0.06)', borderRadius: 999, overflow: 'hidden' }}>
               <div style={{
-                width: `${Math.max(2, (athlete.xp / athlete.xpMax) * 100)}%`, height: '100%',
+                width: `${Math.max(2, (xpInLevel / xpMax) * 100)}%`, height: '100%',
                 background: 'linear-gradient(90deg, #8DBA1F 0%, #C5FF3D 100%)', borderRadius: 999,
                 boxShadow: '0 0 16px rgba(197,255,61,0.4)'
               }}/>
@@ -3292,15 +3384,235 @@ function DrillFact({ icon, label, value }) {
   );
 }
 
-function DrillSheet({ drill, athleteId, onOpenDrill, onClose }) {
+/* Log sheet. Reps and note are BOTH optional and the primary button is
+   always enabled: one tap with nothing filled in is a real log. Friction
+   is the thing that stops kids logging at all, so there is no required
+   field, no confirmation step, and no "are you sure". */
+function LogDrillSheet({ drill, onSave, onClose }) {
+  const [reps, setReps] = useState('');
+  const [notes, setNotes] = useState('');
+  const repsNum = Number.parseInt(reps, 10);
+  const save = () => {
+    onSave({
+      drillId: drill.id,
+      reps: Number.isFinite(repsNum) && repsNum > 0 ? repsNum : null,
+      notes,
+    });
+  };
+  return (
+    <div className="sheet-backdrop" style={{ zIndex: 230 }} onClick={onClose}>
+      <div className="slide-up sheet-panel" role="dialog" aria-label={`Log ${drill.title}`}
+        onClick={e => e.stopPropagation()} style={{ padding: '20px 18px 24px' }}>
+        <div className="sheet-handle"/>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: 6 }}>
+          <div>
+            <span className="stamp stamp--lime">Logging</span>
+            <div className="display" style={{ fontSize: 24, lineHeight: 1, textTransform: 'uppercase', marginTop: 9 }}>
+              {drill.title}
+            </div>
+          </div>
+          <button onClick={onClose} className="tap" aria-label="Cancel" style={{ color: '#5F636B' }}>
+            <X size={20}/>
+          </button>
+        </div>
+
+        <div className="body" style={{ fontSize: 12.5, color: '#9CA0A8', lineHeight: 1.5, margin: '12px 0 18px' }}>
+          Both of these are optional. Tap the button and you are logged.
+        </div>
+
+        <label className="wide" style={{ display: 'block', fontSize: 9, color: '#5F636B', marginBottom: 8 }}>
+          Reps <span style={{ color: '#3F434B' }}>(optional)</span>
+        </label>
+        <input
+          value={reps} onChange={e => setReps(e.target.value.replace(/[^0-9]/g, ''))}
+          inputMode="numeric" placeholder="How many?" className="mono"
+          style={{
+            width: '100%', background: 'var(--km-high)', border: 'none', borderRadius: 12,
+            padding: '14px 16px', color: 'var(--km-chalk)', fontSize: 15, outline: 'none', marginBottom: 18,
+          }}
+        />
+
+        <label className="wide" style={{ display: 'block', fontSize: 9, color: '#5F636B', marginBottom: 8 }}>
+          Note <span style={{ color: '#3F434B' }}>(optional)</span>
+        </label>
+        <textarea
+          value={notes} onChange={e => setNotes(e.target.value.slice(0, 2000))}
+          rows={3} placeholder="How did it feel?" className="body"
+          style={{
+            width: '100%', background: 'var(--km-high)', border: 'none', borderRadius: 12,
+            padding: '14px 16px', color: 'var(--km-chalk)', fontSize: 14, outline: 'none',
+            resize: 'none', marginBottom: 20,
+          }}
+        />
+
+        <button onClick={save} className="body" style={{
+          width: '100%', background: '#C5FF3D', color: '#000', border: 'none',
+          padding: '16px', borderRadius: 999, fontWeight: 700, fontSize: 15, cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+        }}>
+          <CheckCircle2 size={16}/> Log it
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* Reps over time. Deliberately a bare polyline: it is one athlete's own
+   numbers against their own past, with no cohort, average, or rank to
+   compare against. A flat line is a truthful flat line. */
+function DrillRepsChart({ series }) {
+  const W = 320, H = 96, PAD = 6;
+  const values = series.map(p => p.reps);
+  const max = Math.max(...values);
+  const min = Math.min(...values);
+  const span = max - min || 1;
+  const x = (i) => series.length === 1 ? W / 2 : PAD + (i * (W - PAD * 2)) / (series.length - 1);
+  const y = (v) => H - PAD - ((v - min) / span) * (H - PAD * 2);
+  const points = series.map((p, i) => `${x(i).toFixed(1)},${y(p.reps).toFixed(1)}`).join(' ');
+  return (
+    <div>
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} preserveAspectRatio="none"
+        role="img" aria-label={`Reps over your last ${series.length} logged sessions, from ${values[0]} to ${values[values.length - 1]}`}>
+        {series.length > 1 && (
+          <polyline points={points} fill="none" stroke="#C5FF3D" strokeWidth="2"
+            strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke"/>
+        )}
+        {series.map((p, i) => (
+          <circle key={`${p.date}-${i}`} cx={x(i)} cy={y(p.reps)} r="3" fill="#C5FF3D"/>
+        ))}
+      </svg>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
+        <span className="mono" style={{ fontSize: 9, color: '#5F636B', letterSpacing: '0.1em' }}>
+          {new Date(series[0].date).toLocaleDateString([], { month: 'short', day: 'numeric' }).toUpperCase()}
+        </span>
+        <span className="mono" style={{ fontSize: 9, color: '#5F636B', letterSpacing: '0.1em' }}>
+          {new Date(series[series.length - 1].date).toLocaleDateString([], { month: 'short', day: 'numeric' }).toUpperCase()}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function DrillStat({ value, label }) {
+  return (
+    <div className="drill-stat">
+      <span className="mono drill-stat-value">{value}</span>
+      <span className="wide drill-stat-label">{label}</span>
+    </div>
+  );
+}
+
+function DrillProgressPanel({ drill, sessions, athleteStats }) {
+  const p = drillProgress(sessions, drill.id);
+  // Only renders when the drill names a stat AND the athlete has that
+  // stat on their sheet. Both null today (no trackedStat is set yet).
+  const best = trackedStatFor(drill, athleteStats);
+
+  if (p.total === 0) {
+    return (
+      <div className="drill-block drill-empty">
+        <span className="drill-empty-icon"><TrendingUp size={20} color="#5F636B"/></span>
+        <div className="display drill-empty-title">NOTHING LOGGED YET</div>
+        {/* No CTA here on purpose: the "Log this drill" button is
+            already on screen and permanent. Two identical lime buttons
+            would just compete with each other. */}
+        <p className="drill-empty-sub body">Log your first rep and your progress shows up here.</p>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="drill-block">
+        <DrillSectionHead eyebrow="Your reps" title="This drill"/>
+        <div className="drill-stats">
+          <DrillStat value={p.total} label={p.total === 1 ? 'Time done' : 'Times done'}/>
+          <DrillStat value={p.streak} label={p.streak === 1 ? 'Day streak' : 'Day streak'}/>
+          {p.bestReps != null && <DrillStat value={p.bestReps} label="Best reps"/>}
+        </div>
+      </div>
+
+      {/* The chart needs at least one logged rep count. Sessions logged
+          with a single tap carry no reps, and that is fine — the chart
+          just does not appear. */}
+      {p.repSeries.length > 0 && (
+        <div className="drill-block">
+          <DrillSectionHead eyebrow="Over time" title="Reps"/>
+          <DrillRepsChart series={p.repSeries}/>
+        </div>
+      )}
+
+      {best && (
+        <div className="drill-block">
+          <DrillSectionHead eyebrow="On your stat sheet" title="Personal best" tone="clay"/>
+          <div className="drill-pb">
+            <span className="mono drill-pb-value">{best.value}{best.unit ? <span className="drill-pb-unit">{best.unit}</span> : null}</span>
+            <span className="wide drill-pb-label">{best.label}</span>
+          </div>
+        </div>
+      )}
+
+      <div className="drill-block">
+        <DrillSectionHead eyebrow="History" title="Last sessions"/>
+        <ul className="drill-log">
+          {p.sessions.slice(0, 10).map(s => (
+            <li key={s.id} className="drill-log-row">
+              <span className="mono drill-log-date">
+                {new Date(s.date).toLocaleDateString([], { month: 'short', day: 'numeric' }).toUpperCase()}
+              </span>
+              <span style={{ minWidth: 0, flex: 1 }}>
+                <span className="mono drill-log-reps">{s.reps != null ? `${s.reps} REPS` : 'LOGGED'}</span>
+                {s.notes && <span className="body drill-log-note">{s.notes}</span>}
+              </span>
+            </li>
+          ))}
+        </ul>
+        {p.total > 10 && (
+          <div className="mono" style={{ textAlign: 'center', fontSize: 9.5, color: '#5F636B', letterSpacing: '0.1em', paddingTop: 12 }}>
+            + {p.total - 10} EARLIER SESSION{p.total - 10 === 1 ? '' : 'S'}
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+function DrillSheet({ drill, athleteId, athleteStats, sessions = [], onLogDrill, onOpenDrill, onClose }) {
   const coach = coachFor(drill);
   const { expired } = drillTrialState(athleteId);
   const [tab, setTab] = useState('overview');
+  const [logOpen, setLogOpen] = useState(false);
+  // Confirmation after a log, so the tap visibly did something and the
+  // XP it earned is named rather than silently appearing on the profile.
+  const [logged, setLogged] = useState(null);
 
   useEffect(() => {
     // Role/step analytics only, no PII - same rule as the CRO events.
     if (expired) track('pro_gate_shown', { surface: 'drill_sheet' });
   }, [expired]);
+
+  useEffect(() => {
+    if (!logged) return;
+    const timer = setTimeout(() => setLogged(null), 4000);
+    return () => clearTimeout(timer);
+  }, [logged]);
+
+  const saveLog = (entry) => {
+    const before = sessions.filter(s => s && s.drillId === drill.id).length;
+    const totalBefore = sessions.length;
+    if (onLogDrill) onLogDrill(entry);
+    setLogOpen(false);
+    setTab('progress');
+    // Drill logging earns XP through the shared achievements system; a
+    // session only crosses a threshold once, so this names the XP the
+    // athlete just unlocked and nothing otherwise.
+    const unlocked =
+      totalBefore === 0 ? 'first_drill'
+      : totalBefore === 9 ? 'drills_10'
+      : null;
+    setLogged({ first: before === 0, xp: unlocked ? achievementXp(unlocked) : 0 });
+    track('drill_logged', { hasReps: entry.reps != null });
+  };
 
   const showHowTo = hasHowTo(drill);
   const TABS = [
@@ -3358,6 +3670,7 @@ function DrillSheet({ drill, athleteId, onOpenDrill, onClose }) {
               ))}
             </div>
 
+            <div className="drill-aside">
             <div className="drill-media">
               {expired ? (
                 /* Free month over: the poster stays (dimmed), the clips
@@ -3416,6 +3729,29 @@ function DrillSheet({ drill, athleteId, onOpenDrill, onClose }) {
                 This coach is AI-generated for the demo. Real verified coaches
                 review all drills before launch.
               </p>
+            </div>
+
+            {/* Logging stays on screen on every tab: the moment a kid
+                finishes a set is the moment they should be able to log
+                it, wherever they happen to be on the page. Never gated
+                by the Pro state — the clips lock, a kid's own training
+                log does not. */}
+            <div className="drill-actions">
+              {onLogDrill && (
+                <button onClick={() => setLogOpen(true)} className="body drill-log-btn">
+                  <Plus size={15}/> Log this drill
+                </button>
+              )}
+              {logged && (
+                <div className="drill-logged" role="status">
+                  <CheckCircle2 size={14} color="#C5FF3D" style={{ flexShrink: 0 }}/>
+                  <span className="body">
+                    {logged.first ? 'Logged. First one on this drill.' : 'Logged. Keep it going.'}
+                    {logged.xp > 0 && <span className="mono drill-logged-xp">+{logged.xp} XP</span>}
+                  </span>
+                </div>
+              )}
+            </div>
             </div>
 
             <div className="drill-panels">
@@ -3518,16 +3854,16 @@ function DrillSheet({ drill, athleteId, onOpenDrill, onClose }) {
 
               <section id="drill-panel-progress" role="tabpanel" aria-labelledby="drill-tab-progress"
                 hidden={active !== 'progress'}>
-                <div className="drill-block drill-empty">
-                  <span className="drill-empty-icon"><TrendingUp size={20} color="#5F636B"/></span>
-                  <div className="display drill-empty-title">NOTHING LOGGED YET</div>
-                  <p className="body drill-empty-sub">Log your first rep and your progress shows up here.</p>
-                </div>
+                <DrillProgressPanel drill={drill} sessions={sessions} athleteStats={athleteStats}/>
               </section>
             </div>
           </div>
         </div>
       </div>
+
+      {logOpen && (
+        <LogDrillSheet drill={drill} onSave={saveLog} onClose={() => setLogOpen(false)}/>
+      )}
     </div>
   );
 }

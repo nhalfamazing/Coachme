@@ -6,6 +6,7 @@
 //   --widths 390,768,1024,1440   viewport widths to capture (default all four)
 //   --out landing                filename prefix; files land in .screenshots/
 //   --seed                       seed a signed-in test athlete into localStorage
+//   --drill-log                  also seed drill sessions (MY PROGRESS tab)
 //   --tab trainers               click a bottom-nav/sidebar tab after load
 //   --click "Some text"          click element(s) by visible text after load
 //                                (repeatable; runs in order after --tab)
@@ -39,6 +40,11 @@ const tall = args.includes('--tall');
 // --trial-expired seeds the drill free-month stamp 40 days back so the
 // KoachMe Pro locked state renders.
 const trialExpired = args.includes('--trial-expired');
+// --drill-log seeds a short history on one drill so the MY PROGRESS tab
+// renders with real shape (streak, reps chart, session list) instead of
+// its empty state. Reps are missing on one entry on purpose: a one-tap
+// log with no reps is a normal thing and must render.
+const drillLog = args.includes('--drill-log');
 // --click, --clickjs and --tab actions run in the order they appear on
 // the command line. --clickjs clicks via the DOM (querySelector +
 // element.click()) for elements Playwright's locators struggle with.
@@ -76,6 +82,15 @@ const TEST_WORKOUTS = [
   { id: 1, date: new Date().toISOString(), type: 'practice', duration: 90, intensity: 3, notes: 'Team practice, live at-bats.' },
   { id: 2, date: new Date(Date.now() - 86400000).toISOString(), type: 'strength', duration: 45, intensity: 4, notes: '' },
 ];
+// Sessions on one drill (--drill-log), for the MY PROGRESS tab.
+const day = (n) => new Date(Date.now() - n * 86400000).toISOString();
+const TEST_DRILL_SESSIONS = [
+  { id: 101, drillId: 'ba-tee-work', date: day(0), reps: 60, notes: 'Stayed balanced the whole set.' },
+  { id: 102, drillId: 'ba-tee-work', date: day(1), reps: 45, notes: null },
+  { id: 103, drillId: 'ba-tee-work', date: day(2), reps: null, notes: 'Quick set before practice.' },
+  { id: 104, drillId: 'ba-tee-work', date: day(5), reps: 40, notes: null },
+  { id: 105, drillId: 'ba-tee-work', date: day(8), reps: 25, notes: 'First time trying it.' },
+];
 // A device-local coach so trainer detail / chat / booking flows render.
 // Only ever seeded against a dev server running with cloud sync disabled.
 const TEST_COACH = {
@@ -109,7 +124,7 @@ try {
       const athlete = persona === 'marketing'
         ? { ...TEST_ATHLETE, firstName: 'Sample', lastName: 'Athlete', name: 'S. Athlete', initials: 'SA' }
         : TEST_ATHLETE;
-      await context.addInitScript(({ athlete, workouts, coach, windows, expiredTrial }) => {
+      await context.addInitScript(({ athlete, workouts, coach, windows, expiredTrial, drillSessions }) => {
         localStorage.setItem('coachme_athlete', JSON.stringify(athlete));
         localStorage.setItem(`coachme_workouts::${athlete.id}`, JSON.stringify(workouts));
         if (coach) localStorage.setItem('coachme_coaches', JSON.stringify([coach]));
@@ -131,11 +146,20 @@ try {
           text: 'New PR on exit velo today - 85 mph off the tee. Chasing 90 by fall.',
           ts: Date.now() - 5400000, likes: 3, liked: false,
         }]));
+        if (drillSessions) {
+          localStorage.setItem(`coachme_drill_sessions::${athlete.id}`, JSON.stringify(drillSessions));
+        }
         localStorage.removeItem('coachme_signed_out');
         if (expiredTrial) {
           localStorage.setItem(`coachme_drills_trial::${athlete.id}`, new Date(Date.now() - 40 * 86400000).toISOString());
         }
-      }, { athlete, workouts: TEST_WORKOUTS, coach: persona === 'marketing' ? null : TEST_COACH, windows: persona === 'marketing' ? null : TEST_WINDOWS, expiredTrial: trialExpired });
+      }, {
+        athlete, workouts: TEST_WORKOUTS,
+        coach: persona === 'marketing' ? null : TEST_COACH,
+        windows: persona === 'marketing' ? null : TEST_WINDOWS,
+        expiredTrial: trialExpired,
+        drillSessions: drillLog ? TEST_DRILL_SESSIONS : null,
+      });
     }
     const page = await context.newPage();
     await page.goto(url, { waitUntil: 'networkidle' }).catch(() => page.goto(url));

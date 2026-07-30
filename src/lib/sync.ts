@@ -68,6 +68,16 @@ interface WorkoutRow {
   created_at: string;
 }
 
+interface DrillSessionRow {
+  id: string;
+  profile_id: string;
+  drill_id: string;
+  completed_at: string;
+  reps: number | null;
+  notes: string | null;
+  created_at: string;
+}
+
 interface PostDto {
   post: { id: string; author_id: string; body: string; created_at: string };
   author: ProfileRow | null;
@@ -147,6 +157,16 @@ export interface AppWorkout {
   notes?: string | null;
 }
 
+/** One logged rep of one drill. reps and notes are optional because the
+ *  log button must work with a single tap and nothing filled in. */
+export interface AppDrillSession {
+  id: number | string;
+  drillId: string;
+  date: string;
+  reps?: number | null;
+  notes?: string | null;
+}
+
 export interface AppPost {
   id: number | string;
   authorId?: number | string;
@@ -205,6 +225,7 @@ const K = {
   posts: "coachme_posts",
   queue: "coachme_pending_sync",
   workouts: (athleteAppId: number | string) => `coachme_workouts::${athleteAppId}`,
+  drillSessions: (athleteAppId: number | string) => `coachme_drill_sessions::${athleteAppId}`,
   imported: (code: string) => `coachme_imported::${code}`,
 };
 
@@ -325,6 +346,16 @@ function rowToWorkout(row: WorkoutRow): AppWorkout {
   };
 }
 
+function rowToDrillSession(row: DrillSessionRow): AppDrillSession {
+  return {
+    id: row.id,
+    drillId: row.drill_id,
+    date: row.completed_at,
+    reps: row.reps,
+    notes: row.notes,
+  };
+}
+
 function postDtoToApp(dto: PostDto): AppPost | null {
   if (!dto.author) return null;
   const a = dto.author.role === "athlete" ? rowToAthlete(dto.author) : rowToCoach(dto.author);
@@ -396,6 +427,19 @@ function mergeWorkouts(athleteAppId: number | string, incoming: AppWorkout[]): A
   return merged;
 }
 
+function mergeDrillSessions(athleteAppId: number | string, incoming: AppDrillSession[]): AppDrillSession[] {
+  const key = K.drillSessions(athleteAppId);
+  const local = readJson<AppDrillSession[]>(key, []);
+  const serverIds = new Set(incoming.map(s => String(s.id)));
+  // Keep local-only entries (numeric ids = created on this device and
+  // possibly still queued) so an offline log is never lost on refresh.
+  const localOnly = local.filter(s => !serverIds.has(String(s.id)) && typeof s.id === "number");
+  const merged = [...incoming, ...localOnly]
+    .sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
+  writeJson(key, merged);
+  return merged;
+}
+
 function mergePosts(incoming: AppPost[]): AppPost[] {
   const local = readJson<AppPost[]>(K.posts, []);
   const serverIds = new Set(incoming.map(p => String(p.id)));
@@ -411,6 +455,7 @@ type QueueItem =
   | { kind: "register"; role: Role; payload: Record<string, unknown> }
   | { kind: "message"; athleteCode: string; coachCode: string; senderCode: string; body: string; legacyKey?: string }
   | { kind: "workout"; athleteCode: string; athleteAppId: number | string; localId: number | string; payload: Record<string, unknown> }
+  | { kind: "drillSession"; athleteCode: string; athleteAppId: number | string; localId: number | string; payload: Record<string, unknown> }
   | { kind: "post"; authorCode: string; localId: number | string; body: string }
   | { kind: "like"; postId: string; code: string }
   | { kind: "deletePost"; postId: string; code: string };
@@ -467,6 +512,15 @@ async function replayQueueItem(item: QueueItem): Promise<void> {
       const key = K.workouts(item.athleteAppId);
       const list = readJson<AppWorkout[]>(key, []);
       writeJson(key, list.map(w => (String(w.id) === String(item.localId) ? rowToWorkout(res.workout) : w)));
+      return;
+    }
+    case "drillSession": {
+      const res = await api<{ session: DrillSessionRow }>("/drill-sessions", {
+        method: "POST", body: JSON.stringify(item.payload),
+      });
+      const key = K.drillSessions(item.athleteAppId);
+      const list = readJson<AppDrillSession[]>(key, []);
+      writeJson(key, list.map(s => (String(s.id) === String(item.localId) ? rowToDrillSession(res.session) : s)));
       return;
     }
     case "post": {
@@ -703,6 +757,42 @@ export async function fetchWorkouts(code: string, athleteAppId: number | string)
   try {
     const res = await api<{ workouts: WorkoutRow[] }>(`/workouts/for/${encodeURIComponent(code)}`);
     return mergeWorkouts(athleteAppId, res.workouts.map(rowToWorkout));
+  } catch { return null; }
+}
+
+/** Log one drill session. Same local-first contract as logWorkout: the
+ *  caller has already written the local entry, this pushes it and swaps
+ *  in the server row, or queues for retry when the cloud is unreachable. */
+export async function logDrillSession(params: {
+  athleteCode: string; athleteAppId: number | string; localId: number | string;
+  drillId: string; reps?: number | null; notes?: string | null; completedAt: string;
+}): Promise<boolean> {
+  const payload = {
+    athleteCode: params.athleteCode,
+    drillId: params.drillId,
+    reps: params.reps ?? null,
+    notes: params.notes ?? null,
+    completedAt: params.completedAt,
+  };
+  try {
+    const res = await api<{ session: DrillSessionRow }>("/drill-sessions", { method: "POST", body: JSON.stringify(payload) });
+    const key = K.drillSessions(params.athleteAppId);
+    const list = readJson<AppDrillSession[]>(key, []);
+    writeJson(key, list.map(s => (String(s.id) === String(params.localId) ? rowToDrillSession(res.session) : s)));
+    return true;
+  } catch (err) {
+    if (err instanceof CloudUnavailableError) {
+      queuePush({ kind: "drillSession", athleteCode: params.athleteCode, athleteAppId: params.athleteAppId, localId: params.localId, payload });
+    }
+    return false;
+  }
+}
+
+/** This athlete's whole drill history, merged into the local key. */
+export async function fetchDrillSessions(code: string, athleteAppId: number | string): Promise<AppDrillSession[] | null> {
+  try {
+    const res = await api<{ sessions: DrillSessionRow[] }>(`/drill-sessions/for/${encodeURIComponent(code)}`);
+    return mergeDrillSessions(athleteAppId, res.sessions.map(rowToDrillSession));
   } catch { return null; }
 }
 
