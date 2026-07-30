@@ -1,11 +1,17 @@
 /* Field geometry: thin-stroke court/field elements drawn as inline SVG,
-   used at 3-6% chalk opacity as section backgrounds on the landing page.
-   Subject-grounded page furniture - each section borrows lines from a
-   DIFFERENT sport (see docs/design-system.md). Server components, no JS.
+   used at 3-6% chalk opacity as section backgrounds. Subject-grounded
+   page furniture - on the landing page each section borrows lines from a
+   DIFFERENT sport (see docs/design-system.md); the in-app drill detail
+   page uses the geometry of the drill's OWN sport, one per screen.
+   Pure render, no hooks - safe to import from client components too.
 
    All strokes use currentColor; the wrapper sets color + opacity, so
    every element stays a one-liner to place:
-     <FieldGeo sport="basketball" style={{ right: -120, top: -40 }} /> */
+     <FieldGeo sport="basketball" style={{ right: -120, top: -40 }} />
+
+   The wrapper's .mk-geo positioning class lives in marketing.css for
+   the landing page; the app declares its own copy in page.tsx (it does
+   not load marketing.css). */
 
 const STROKE = 1.25;
 
@@ -76,20 +82,58 @@ function SoccerCircle() {
   );
 }
 
+function VolleyballCourt() {
+  // Court outline with the net line and both attack lines.
+  return (
+    <svg width="520" height="360" viewBox="0 0 520 360" fill="none" aria-hidden="true">
+      <rect x="20" y="20" width="480" height="320" stroke="currentColor" strokeWidth={STROKE} />
+      <line x1="260" y1="20" x2="260" y2="340" stroke="currentColor" strokeWidth={STROKE} />
+      <line x1="164" y1="20" x2="164" y2="340" stroke="currentColor" strokeWidth={STROKE} />
+      <line x1="356" y1="20" x2="356" y2="340" stroke="currentColor" strokeWidth={STROKE} />
+      {[0, 1, 2, 3, 4, 5, 6].map(i => (
+        <line key={i} x1="260" y1={20 + i * 53} x2="260" y2={20 + i * 53 + 26} stroke="currentColor" strokeWidth={STROKE * 2.4} />
+      ))}
+    </svg>
+  );
+}
+
+function SoftballInfield() {
+  // Diamond with basepaths and the pitching circle (softball pitches
+  // from a flat circle, not a raised mound — that is the tell).
+  return (
+    <svg width="480" height="480" viewBox="0 0 480 480" fill="none" aria-hidden="true">
+      <path d="M 240 440 L 72 272 L 240 104 L 408 272 Z" stroke="currentColor" strokeWidth={STROKE} />
+      <path d="M 158 358 A 116 116 0 0 1 322 358" stroke="currentColor" strokeWidth={STROKE} />
+      <circle cx="240" cy="272" r="34" stroke="currentColor" strokeWidth={STROKE} />
+      <rect x="231" y="431" width="18" height="18" stroke="currentColor" strokeWidth={STROKE} transform="rotate(45 240 440)" />
+    </svg>
+  );
+}
+
 const SPORTS = {
   basketball: BasketballKey,
   football: FootballHashes,
   track: TrackLanes,
   baseball: BaseballInfield,
   soccer: SoccerCircle,
+  volleyball: VolleyballCourt,
+  softball: SoftballInfield,
 } as const;
+
+/** Sports this component can draw. Callers with a dynamic sport (the
+    drill detail page keys off the drill's sport) narrow through this
+    instead of casting — an unsupported sport renders no geometry. */
+export type FieldGeoSport = keyof typeof SPORTS;
+export function hasFieldGeo(sport: string): sport is FieldGeoSport {
+  return sport in SPORTS;
+}
 
 export function FieldGeo({
   sport,
   opacity = 0.05,
   style,
 }: {
-  sport: keyof typeof SPORTS;
+  sport: FieldGeoSport;
   opacity?: number;
   style?: React.CSSProperties;
 }) {

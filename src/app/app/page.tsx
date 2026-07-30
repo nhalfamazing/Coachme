@@ -12,13 +12,16 @@ import * as bookingApi from '@/lib/scheduling/client';
 import { checkHardBlock, BLOCK_MESSAGE } from '@/lib/safety/patterns';
 import { generateAthleteCode, decodeAnyCode } from '@/lib/codes';
 import { DRILLS, COACHES, SPORT_META, coachFor } from '@/lib/drills';
+import { hasHowTo, relatedDrills } from '@/lib/drill-content';
+import { FieldGeo, hasFieldGeo } from '@/components/marketing/field-lines';
 import {
   CheckCircle2, MapPin, Video, Send, Calendar as CalIcon, Star,
   TrendingUp, Search, User as UserIcon, MessageCircle,
   ChevronRight, ChevronLeft, ChevronDown, X, ArrowRight,
   Plus, Mic, MicOff, VideoOff, PhoneOff, Camera,
   Send as SendIcon, MoreHorizontal, Inbox, UserPlus,
-  Users, Heart, Dumbbell, Flame, Zap, Award, Trophy, Target, Clock, Lock
+  Users, Heart, Dumbbell, Flame, Zap, Award, Trophy, Target, Clock, Lock,
+  Play, Package, Gauge
 } from 'lucide-react';
 
 /* ============================================================
@@ -1064,6 +1067,164 @@ export default function CoachMeApp() {
       .landing-title { font-size: 72px; }
     }
 
+    /* ============================================================
+       DRILL DETAIL
+       Depth comes from surface steps, never borders or shadows
+       (docs/design-system.md): panel km-raised -> block km-card ->
+       card km-high. Headlines Clash, eyebrows/labels Panchang,
+       numbers Mono, prose Archivo.
+       ============================================================ */
+
+    /* The app does not load marketing.css; FieldGeo needs its wrapper
+       positioned here too. Keep in sync with .mk-geo there. */
+    .mk-geo { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+    .mk-geo svg { position: absolute; }
+
+    /* Own scroll container: the desktop sticky video sticks to this. */
+    .sheet-panel--drill { background: var(--km-raised); max-height: 92%; overflow-y: auto; }
+    .drill-inner { position: relative; z-index: 1; padding: 18px 16px 24px; }
+
+    .drill-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+    .drill-head-side { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+    .drill-eyebrow { font-size: 9.5px; color: #9CA0A8; letter-spacing: 0.1em; margin-bottom: 7px; }
+    .drill-title { font-size: 30px; line-height: 0.95; text-transform: uppercase; margin: 0; }
+
+    /* Tabs: a surface step, not a bordered strip. */
+    .drill-tabbar {
+      display: flex; gap: 4px; margin: 18px 0 4px; padding: 4px;
+      background: var(--km-card); border-radius: 12px;
+    }
+    /* Tighter than the .wide default so all three labels fit unclipped
+       across a 390px phone — "MY PROGRESS" is the constraint. */
+    .drill-tab {
+      flex: 1; min-width: 0; padding: 10px 4px; border: none; border-radius: 9px;
+      background: none; color: #9CA0A8; cursor: pointer;
+      font-size: 8.5px; letter-spacing: 0.1em; line-height: 1; white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis; transition: background 0.15s, color 0.15s;
+    }
+    .drill-tab.is-active { background: var(--km-high); color: var(--km-chalk); }
+
+    .drill-media { margin-top: 18px; }
+    .drill-cliplabel { font-size: 10px; color: #9CA0A8; letter-spacing: 0.14em; margin: 14px 0 8px; }
+    .drill-cliplabel:first-child { margin-top: 0; }
+    .drill-video {
+      width: 100%; aspect-ratio: 16 / 9; display: block; padding: 0;
+      border: none; border-radius: 14px; background: #000; overflow: hidden;
+      object-fit: contain;
+    }
+    .drill-poster { position: relative; cursor: pointer; }
+    .drill-poster img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .drill-play {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      width: 52px; height: 52px; border-radius: 50%; background: rgba(197,255,61,0.94);
+      display: flex; align-items: center; justify-content: center; padding-left: 3px;
+    }
+
+    /* Pro gate: the clips lock, the written how-to never does. */
+    .drill-locked { position: relative; border-radius: 14px; overflow: hidden; }
+    .drill-locked img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; filter: blur(3px) brightness(0.45); }
+    .drill-locked-body {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 10px; padding: 20px; text-align: center;
+    }
+    .drill-locked-icon {
+      width: 44px; height: 44px; border-radius: 50%; background: rgba(197,255,61,0.92);
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .drill-coach { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+    .drill-coach img { width: 38px; height: 38px; border-radius: 11px; object-fit: cover; display: block; flex-shrink: 0; }
+    .drill-coach-name { display: block; font-size: 13px; line-height: 1; text-transform: uppercase; color: var(--km-chalk); }
+    .drill-coach-style { display: block; font-size: 8.5px; color: #5F636B; letter-spacing: 0.08em; margin-top: 4px; }
+    .drill-ai-note { font-size: 11px; color: #9CA0A8; line-height: 1.45; margin: 10px 0 0; }
+
+    .drill-panels { margin-top: 20px; }
+    .drill-summary { font-size: 14px; color: #D4D6DA; line-height: 1.6; margin: 0 0 22px; }
+
+    /* Every section is one raised block; the gap between blocks is the
+       separator, so no rules or borders are needed. */
+    .drill-block { background: var(--km-card); border-radius: 16px; padding: 18px 16px; margin-bottom: 14px; }
+    .drill-section-head { margin-bottom: 14px; }
+    .drill-section-title { font-size: 19px; line-height: 1; text-transform: uppercase; margin: 9px 0 0; color: var(--km-chalk); }
+
+    .drill-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+
+    .drill-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .drill-fact { display: flex; align-items: flex-start; gap: 9px; background: var(--km-high); border-radius: 12px; padding: 11px 12px; }
+    .drill-fact-icon { display: flex; align-items: center; justify-content: center; width: 18px; flex-shrink: 0; margin-top: 1px; }
+    .drill-fact-label { display: block; font-size: 8px; color: #5F636B; }
+    .drill-fact-value { display: block; font-size: 11.5px; color: var(--km-chalk); margin-top: 5px; line-height: 1.35; word-break: break-word; }
+    /* Manifest values are written lowercase ("beginner", "backyard");
+       sentence-case them for display without touching the data. */
+    .drill-fact-value::first-letter { text-transform: uppercase; }
+
+    /* Stepper: the numeral is the anchor, so it gets the Mono weight. */
+    .drill-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+    .drill-step { display: flex; gap: 13px; background: var(--km-high); border-radius: 12px; padding: 14px; }
+    .drill-step-n { font-size: 22px; line-height: 1; color: #C5FF3D; font-weight: 700; flex-shrink: 0; width: 30px; }
+    .drill-step-title { display: block; font-size: 15px; line-height: 1; text-transform: uppercase; color: var(--km-chalk); }
+    .drill-step-detail { display: block; font-size: 13px; color: #9CA0A8; line-height: 1.55; margin-top: 7px; }
+
+    .drill-mistakes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+    .drill-mistake { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; background: var(--km-high); border-radius: 12px; overflow: hidden; }
+    .drill-mistake-side { padding: 13px; display: block; min-width: 0; }
+    .drill-mistake-side--fix { background: rgba(197,255,61,0.07); }
+    .drill-mistake-label { display: block; font-size: 8px; color: #5F636B; }
+    .drill-mistake-label--fix { color: #C5FF3D; }
+    .drill-mistake-text { display: block; font-size: 12.5px; color: #9CA0A8; line-height: 1.5; margin-top: 7px; }
+    .drill-mistake-text--fix { color: var(--km-chalk); font-weight: 600; }
+
+    .drill-related { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .drill-related-card {
+      display: block; text-align: left; padding: 0 0 11px; cursor: pointer;
+      background: var(--km-high); border: 1px solid transparent; border-radius: 12px; overflow: hidden;
+    }
+    .drill-related-card img { width: 100%; aspect-ratio: 2 / 1; object-fit: cover; display: block; margin-bottom: 9px; }
+    .drill-related-title { display: block; padding: 0 10px; font-size: 14px; line-height: 1.05; text-transform: uppercase; color: var(--km-chalk); }
+    .drill-related-meta { display: block; padding: 0 10px; font-size: 8px; color: #5F636B; letter-spacing: 0.1em; margin-top: 5px; }
+
+    .drill-empty { text-align: center; padding: 34px 20px; }
+    .drill-empty-icon {
+      width: 52px; height: 52px; border-radius: 16px; background: var(--km-high);
+      display: inline-flex; align-items: center; justify-content: center; margin-bottom: 14px;
+    }
+    .drill-empty-title { font-size: 19px; line-height: 1; text-transform: uppercase; }
+    .drill-empty-sub { font-size: 13px; color: #9CA0A8; line-height: 1.5; margin: 9px auto 0; max-width: 280px; }
+
+    /* Tier 2 — tablet: the sheet gets room, facts go four-up. */
+    @media (min-width: 641px) {
+      .drill-inner { padding: 20px 22px 28px; }
+      .drill-title { font-size: 36px; }
+      .drill-facts { grid-template-columns: repeat(4, 1fr); }
+      .drill-related { grid-template-columns: repeat(4, 1fr); }
+      .drill-tab { font-size: 10px; letter-spacing: 0.14em; padding: 11px 8px; }
+    }
+
+    /* Tier 3 — desktop: two columns, video sticky on the left while the
+       tab content scrolls beside it. The media block is always visible
+       here; on phone/tablet it belongs to the Overview tab. */
+    @media (min-width: 1024px) {
+      .sheet-panel--drill { max-width: 1040px; }
+      .drill-inner { padding: 26px 30px 32px; }
+      .drill-title { font-size: 42px; }
+      .drill-detail {
+        display: grid; grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+        column-gap: 28px; align-items: start; margin-top: 6px;
+      }
+      .drill-media { grid-column: 1; grid-row: 1 / span 2; margin-top: 8px; position: sticky; top: 8px; }
+      .drill-tabbar { grid-column: 2; grid-row: 1; margin-top: 0; }
+      .drill-panels { grid-column: 2; grid-row: 2; margin-top: 16px; }
+      .drill-facts { grid-template-columns: 1fr 1fr; }
+      .drill-related { grid-template-columns: 1fr 1fr; }
+      .drill-step-n { font-size: 26px; width: 34px; }
+    }
+
+    /* Phone/tablet: the video belongs to Overview. Desktop overrides
+       this above, so the rule is scoped away from wide screens. */
+    @media (max-width: 1023px) {
+      .drill-detail:not([data-tab="overview"]) .drill-media { display: none; }
+    }
+
     /* Pointer feedback on devices that hover, consistent with the
        existing pressed states. */
     @media (hover: hover) {
@@ -1072,6 +1233,9 @@ export default function CoachMeApp() {
       .app-nav-btn:hover { color: var(--km-chalk); background: rgba(255,255,255,0.05); }
       .app-nav-btn.is-active:hover { color: #C5FF3D; background: rgba(197,255,61,0.08); }
       .app-nav-signout:hover { color: var(--km-chalk); border-color: #3A3A42; }
+      .drill-tab:hover { color: var(--km-chalk); }
+      .drill-related-card:hover { border-color: #4A4A54; }
+      .drill-poster:hover .drill-play { background: #C5FF3D; }
     }
   `;
 
@@ -1143,7 +1307,15 @@ export default function CoachMeApp() {
             )}
 
             {drillOpen && (
-              <DrillSheet drill={drillOpen} athleteId={athlete?.id} onClose={() => setDrillOpen(null)}/>
+              /* key: opening a related drill swaps the drill in place, and
+                 the tab/player state must reset with it. */
+              <DrillSheet
+                key={drillOpen.id}
+                drill={drillOpen}
+                athleteId={athlete?.id}
+                onOpenDrill={setDrillOpen}
+                onClose={() => setDrillOpen(null)}
+              />
             )}
 
             {logWorkoutOpen && (
@@ -3053,121 +3225,307 @@ function DrillLibrary({ athleteSport, athleteId, onOpenDrill }) {
   );
 }
 
-function DrillSheet({ drill, athleteId, onClose }) {
+/* ============================================================
+   DRILL DETAIL — tabbed: OVERVIEW / HOW TO / MY PROGRESS
+
+   Everything teachable on this screen comes from the manifest via
+   src/lib/drills.ts and is human-written. A field that is null
+   renders NO section — never an empty heading, never a placeholder,
+   never a guess. That is why each block below is behind a data
+   check rather than a fallback string.
+
+   Deliberately absent: any leaderboard or public ranking of athletes
+   against each other. Progress here is a kid measured against their
+   own last rep and nobody else's. If social comparison ever ships it
+   will be team-scoped and opt-in.
+   ============================================================ */
+
+/* drill.sport is the manifest's display name ("Basketball"); the field
+   geometry set is keyed by the lowercase sport id. A sport with no
+   geometry drawn yet renders none rather than borrowing another
+   sport's lines. */
+function drillGeoSport(sport) {
+  const key = String(sport || '').toLowerCase();
+  return hasFieldGeo(key) ? key : null;
+}
+
+/* Poster-first player: the still is what loads, tapping it starts the
+   clip. Keeps a grid of drill pages cheap on a phone plan and stops
+   six videos from buffering at once. */
+function DrillVideo({ src, poster, label, loop = false }) {
+  const [playing, setPlaying] = useState(false);
+  if (playing) {
+    return (
+      <video className="drill-video" src={src} poster={poster}
+        controls autoPlay playsInline loop={loop} preload="metadata"/>
+    );
+  }
+  return (
+    <button type="button" className="drill-video drill-poster" onClick={() => setPlaying(true)}
+      aria-label={`Play ${label}`}>
+      <img src={poster} alt="" referrerPolicy="no-referrer" loading="lazy"/>
+      <span className="drill-play" aria-hidden="true"><Play size={19} color="#000" fill="#000"/></span>
+    </button>
+  );
+}
+
+/* Eyebrow stamp (Panchang) over a Clash headline: the section rhythm
+   for the whole page, so every block is scannable at a glance. */
+function DrillSectionHead({ eyebrow, title, tone }) {
+  return (
+    <div className="drill-section-head">
+      <span className={`stamp${tone ? ` stamp--${tone}` : ''}`}>{eyebrow}</span>
+      <h3 className="display drill-section-title">{title}</h3>
+    </div>
+  );
+}
+
+function DrillFact({ icon, label, value }) {
+  return (
+    <div className="drill-fact">
+      <span className="drill-fact-icon" aria-hidden="true">{icon}</span>
+      <span style={{ minWidth: 0 }}>
+        <span className="wide drill-fact-label">{label}</span>
+        <span className="mono drill-fact-value">{value}</span>
+      </span>
+    </div>
+  );
+}
+
+function DrillSheet({ drill, athleteId, onOpenDrill, onClose }) {
   const coach = coachFor(drill);
   const { expired } = drillTrialState(athleteId);
+  const [tab, setTab] = useState('overview');
+
   useEffect(() => {
     // Role/step analytics only, no PII - same rule as the CRO events.
     if (expired) track('pro_gate_shown', { surface: 'drill_sheet' });
   }, [expired]);
+
+  const showHowTo = hasHowTo(drill);
+  const TABS = [
+    { key: 'overview', label: 'Overview' },
+    // No written how-to means no HOW TO tab at all. An empty tab is a
+    // worse answer than an absent one.
+    ...(showHowTo ? [{ key: 'howto', label: 'How to' }] : []),
+    { key: 'progress', label: 'My progress' },
+  ];
+  const active = TABS.some(t => t.key === tab) ? tab : 'overview';
+
+  const related = relatedDrills(drill);
+
+  const geo = drillGeoSport(drill.sport);
+  const posterSrc = imgOpt(drill.poster.blob, 1200);
+
   return (
     <div className="sheet-backdrop" style={{ zIndex: 210 }} onClick={onClose}>
-      <div className="slide-up phone-scroll sheet-panel sheet-panel--wide" onClick={e => e.stopPropagation()} style={{
-        padding: 20, maxHeight: '92%', overflowY: 'auto',
-      }}>
+      <div className="slide-up phone-scroll sheet-panel sheet-panel--drill"
+        role="dialog" aria-label={`${drill.title} drill`}
+        onClick={e => e.stopPropagation()}>
+        {/* One field-geometry element for the whole screen, from this
+            drill's own sport (docs/design-system.md restraint rules). */}
+        {geo && <FieldGeo sport={geo} opacity={0.055} style={{ right: -140, top: -60 }}/>}
+
         <div className="sheet-handle"/>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4, marginTop: 6 }}>
-          <div>
-            <div className="display" style={{ fontSize: 24, lineHeight: 1, textTransform: 'uppercase' }}>
-              {drill.title}
-            </div>
-            <div className="mono" style={{ fontSize: 9.5, color: '#9CA0A8', letterSpacing: '0.1em', marginTop: 5 }}>
-              {drill.sport.toUpperCase()} · {drill.focus.toUpperCase()}{isNewDrill(drill) ? ' · NEW' : ''}
-            </div>
-          </div>
-          <button onClick={onClose} className="tap" style={{ color: '#5F636B' }}>
-            <X size={20}/>
-          </button>
-        </div>
-
-        {/* Which AI coach character teaches this drill. */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 9, margin: '10px 0 2px' }}>
-          <img src={imgOpt(coach.portrait.blob, 96)} alt={`${coach.name} portrait`} referrerPolicy="no-referrer"
-            style={{ width: 34, height: 34, borderRadius: 10, objectFit: 'cover', display: 'block' }}/>
-          <div>
-            <div className="display" style={{ fontSize: 13, lineHeight: 1, textTransform: 'uppercase' }}>{coach.name}</div>
-            <div className="mono" style={{ fontSize: 8.5, color: '#5F636B', letterSpacing: '0.08em', marginTop: 3 }}>{coach.style.toUpperCase()}</div>
-          </div>
-        </div>
-
-        <div className="body" style={{ fontSize: 13, color: '#D4D6DA', lineHeight: 1.5, margin: '10px 0 16px' }}>
-          {drill.cue}
-        </div>
-
-        {expired ? (
-          <>
-            {/* Free month over: poster stays (dimmed), videos are locked
-                behind the honest Pro screen. Payments are not live, so
-                this never charges anyone - it only gates the clips. */}
-            <div style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', marginBottom: 14 }}>
-              <img src={imgOpt(drill.poster.blob, 750)} alt="" referrerPolicy="no-referrer"
-                style={{ width: '100%', aspectRatio: '16 / 9', objectFit: 'cover', display: 'block', filter: 'blur(3px) brightness(0.45)' }}/>
-              <div style={{
-                position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
-                alignItems: 'center', justifyContent: 'center', gap: 10, padding: 20, textAlign: 'center',
-              }}>
-                <span style={{
-                  width: 44, height: 44, borderRadius: '50%', background: 'rgba(197,255,61,0.92)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                  <Lock size={18} color="#000"/>
-                </span>
-                <div className="display" style={{ fontSize: 20, lineHeight: 1, textTransform: 'uppercase' }}>
-                  YOUR FREE MONTH IS <span style={{ color: '#C5FF3D' }}>DONE</span>
-                </div>
-                <div className="body" style={{ fontSize: 12.5, color: '#D4D6DA', lineHeight: 1.5, maxWidth: 380 }}>
-                  Nice work training with {coach.name}. AI drills are part of
-                  KoachMe Pro: $9 a month once payments launch. Until then
-                  drills stay locked and nobody is charged. They unlock right
-                  here the day Pro goes live.
-                </div>
-                <div className="mono" style={{ fontSize: 9, color: '#9CA0A8', letterSpacing: '0.1em' }}>
-                  PROFILE · WORKOUTS · FEED · MESSAGES · SESSIONS STAY FREE
-                </div>
+        <div className="drill-inner">
+          <header className="drill-head">
+            <div style={{ minWidth: 0 }}>
+              <div className="mono drill-eyebrow">
+                {drill.sport.toUpperCase()} · {drill.focus.toUpperCase()}{isNewDrill(drill) ? ' · NEW' : ''}
               </div>
+              <h2 className="display drill-title">{drill.title}</h2>
             </div>
-          </>
-        ) : (
-          <>
-        {/* Single-clip drills (intro null) skip straight to the demo and
-            drop the step numbering — one heading, one player. */}
-        {drill.intro && (
-          <>
-            <div className="mono" style={{ fontSize: 10, color: '#9CA0A8', letterSpacing: '0.14em', marginBottom: 8 }}>
-              1 · COACH INTRO <span style={{ color: '#5F636B' }}>(sound on)</span>
+            <div className="drill-head-side">
+              {/* The AI label rides in the header so it is on screen on
+                  every tab, not only where the video is. */}
+              <span className="stamp stamp--clay">AI Coach</span>
+              <button onClick={onClose} className="tap" aria-label="Close drill" style={{ color: '#5F636B' }}>
+                <X size={20}/>
+              </button>
             </div>
-            {/* Served from our Blob mirror; .cdn is the original source reference
-                only, never a runtime fallback — a broken blob upload should
-                surface in review, not be masked. */}
-            <video
-              src={drill.intro.blob} poster={imgOpt(drill.poster.blob, 1200)}
-              controls playsInline preload="metadata"
-              style={{ width: '100%', aspectRatio: '16 / 9', objectFit: 'contain', borderRadius: 12, background: '#000', marginBottom: 16, display: 'block' }}
-            />
-          </>
-        )}
-        <div className="mono" style={{ fontSize: 10, color: '#9CA0A8', letterSpacing: '0.14em', marginBottom: 8 }}>
-          {drill.intro ? '2 · ' : ''}WATCH THE DEMO <span style={{ color: '#5F636B' }}>(slow rep, copy it)</span>
-        </div>
-        {/* Served from our Blob mirror, same as the intro player above. */}
-        <video
-          src={drill.demo.blob} poster={imgOpt(drill.poster.blob, 1200)}
-          controls playsInline loop preload="metadata"
-          style={{ width: '100%', aspectRatio: '16 / 9', objectFit: 'contain', borderRadius: 12, background: '#000', marginBottom: 14, display: 'block' }}
-        />
-          </>
-        )}
+          </header>
 
-        <div style={{
-          padding: '9px 12px', borderRadius: 10,
-          background: 'rgba(201,111,74,0.07)', border: '1px solid rgba(201,111,74,0.3)',
-          display: 'flex', alignItems: 'center', gap: 8,
-        }}>
-          <span className="stamp stamp--clay" style={{ flexShrink: 0 }}>AI demo</span>
-          <span className="body" style={{ fontSize: 11, color: '#9CA0A8', lineHeight: 1.45 }}>
-            This coach is AI-generated for the demo. Real verified coaches review all drills before launch.
-          </span>
+          <div className="drill-detail" data-tab={active}>
+            <div className="drill-tabbar" role="tablist" aria-label="Drill detail sections">
+              {TABS.map(t => (
+                <button key={t.key} role="tab" id={`drill-tab-${t.key}`}
+                  aria-selected={active === t.key} aria-controls={`drill-panel-${t.key}`}
+                  className={`wide drill-tab${active === t.key ? ' is-active' : ''}`}
+                  onClick={() => setTab(t.key)}>
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="drill-media">
+              {expired ? (
+                /* Free month over: the poster stays (dimmed), the clips
+                   are behind the honest Pro screen. Payments are not
+                   live, so this never charges anyone. Everything written
+                   on this page stays readable — the gate is on the
+                   videos, not on knowing how to do the drill. */
+                <div className="drill-locked">
+                  <img src={imgOpt(drill.poster.blob, 750)} alt="" referrerPolicy="no-referrer"/>
+                  <div className="drill-locked-body">
+                    <span className="drill-locked-icon"><Lock size={18} color="#000"/></span>
+                    <div className="display" style={{ fontSize: 20, lineHeight: 1, textTransform: 'uppercase' }}>
+                      YOUR FREE MONTH IS <span style={{ color: '#C5FF3D' }}>DONE</span>
+                    </div>
+                    <div className="body" style={{ fontSize: 12.5, color: '#D4D6DA', lineHeight: 1.5, maxWidth: 380 }}>
+                      Nice work training with {coach.name}. AI drills are part of
+                      KoachMe Pro: $9 a month once payments launch. Until then
+                      drills stay locked and nobody is charged. They unlock right
+                      here the day Pro goes live.
+                    </div>
+                    <div className="mono" style={{ fontSize: 9, color: '#9CA0A8', letterSpacing: '0.1em' }}>
+                      PROFILE · WORKOUTS · FEED · MESSAGES · SESSIONS STAY FREE
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* Single-clip drills (intro null) skip straight to the
+                      demo and drop the step numbering. Served from our
+                      Blob mirror; .cdn is provenance only, never a
+                      runtime fallback. */}
+                  {drill.intro && (
+                    <>
+                      <div className="mono drill-cliplabel">
+                        1 · COACH INTRO <span style={{ color: '#5F636B' }}>(sound on)</span>
+                      </div>
+                      <DrillVideo src={drill.intro.blob} poster={posterSrc} label={`${drill.title} coach intro`}/>
+                    </>
+                  )}
+                  <div className="mono drill-cliplabel">
+                    {drill.intro ? '2 · ' : ''}WATCH THE DEMO <span style={{ color: '#5F636B' }}>(slow rep, copy it)</span>
+                  </div>
+                  <DrillVideo src={drill.demo.blob} poster={posterSrc} label={`${drill.title} demo`} loop/>
+                </>
+              )}
+
+              <div className="drill-coach">
+                <img src={imgOpt(coach.portrait.blob, 96)} alt={`${coach.name} portrait`} referrerPolicy="no-referrer"/>
+                <span style={{ minWidth: 0 }}>
+                  <span className="display drill-coach-name">{coach.name}</span>
+                  <span className="mono drill-coach-style">{coach.style.toUpperCase()}</span>
+                </span>
+              </div>
+
+              <p className="body drill-ai-note">
+                This coach is AI-generated for the demo. Real verified coaches
+                review all drills before launch.
+              </p>
+            </div>
+
+            <div className="drill-panels">
+              {/* Every panel stays mounted and its text stays in the DOM;
+                  switching tabs only changes what is shown. Nothing here
+                  is fetched or built on interaction. */}
+              <section id="drill-panel-overview" role="tabpanel" aria-labelledby="drill-tab-overview"
+                hidden={active !== 'overview'}>
+                {drill.summary && (
+                  <p className="body drill-summary">{drill.summary}</p>
+                )}
+
+                {drill.builds?.length > 0 && (
+                  <div className="drill-block">
+                    <DrillSectionHead eyebrow="Trains" title="What this builds"/>
+                    <div className="drill-chips">
+                      {drill.builds.map(b => (
+                        <span key={b} className="stamp stamp--lime stamp--flat">{b}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="drill-block">
+                  <DrillSectionHead eyebrow="At a glance" title="Quick facts"/>
+                  <div className="drill-facts">
+                    <DrillFact icon={<span style={{ fontSize: 15 }}>{SPORT_META[drill.sport]?.icon ?? ''}</span>}
+                      label="Sport" value={drill.sport}/>
+                    <DrillFact icon={<Gauge size={14} color="#9CA0A8"/>} label="Level" value={drill.level}/>
+                    {drill.equipment?.length > 0 && (
+                      <DrillFact icon={<Package size={14} color="#9CA0A8"/>} label="Equipment"
+                        value={drill.equipment.join(', ')}/>
+                    )}
+                    {drill.space && (
+                      <DrillFact icon={<MapPin size={14} color="#9CA0A8"/>} label="Space" value={drill.space}/>
+                    )}
+                  </div>
+                </div>
+
+                {related.length > 0 && (
+                  <div className="drill-block">
+                    <DrillSectionHead eyebrow="Keep going" title="Related drills"/>
+                    <div className="drill-related">
+                      {related.map(r => (
+                        <button key={r.id} className="drill-related-card card-hover"
+                          onClick={() => onOpenDrill && onOpenDrill(r)}>
+                          <img src={imgOpt(r.poster.blob, 384)} alt="" referrerPolicy="no-referrer" loading="lazy"/>
+                          <span className="display drill-related-title">{r.title}</span>
+                          <span className="mono drill-related-meta">{r.focus.toUpperCase()}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </section>
+
+              {showHowTo && (
+                <section id="drill-panel-howto" role="tabpanel" aria-labelledby="drill-tab-howto"
+                  hidden={active !== 'howto'}>
+                  {drill.steps?.length > 0 && (
+                    <div className="drill-block">
+                      <DrillSectionHead eyebrow="Step by step" title="How to do it"/>
+                      <ol className="drill-steps">
+                        {drill.steps.map(s => (
+                          <li key={s.n} className="drill-step">
+                            <span className="mono drill-step-n" aria-hidden="true">{String(s.n).padStart(2, '0')}</span>
+                            <span style={{ minWidth: 0 }}>
+                              <span className="display drill-step-title">{s.title}</span>
+                              <span className="body drill-step-detail">{s.detail}</span>
+                            </span>
+                          </li>
+                        ))}
+                      </ol>
+                    </div>
+                  )}
+
+                  {drill.mistakes?.length > 0 && (
+                    <div className="drill-block">
+                      <DrillSectionHead eyebrow="Watch for" title="Common mistakes" tone="clay"/>
+                      <ul className="drill-mistakes">
+                        {drill.mistakes.map(m => (
+                          <li key={m.mistake} className="drill-mistake">
+                            <span className="drill-mistake-side">
+                              <span className="wide drill-mistake-label">Mistake</span>
+                              <span className="body drill-mistake-text">{m.mistake}</span>
+                            </span>
+                            {/* The fix is the half that matters, so it
+                                gets the lime and the weight. */}
+                            <span className="drill-mistake-side drill-mistake-side--fix">
+                              <span className="wide drill-mistake-label drill-mistake-label--fix">Fix</span>
+                              <span className="body drill-mistake-text drill-mistake-text--fix">{m.fix}</span>
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </section>
+              )}
+
+              <section id="drill-panel-progress" role="tabpanel" aria-labelledby="drill-tab-progress"
+                hidden={active !== 'progress'}>
+                <div className="drill-block drill-empty">
+                  <span className="drill-empty-icon"><TrendingUp size={20} color="#5F636B"/></span>
+                  <div className="display drill-empty-title">NOTHING LOGGED YET</div>
+                  <p className="body drill-empty-sub">Log your first rep and your progress shows up here.</p>
+                </div>
+              </section>
+            </div>
+          </div>
         </div>
       </div>
     </div>
