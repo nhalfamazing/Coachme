@@ -223,9 +223,14 @@
 .mk-hero-play {
   position: absolute; inset: 0; margin: auto; width: 44px; height: 44px;
   border-radius: 50%; background: rgba(197, 255, 61, 0.9); color: #000;
-  display: flex; align-items: center; justify-content: center; z-index: 2;
+  display: none; align-items: center; justify-content: center; z-index: 2;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
 }
+/* Shown when desktop autoplay was refused (.is-shown, from React state), or
+   on mobile where the hero never autoplays and a tap is what starts it. */
+.mk-hero-play.is-shown,
+.mk-hero-video[data-tap-to-play] .mk-hero-play { display: flex; }
+.mk-hero-video[data-tap-to-play] video { cursor: pointer; }
 .mk-caption { font-size: 11.5px; color: #5F636B; text-align: center; margin-top: 10px; }
 
 /* ---------- AI drill samples ---------- */
