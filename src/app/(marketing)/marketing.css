@@ -435,3 +435,146 @@
   .mk-btn--ghost:hover { border-color: #5F636B; }
   .mk-faq summary:hover { color: #C5FF3D; }
 }
+
+/* ============================================================
+   PUBLIC DRILL PAGES  (/drills, /drills/[sport], /drills/[sport]/[id])
+   The indexable twin of the in-app drill view. Same scouting-report
+   voice; separation by surface step, not borders.
+   ============================================================ */
+
+.mk-drillpage, .mk-hub { padding-top: 28px; padding-bottom: 72px; max-width: 820px; }
+
+/* Breadcrumb */
+.mk-crumbs {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  font-size: 11px; letter-spacing: 0.08em; color: #5F636B; margin-bottom: 20px;
+}
+.mk-crumbs a { color: #9CA0A8; text-decoration: none; }
+.mk-crumbs a:hover { color: var(--km-lime); }
+.mk-crumbs [aria-current] { color: var(--km-chalk); }
+
+.mk-drillpage-h1, .mk-hub-h1 {
+  font-size: clamp(30px, 5.5vw, 48px); line-height: 1.02;
+  text-transform: uppercase; margin: 0 0 20px;
+}
+
+/* Answer-first block. Quiet on purpose: it is for machines and for
+   readers in a hurry, and it must not shout over the drill itself. */
+.mk-tldr {
+  background: var(--km-raised); border-radius: 16px;
+  padding: 18px 20px; margin-bottom: 28px;
+}
+.mk-tldr p { font-size: 15px; line-height: 1.7; color: #C7CBD2; margin: 10px 0 0; }
+
+/* Video: fixed aspect box so nothing can shift while the poster loads. */
+.mk-drillpage-video { margin-bottom: 30px; }
+.mk-video {
+  width: 100%; height: auto; aspect-ratio: 16 / 9; display: block;
+  background: #000; border-radius: 16px; object-fit: cover;
+}
+.mk-ai-note {
+  display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap;
+  font-size: 12.5px; line-height: 1.55; color: #9CA0A8; margin: 12px 0 0;
+}
+.mk-ai-note .stamp { flex-shrink: 0; }
+.mk-ai-note > span:last-child { flex: 1; min-width: 220px; }
+
+.mk-drillpage-sec { margin-bottom: 34px; }
+.mk-drillpage-sec > h2 {
+  font-size: 24px; line-height: 1; text-transform: uppercase; margin: 0 0 16px;
+}
+
+.mk-chips { display: flex; flex-wrap: wrap; gap: 9px; list-style: none; padding: 0; margin: 0; }
+
+/* Quick facts */
+.mk-facts {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0;
+}
+.mk-facts > div { background: var(--km-card); border-radius: 12px; padding: 13px 14px; }
+.mk-facts dt { font-size: 8.5px; color: #5F636B; margin: 0 0 6px; }
+.mk-facts dd { margin: 0; font-size: 13px; color: var(--km-chalk); line-height: 1.4; }
+.mk-facts dd::first-letter { text-transform: uppercase; }
+
+/* Stepper. Named mk-howto, not mk-step: the landing page already owns
+   .mk-step for its own three-up grid. */
+.mk-howto { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.mk-howto-item {
+  display: flex; gap: 14px; background: var(--km-card);
+  border-radius: 12px; padding: 16px;
+}
+.mk-howto-n {
+  font-size: 22px; line-height: 1; color: var(--km-lime);
+  font-weight: 700; flex-shrink: 0; width: 32px;
+}
+.mk-howto-title { font-size: 16px; line-height: 1; text-transform: uppercase; margin: 0; color: var(--km-chalk); }
+.mk-howto-detail { font-size: 14.5px; line-height: 1.65; color: #9CA0A8; margin: 8px 0 0; }
+
+/* Mistake / fix. The fix gets the lime and the weight. */
+.mk-mistakes { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.mk-mistake {
+  display: grid; grid-template-columns: 1fr; gap: 2px;
+  background: var(--km-card); border-radius: 12px; overflow: hidden;
+}
+.mk-mistake-side { padding: 14px 16px; }
+.mk-mistake-side--fix { background: rgba(197, 255, 61, 0.07); }
+.mk-mistake-label { display: block; font-size: 8.5px; color: #5F636B; margin-bottom: 7px; }
+.mk-mistake-label--fix { color: var(--km-lime); }
+.mk-mistake p { font-size: 14px; line-height: 1.6; color: #9CA0A8; margin: 0; }
+.mk-mistake-side--fix p { color: var(--km-chalk); font-weight: 600; }
+
+/* Coach credit */
+.mk-coach { display: flex; align-items: center; gap: 14px; background: var(--km-card); border-radius: 14px; padding: 16px; }
+.mk-coach-img { border-radius: 12px; object-fit: cover; flex-shrink: 0; }
+.mk-coach-name { font-size: 17px; line-height: 1; text-transform: uppercase; margin: 0; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.mk-coach-style { font-size: 13.5px; color: #9CA0A8; margin: 8px 0 0; line-height: 1.5; }
+
+/* Related + hub cards */
+.mk-related, .mk-hub-grid {
+  list-style: none; padding: 0; margin: 0;
+  display: grid; grid-template-columns: 1fr; gap: 12px;
+}
+.mk-related-card, .mk-hub-card {
+  display: block; background: var(--km-card); border-radius: 14px;
+  overflow: hidden; text-decoration: none; padding-bottom: 13px;
+  border: 1px solid transparent; transition: border-color 0.15s, background 0.15s;
+}
+.mk-related-img, .mk-hub-img { width: 100%; height: auto; aspect-ratio: 2 / 1; object-fit: cover; display: block; margin-bottom: 11px; }
+.mk-related-title, .mk-hub-title { display: block; padding: 0 13px; font-size: 17px; line-height: 1.05; text-transform: uppercase; color: var(--km-chalk); }
+.mk-related-meta, .mk-hub-meta { display: block; padding: 0 13px; font-size: 9px; letter-spacing: 0.1em; color: #5F636B; margin-top: 6px; text-transform: uppercase; }
+.mk-hub-summary { display: block; padding: 0 13px; font-size: 13.5px; line-height: 1.55; color: #9CA0A8; margin-top: 9px; }
+
+/* Stranger CTA */
+.mk-drillpage-cta {
+  background: linear-gradient(160deg, #16171B 0%, var(--km-card) 100%);
+  border-radius: 18px; padding: 26px 22px; margin: 40px 0 24px;
+}
+.mk-drillpage-cta h2 { font-size: clamp(22px, 4vw, 30px); line-height: 1.05; text-transform: uppercase; margin: 0 0 12px; }
+.mk-drillpage-cta p { font-size: 14.5px; line-height: 1.65; color: #9CA0A8; margin: 0 0 20px; }
+.mk-drillpage-cta-row { display: flex; flex-wrap: wrap; gap: 10px; }
+
+.mk-drillpage-report { font-size: 12.5px; color: #5F636B; margin: 0; }
+.mk-drillpage-report a { color: #5F636B; }
+.mk-drillpage-report a:hover { color: #9CA0A8; }
+
+/* Sport hub / index extras */
+.mk-hub-intro { font-size: 16px; line-height: 1.7; color: #B9BDC4; margin: 0 0 26px; }
+.mk-hub-count { display: block; font-size: 11px; letter-spacing: 0.12em; color: #5F636B; text-transform: uppercase; margin-bottom: 10px; }
+
+/* ---------- tablet >=641 ---------- */
+@media (min-width: 641px) {
+  .mk-drillpage, .mk-hub { padding-top: 36px; }
+  .mk-facts { grid-template-columns: repeat(4, 1fr); }
+  .mk-mistake { grid-template-columns: 1fr 1fr; }
+  .mk-related, .mk-hub-grid { grid-template-columns: repeat(3, 1fr); }
+  .mk-drillpage-cta { padding: 34px 30px; }
+}
+
+/* ---------- desktop >=1024 ---------- */
+@media (min-width: 1024px) {
+  .mk-drillpage, .mk-hub { padding-top: 48px; padding-bottom: 96px; }
+  .mk-howto-n { font-size: 26px; width: 36px; }
+}
+
+@media (hover: hover) {
+  .mk-related-card:hover, .mk-hub-card:hover { border-color: #3A3A42; background: var(--km-high); }
+}
