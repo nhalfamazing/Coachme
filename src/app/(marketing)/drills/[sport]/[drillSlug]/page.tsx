@@ -236,10 +236,16 @@ export default async function DrillPage({ params }: { params: Params }) {
           There {sportCount === 1 ? "is" : "are"} {sportCount} {drill.sport.toLowerCase()}{" "}
           {sportCount === 1 ? "drill" : "drills"} like this one
         </h2>
+        {/* Offer wording matches the FAQ exactly: the library is free for a
+            first month, and nobody is charged while subscriptions are still
+            to launch. Two pages must never describe the same offer
+            differently. */}
         <p className="body">
-          Free while we are in beta. Your athlete gets the full drill library,
-          a training log that tracks what they actually did, and a stat sheet
-          that shows how it was verified. No email needed to start.
+          Read every drill here for free. Inside the app your athlete also
+          gets a training log, a stat sheet that shows how each number was
+          verified, and the whole library — free for the first month, and
+          nobody is charged while subscriptions are still to launch. No email
+          needed to start.
         </p>
         <div className="mk-drillpage-cta-row">
           <Link href={`/app?signup=1&sport=${sportSlug(drill.sport)}`} className="mk-btn mk-btn--primary body">

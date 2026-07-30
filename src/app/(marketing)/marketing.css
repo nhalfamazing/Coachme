@@ -578,3 +578,29 @@
 @media (hover: hover) {
   .mk-related-card:hover, .mk-hub-card:hover { border-color: #3A3A42; background: var(--km-high); }
 }
+
+/* Section headings on the hub and index pages. */
+.mk-drillpage-sec-h { font-size: 24px; line-height: 1; text-transform: uppercase; margin: 0 0 16px; }
+
+/* Sport picker on the library index. */
+.mk-sports {
+  list-style: none; padding: 0; margin: 0 0 40px;
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+}
+.mk-sport-card {
+  display: flex; flex-direction: column; gap: 6px; align-items: flex-start;
+  background: var(--km-card); border-radius: 14px; padding: 16px;
+  text-decoration: none; border: 1px solid transparent;
+  transition: border-color 0.15s, background 0.15s;
+}
+.mk-sport-icon { font-size: 22px; line-height: 1; }
+.mk-sport-name { font-size: 18px; line-height: 1; text-transform: uppercase; color: var(--km-chalk); }
+.mk-sport-count { font-size: 9.5px; letter-spacing: 0.12em; color: #5F636B; text-transform: uppercase; }
+
+@media (min-width: 641px) {
+  .mk-sports { grid-template-columns: repeat(4, 1fr); }
+}
+
+@media (hover: hover) {
+  .mk-sport-card:hover { border-color: #3A3A42; background: var(--km-high); }
+}

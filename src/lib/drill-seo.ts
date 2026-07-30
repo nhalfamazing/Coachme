@@ -72,6 +72,14 @@ export function humanList(items: readonly string[]): string {
   return `${list.slice(0, -1).join(", ")} and ${list[list.length - 1]}`;
 }
 
+/** Same, but for alternatives: "a, b or c". */
+export function humanListOr(items: readonly string[]): string {
+  const list = items.filter(Boolean);
+  if (list.length === 0) return "";
+  if (list.length === 1) return list[0];
+  return `${list.slice(0, -1).join(", ")} or ${list[list.length - 1]}`;
+}
+
 /** A field is played ON; a driveway, backyard or gym is played IN. */
 function spacePhrase(space: string): string {
   const s = space.toLowerCase();
@@ -164,6 +172,89 @@ export function drillTldr(drill: Drill): string {
 
 export function wordCount(text: string): number {
   return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
+/* ------------------- Library totals and hub copy -------------------- */
+
+export interface LibraryTotals {
+  drills: number;
+  sports: number;
+  steps: number;
+  mistakes: number;
+}
+
+/** Every count on a public page comes from here. Nothing is written down
+ *  twice, so nothing can drift out of date. */
+export function libraryTotals(pool: Drill[] = DRILLS): LibraryTotals {
+  return {
+    drills: pool.length,
+    sports: new Set(pool.map(d => d.sport)).size,
+    steps: pool.reduce((n, d) => n + (d.steps?.length ?? 0), 0),
+    mistakes: pool.reduce((n, d) => n + (d.mistakes?.length ?? 0), 0),
+  };
+}
+
+/** "in a driveway, a backyard or a gym, and on a field" — built from the
+ *  spaces the drills actually name, with the right preposition for each. */
+function whereSentence(spaces: string[]): string {
+  const uniq = [...new Set(spaces.map(s => s.toLowerCase()))].sort();
+  if (!uniq.length) return "";
+  const on = uniq.filter(s => s === "field" || s === "court" || s === "track");
+  const inn = uniq.filter(s => !on.includes(s));
+  const parts: string[] = [];
+  if (inn.length) parts.push(`in ${humanListOr(inn.map(s => `a ${s}`))}`);
+  if (on.length) parts.push(`on ${humanListOr(on.map(s => `a ${s}`))}`);
+  return `They can be done ${parts.join(", and ")}.`;
+}
+
+/** TL;DR for one sport hub. Facts and counts only, no selling. */
+export function sportTldr(sport: string, pool: Drill[] = DRILLS): string {
+  const drills = drillsInSport(sport, pool);
+  const t = libraryTotals(drills);
+  const lower = sport.toLowerCase();
+  const focuses = [...new Set(drills.map(d => d.focus))];
+  const parts: string[] = [];
+
+  parts.push(
+    `${sport} drills on KoachMe: ${t.drills} free ${lower} ${t.drills === 1 ? "drill" : "drills"} for young athletes`
+    + (focuses.length ? `, covering ${humanList(focuses)}.` : "."),
+  );
+  parts.push("Every drill page has a plain-language summary, numbered steps, common mistakes with their fixes, and a demonstration video.");
+  if (t.steps || t.mistakes) {
+    parts.push(`Across ${t.drills === 1 ? "it" : "them"} there are ${t.steps} numbered steps and ${t.mistakes} mistake-and-fix pairs.`);
+  }
+  const where = whereSentence(drills.map(d => d.space).filter((s): s is string => Boolean(s)));
+  if (where) parts.push(where);
+  parts.push("Everything is free to read and watch without signing up.");
+  parts.push("All demonstration videos are AI-generated.");
+  return parts.join(" ");
+}
+
+/** TL;DR for the library index. */
+export function libraryTldr(pool: Drill[] = DRILLS): string {
+  const t = libraryTotals(pool);
+  const sports = sportsWithDrills(pool).map(s => s.toLowerCase());
+  return [
+    `The KoachMe drill library has ${t.drills} free drills across ${t.sports} sports: ${humanList(sports)}.`,
+    "Each drill page has a plain-language summary, numbered steps, common mistakes with their fixes, and a demonstration video.",
+    `Across the library there are ${t.steps} numbered steps and ${t.mistakes} mistake-and-fix pairs.`,
+    "Everything is free to read and watch without signing up or paying.",
+    "All demonstration videos are AI-generated, and the coaches shown are AI characters rather than real people.",
+  ].join(" ");
+}
+
+export function sportTitle(sport: string): string {
+  return `${sport} drills for young athletes`;
+}
+
+export function sportDescription(sport: string, pool: Drill[] = DRILLS): string {
+  const n = drillsInSport(sport, pool).length;
+  const lower = sport.toLowerCase();
+  const candidates = [
+    `${n} free ${lower} drills for young athletes: numbered steps, common mistakes and fixes, and AI-generated demo videos. No signup needed.`,
+    `${n} free ${lower} drills with steps, common mistakes and AI-generated demo videos.`,
+  ];
+  return candidates.find(c => c.length <= MAX_DESCRIPTION_LEN) ?? candidates[candidates.length - 1];
 }
 
 /* ---------------------------- Related ------------------------------- */

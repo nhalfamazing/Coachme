@@ -7,6 +7,7 @@ import {
   MAX_DESCRIPTION_LEN, MAX_TITLE_LEN,
   drillDescription, drillHeading, drillPath, drillSlug, drillTitle, drillTldr,
   drillsInSport, findDrill, findSport, humanList, relatedForPublic,
+  humanListOr, libraryTldr, libraryTotals, sportDescription, sportTitle, sportTldr,
   sportPath, sportSlug, sportsWithDrills, wordCount,
 } from "./drill-seo";
 
@@ -253,5 +254,88 @@ describe("sportSlug", () => {
   it("lowercases the display name", () => {
     expect(sportSlug("Basketball")).toBe("basketball");
     expect(sportSlug("Softball")).toBe("softball");
+  });
+});
+
+describe("library totals", () => {
+  it("computes every count from the data", () => {
+    const t = libraryTotals();
+    expect(t.drills).toBe(DRILLS.length);
+    expect(t.sports).toBe(new Set(DRILLS.map(d => d.sport)).size);
+    expect(t.steps).toBe(DRILLS.reduce((n, d) => n + (d.steps?.length ?? 0), 0));
+    expect(t.mistakes).toBe(DRILLS.reduce((n, d) => n + (d.mistakes?.length ?? 0), 0));
+  });
+
+  it("splits cleanly by sport, with nothing lost or double-counted", () => {
+    const perSport = sportsWithDrills().map(s => libraryTotals(drillsInSport(s)));
+    expect(perSport.reduce((n, t) => n + t.drills, 0)).toBe(DRILLS.length);
+    expect(perSport.reduce((n, t) => n + t.steps, 0)).toBe(libraryTotals().steps);
+  });
+});
+
+describe("sport hub copy", () => {
+  it("lands in the 60-90 word band for every sport", () => {
+    for (const s of sportsWithDrills()) {
+      const w = wordCount(sportTldr(s));
+      expect(w, `${s}: ${w} words — "${sportTldr(s)}"`).toBeGreaterThanOrEqual(60);
+      expect(w, `${s}: ${w} words`).toBeLessThanOrEqual(90);
+    }
+  });
+
+  it("states the real drill count for the sport", () => {
+    for (const s of sportsWithDrills()) {
+      expect(sportTldr(s), s).toContain(`${drillsInSport(s).length} free ${s.toLowerCase()}`);
+    }
+  });
+
+  it("discloses AI generation on every hub", () => {
+    for (const s of sportsWithDrills()) expect(sportTldr(s), s).toContain("AI-generated");
+  });
+
+  it("keeps hub titles and descriptions within budget", () => {
+    for (const s of sportsWithDrills()) {
+      expect(sportTitle(s).length + " - KoachMe".length, s).toBeLessThanOrEqual(MAX_TITLE_LEN);
+      expect(sportDescription(s).length, `${s}: "${sportDescription(s)}"`).toBeLessThanOrEqual(MAX_DESCRIPTION_LEN);
+    }
+  });
+
+  it("uses the right preposition for each kind of space", () => {
+    const soccer = sportTldr("Soccer");
+    expect(soccer).toMatch(/on a field/);
+    expect(soccer).not.toMatch(/in a field/);
+  });
+
+  it("never emits a placeholder", () => {
+    for (const s of sportsWithDrills()) {
+      expect(sportTldr(s), s).not.toMatch(/undefined|null|NaN|\s,|,\./);
+    }
+  });
+});
+
+describe("library index copy", () => {
+  it("lands in the 60-90 word band", () => {
+    const w = wordCount(libraryTldr());
+    expect(w, `${w} words — "${libraryTldr()}"`).toBeGreaterThanOrEqual(60);
+    expect(w).toBeLessThanOrEqual(90);
+  });
+
+  it("states real totals and names every sport that has drills", () => {
+    const t = libraryTotals();
+    const text = libraryTldr();
+    expect(text).toContain(`${t.drills} free drills across ${t.sports} sports`);
+    expect(text).toContain(`${t.steps} numbered steps`);
+    for (const s of sportsWithDrills()) expect(text, s).toContain(s.toLowerCase());
+  });
+
+  it("says the coaches are AI characters, not real people", () => {
+    expect(libraryTldr()).toMatch(/AI characters rather than real people/);
+  });
+});
+
+describe("humanListOr", () => {
+  it("joins alternatives with or", () => {
+    expect(humanListOr(["a", "b", "c"])).toBe("a, b or c");
+    expect(humanListOr(["a"])).toBe("a");
+    expect(humanListOr([])).toBe("");
   });
 });

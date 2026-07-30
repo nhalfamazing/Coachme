@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import Link from "next/link";
 import { ReturningUserBanner } from "@/components/marketing/returning-user";
 import { FaqList } from "@/components/marketing/faq";
 import { LandingJsonLd } from "@/components/marketing/json-ld";
@@ -232,9 +231,13 @@ export default function LandingPage() {
             These drills are AI-generated demonstrations, clearly labeled in
             the app. Real coaches are real people - always.
           </p>
+          {/* Points at the public library, not the app: the label promises
+              browsing, and /app would show a signed-out stranger a signup
+              screen instead. It is also the landing page's link into the
+              indexable drill pages. */}
           <div className="mk-drills-cta">
-            <CtaLink href="/app" cta="drills_browse_all" className="mk-btn mk-btn--primary body">
-              Browse all {DRILLS.length} drills, first month free
+            <CtaLink href="/drills" cta="drills_browse_all" className="mk-btn mk-btn--primary body">
+              Browse all {DRILLS.length} drills
             </CtaLink>
           </div>
         </div>
