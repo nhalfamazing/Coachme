@@ -27,12 +27,16 @@ const RequestSchema = z.object({
   email: z.string().trim().min(3).max(254),
 });
 
-/** The one response this route ever gives. */
-function neutral() {
-  return NextResponse.json(
-    { ok: true, message: "If that address has access, the link is on its way." },
-    { status: 200 },
-  );
+const NEUTRAL_MESSAGE = "If that address has access, the link is on its way.";
+
+/** The one response this route ever gives.
+ *
+ *  It varies with how the request was made — a browser form post is sent
+ *  back to the login page, an API caller gets JSON — and with NOTHING else.
+ *  No branch here depends on the outcome. */
+function neutral(req: Request, wantsJson: boolean) {
+  if (wantsJson) return NextResponse.json({ ok: true, message: NEUTRAL_MESSAGE }, { status: 200 });
+  return NextResponse.redirect(new URL("/admin/login?status=sent", req.url), 303);
 }
 
 export async function POST(req: Request) {
@@ -42,27 +46,30 @@ export async function POST(req: Request) {
 
     // Accept both JSON and a plain HTML form post, so the login page works
     // with and without JavaScript.
-    let raw: unknown;
     const contentType = req.headers.get("content-type") ?? "";
-    if (contentType.includes("application/json")) {
+    const wantsJson = contentType.includes("application/json");
+    const done = () => neutral(req, wantsJson);
+
+    let raw: unknown;
+    if (wantsJson) {
       const parsed = await parseBody(req, RequestSchema);
       // Even a malformed body gets the neutral answer.
-      if ("response" in parsed) return neutral();
+      if ("response" in parsed) return done();
       raw = parsed.data;
     } else {
       try {
         const form = await req.formData();
         raw = { email: String(form.get("email") ?? "") };
-      } catch { return neutral(); }
+      } catch { return done(); }
     }
 
     const parsedEmail = RequestSchema.safeParse(raw);
-    if (!parsedEmail.success) return neutral();
+    if (!parsedEmail.success) return done();
     const email = normalizeEmail(parsedEmail.data.email);
 
     // Reject anything that is not shaped like an address BEFORE writing an
     // audit row, so the log cannot be stuffed with arbitrary junk strings.
-    if (!z.email().safeParse(email).success) return neutral();
+    if (!z.email().safeParse(email).success) return done();
 
     const verdict = await checkLinkRateLimit(email, ip);
     if (verdict.limited) {
@@ -71,7 +78,7 @@ export async function POST(req: Request) {
         action: "link_request_rate_limited",
         detail: `ip=${ip}; scope=${verdict.scope}`,
       });
-      return neutral();
+      return done();
     }
 
     if (!isAllowedAdmin(email)) {
@@ -82,22 +89,22 @@ export async function POST(req: Request) {
         action: "link_request_ignored",
         detail: `ip=${ip}; not on allowlist, no mail sent`,
       });
-      return neutral();
+      return done();
     }
 
     const link = await createMagicLink(email, ip, userAgent);
     if ("error" in link) {
       await recordAdminAction({ email, action: "link_request_failed", detail: `ip=${ip}; ${link.error}` });
-      return neutral();
+      return done();
     }
 
     const sent = await sendAdminMagicLink(email, link.token);
     if (!sent.ok) {
       await recordAdminAction({ email, action: "link_request_failed", detail: `ip=${ip}; ${sent.reason}` });
-      return neutral();
+      return done();
     }
 
     await recordAdminAction({ email, action: "link_requested", detail: `ip=${ip}; sent` });
-    return neutral();
+    return done();
   });
 }

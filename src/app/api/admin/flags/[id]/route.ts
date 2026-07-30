@@ -1,5 +1,6 @@
 import { db, cloudDisabled, guarded, jsonError } from "../../../_lib/api";
 import { backToConsole, requireAdmin } from "../../_lib/admin";
+import { recordAdminAction } from "@/lib/admin-audit";
 
 // Review-queue actions for one message flag:
 //   dismiss -> reviewed_ok (message stays visible)
@@ -7,8 +8,8 @@ import { backToConsole, requireAdmin } from "../../_lib/admin";
 //   ban     -> hide the message + reviewed_removed + ban the sender
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   return guarded(async () => {
-    const unauthorized = await requireAdmin(req);
-    if (unauthorized) return unauthorized;
+    const admin = await requireAdmin(req);
+    if ("response" in admin) return admin.response;
     const client = db();
     if (!client) return cloudDisabled();
 
@@ -30,6 +31,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
         .update({ status: "reviewed_ok", reviewed_at: new Date().toISOString(), reviewed_by: "admin" })
         .eq("id", id);
       if (res.error) throw new Error(`flag update failed: ${res.error.message}`);
+      await recordAdminAction({
+        email: admin.email, action: "flag_dismissed", detail: `flag=${id}`,
+      });
       return backToConsole(req, "/admin/flags");
     }
 
@@ -53,8 +57,17 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
           .eq("id", senderId);
         if (ban.error) throw new Error(`ban failed: ${ban.error.message}`);
       }
+      await recordAdminAction({
+        email: admin.email, action: "flag_banned",
+        detail: `flag=${id}; sender=${senderId ?? "unknown"}${reason ? `; reason=${reason}` : ""}`,
+      });
+      return backToConsole(req, "/admin/flags");
     }
 
+    await recordAdminAction({
+      email: admin.email, action: "flag_removed",
+      detail: `flag=${id}${reason ? `; reason=${reason}` : ""}`,
+    });
     return backToConsole(req, "/admin/flags");
   });
 }

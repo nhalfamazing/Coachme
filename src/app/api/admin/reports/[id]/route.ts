@@ -1,5 +1,6 @@
 import { db, cloudDisabled, guarded, jsonError } from "../../../_lib/api";
 import { backToConsole, requireAdmin } from "../../_lib/admin";
+import { recordAdminAction } from "@/lib/admin-audit";
 
 // Report-queue actions:
 //   resolve_ok -> resolved_ok, nothing else changes
@@ -7,8 +8,8 @@ import { backToConsole, requireAdmin } from "../../_lib/admin";
 //                 resolved_action
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   return guarded(async () => {
-    const unauthorized = await requireAdmin(req);
-    if (unauthorized) return unauthorized;
+    const admin = await requireAdmin(req);
+    if ("response" in admin) return admin.response;
     const client = db();
     if (!client) return cloudDisabled();
 
@@ -30,6 +31,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
         .update({ status: "resolved_ok", resolved_at: new Date().toISOString() })
         .eq("id", id);
       if (res.error) throw new Error(`report update failed: ${res.error.message}`);
+      await recordAdminAction({
+        email: admin.email, action: "report_resolved", detail: `report=${id}`,
+      });
       return backToConsole(req, "/admin/reports");
     }
 
@@ -49,6 +53,11 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       .update({ status: "resolved_action", resolved_at: new Date().toISOString() })
       .eq("id", id);
     if (res.error) throw new Error(`report update failed: ${res.error.message}`);
+
+    await recordAdminAction({
+      email: admin.email, action: "report_banned",
+      detail: `report=${id}; subject=${report.subject_profile_id}${reason ? `; reason=${reason}` : ""}`,
+    });
 
     return backToConsole(req, "/admin/reports");
   });

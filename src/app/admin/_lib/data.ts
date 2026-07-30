@@ -113,6 +113,27 @@ export async function pendingCoaches(): Promise<AdminData<any>> {
   return { state: "ok", rows: res.data ?? [] };
 }
 
+export interface AuditRow {
+  id: string;
+  email: string | null;
+  action: string;
+  detail: string | null;
+  created_at: string;
+}
+
+/** The audit trail, newest first. Read-only everywhere: the console has no
+ *  edit or delete path for these rows, and it should not gain one — a log
+ *  the actors can rewrite is not a log. */
+export async function auditLog(limit = 200): Promise<AdminData<AuditRow>> {
+  const client = db();
+  if (!client) return { state: "no-cloud" };
+  const res = await client
+    .from("admin_audit_log").select("*")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  return tag(res.error, res.data);
+}
+
 export interface OverviewCounts {
   state: "no-cloud" | "ok";
   pendingFlags: number | null;   // null = tables missing

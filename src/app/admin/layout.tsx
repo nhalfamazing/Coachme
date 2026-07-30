@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import Link from "next/link";
-import { ADMIN_COOKIE, verifyAdminCookie } from "@/lib/admin-auth";
+import { ADMIN_COOKIE, readAdminSession } from "@/lib/admin-auth";
 
 export const metadata: Metadata = {
   title: "Admin",
@@ -37,11 +37,23 @@ const adminStyles = `
   .adm-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
   .adm-stat { background: #0D1520; border: 1px solid #1B2634; border-radius: 12px; padding: 16px; }
   .adm-stat b { display: block; font-size: 30px; line-height: 1; margin-bottom: 6px; font-family: var(--font-display), sans-serif; }
+  .adm-who { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .adm-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .adm-table th { text-align: left; padding: 8px 10px; color: #8FA0B3; font-weight: 600; border-bottom: 1px solid #1B2634; white-space: nowrap; }
+  .adm-table td { padding: 9px 10px; border-bottom: 1px solid #131C28; vertical-align: top; }
+  .adm-table tr:last-child td { border-bottom: none; }
+  .adm-scroll { overflow-x: auto; }
+  @media (max-width: 640px) {
+    .adm-head { gap: 12px; }
+    .adm-who { width: 100%; justify-content: space-between; }
+  }
 `;
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const jar = await cookies();
-  const authed = await verifyAdminCookie(jar.get(ADMIN_COOKIE)?.value);
+  // The signed-in address, not just a yes/no: it goes in the header so that
+  // whoever is about to ban an account can see which of them is doing it.
+  const email = await readAdminSession(jar.get(ADMIN_COOKIE)?.value);
 
   return (
     <div className="adm body">
@@ -52,17 +64,21 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             style={{ display: "inline-block", verticalAlign: "middle", marginRight: 10, borderRadius: 6 }}/>
           <span className="adm-muted" style={{ fontSize: 16 }}>ADMIN</span>
         </span>
-        {authed && (
+        {email && (
           <>
             <nav className="adm-nav" aria-label="Admin">
               <Link href="/admin">Overview</Link>
               <Link href="/admin/flags">Flags</Link>
               <Link href="/admin/reports">Reports</Link>
               <Link href="/admin/coaches">Coaches</Link>
+              <Link href="/admin/audit">Audit log</Link>
             </nav>
-            <form method="post" action="/api/admin/logout" style={{ marginLeft: "auto" }}>
-              <button className="adm-btn adm-btn--plain body" type="submit">Log out</button>
-            </form>
+            <div className="adm-who" style={{ marginLeft: "auto" }}>
+              <span className="mono adm-muted" style={{ fontSize: 12 }} title="Signed in as">{email}</span>
+              <form method="post" action="/api/admin/logout">
+                <button className="adm-btn adm-btn--plain body" type="submit">Sign out</button>
+              </form>
+            </div>
           </>
         )}
       </header>

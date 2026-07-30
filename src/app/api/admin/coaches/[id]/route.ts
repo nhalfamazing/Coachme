@@ -1,5 +1,6 @@
 import { db, cloudDisabled, guarded, jsonError } from "../../../_lib/api";
 import { backToConsole, requireAdmin } from "../../_lib/admin";
+import { recordAdminAction } from "@/lib/admin-audit";
 
 // Coach verification actions: approve -> verified, reject -> rejected
 // (reason kept in banned_reason-adjacent style is wrong; rejection
@@ -7,8 +8,8 @@ import { backToConsole, requireAdmin } from "../../_lib/admin";
 // verification-adjacent form: rejected + reason appended to background.)
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   return guarded(async () => {
-    const unauthorized = await requireAdmin(req);
-    if (unauthorized) return unauthorized;
+    const admin = await requireAdmin(req);
+    if ("response" in admin) return admin.response;
     const client = db();
     if (!client) return cloudDisabled();
 
@@ -36,6 +37,14 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     }
     const res = await client.from("profiles").update(update).eq("id", id);
     if (res.error) throw new Error(`coach update failed: ${res.error.message}`);
+
+    await recordAdminAction({
+      email: admin.email,
+      action: action === "approve" ? "coach_verified" : "coach_rejected",
+      // The coach's code, not their name: enough to find the record,
+      // no more personal detail in the log than the job needs.
+      detail: `coach=${coach.code}${reason ? `; reason=${reason}` : ""}`,
+    });
 
     return backToConsole(req, "/admin/coaches");
   });
