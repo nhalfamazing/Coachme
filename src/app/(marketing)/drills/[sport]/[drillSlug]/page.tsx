@@ -5,9 +5,10 @@ import { notFound } from "next/navigation";
 import { DRILLS, coachFor } from "@/lib/drills";
 import {
   drillDescription, drillHeading, drillPath, drillTitle, drillTldr,
-  drillsInSport, findDrill, humanList, relatedForPublic, sportPath, sportSlug,
+  drillsInSport, findDrill, humanList, ogDescription, relatedForPublic, sportPath, sportSlug,
 } from "@/lib/drill-seo";
 import { DrillJsonLd, aiVideoDisclosure } from "@/components/marketing/drill-json-ld";
+import { openGraph, twitter } from "@/lib/og";
 
 /* The PUBLIC twin of the in-app drill detail view.
  *
@@ -44,13 +45,21 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
     title: drillTitle(drill),
     description: drillDescription(drill),
     alternates: { canonical: path },
-    openGraph: {
+    // The drill's own poster is the share card; the brand card is the
+    // fallback the helper supplies when a page has no image of its own.
+    openGraph: openGraph({
       type: "video.other",
       title: drillHeading(drill),
-      description: drillDescription(drill),
-      url: path,
-      images: [{ url: drill.poster.blob, width: 1200, height: 630, alt: `${drill.title} drill demonstration` }],
-    },
+      description: ogDescription(drill),
+      path,
+      image: { url: drill.poster.blob, alt: `${drill.title} drill demonstration` },
+    }),
+    twitter: twitter({
+      title: drillHeading(drill),
+      description: ogDescription(drill),
+      path,
+      image: { url: drill.poster.blob },
+    }),
   };
 }
 

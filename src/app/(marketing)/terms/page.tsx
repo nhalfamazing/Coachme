@@ -1,11 +1,21 @@
 import type { Metadata } from "next";
+import { openGraph, twitter } from "@/lib/og";
 
 export const metadata: Metadata = {
   title: "Terms of use",
   description:
     "KoachMe's terms in plain language: who the platform is for, how coaches are expected to behave, content rules, and what KoachMe does not promise.",
   alternates: { canonical: "/terms" },
-  openGraph: { title: "KoachMe terms of use", url: "/terms" },
+  openGraph: openGraph({
+    title: "KoachMe terms of use",
+    description: "Who KoachMe is for, how coaches are expected to behave, and how accounts work.",
+    path: "/terms",
+  }),
+  twitter: twitter({
+    title: "KoachMe terms of use",
+    description: "Who KoachMe is for, how coaches are expected to behave, and how accounts work.",
+    path: "/terms",
+  }),
 };
 
 // DRAFT: plain-language terms matching actual current practice. Requires

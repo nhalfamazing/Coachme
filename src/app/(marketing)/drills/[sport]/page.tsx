@@ -5,9 +5,10 @@ import { notFound } from "next/navigation";
 import { DRILLS } from "@/lib/drills";
 import {
   drillPath, drillsInSport, findSport, libraryTotals, sportDescription,
-  sportPath, sportSlug, sportTitle, sportTldr, sportsWithDrills,
+  sportOgDescription, sportPath, sportSlug, sportTitle, sportTldr, sportsWithDrills,
 } from "@/lib/drill-seo";
 import { BreadcrumbJsonLd, DrillListJsonLd } from "@/components/marketing/drill-json-ld";
+import { openGraph, twitter } from "@/lib/og";
 
 /* One sport's drill library. Server-rendered, every count read from the
    data — there is no number on this page that a human typed. */
@@ -28,11 +29,18 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
     title: sportTitle(sport),
     description: sportDescription(sport),
     alternates: { canonical: sportPath(sport) },
-    openGraph: {
+    // Sport hubs have no card of their own yet, so the helper falls back
+    // to the brand card rather than shipping a bare link.
+    openGraph: openGraph({
       title: `${sport} drills for young athletes`,
-      description: sportDescription(sport),
-      url: sportPath(sport),
-    },
+      description: sportOgDescription(sport),
+      path: sportPath(sport),
+    }),
+    twitter: twitter({
+      title: `${sport} drills for young athletes`,
+      description: sportOgDescription(sport),
+      path: sportPath(sport),
+    }),
   };
 }
 

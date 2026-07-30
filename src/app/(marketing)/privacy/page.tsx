@@ -1,11 +1,21 @@
 import type { Metadata } from "next";
+import { openGraph, twitter } from "@/lib/og";
 
 export const metadata: Metadata = {
   title: "Privacy policy",
   description:
     "What KoachMe collects from athletes (name, age, sport, city, workouts), what it never collects (email, phone, birthdate, payment), and how to delete it.",
   alternates: { canonical: "/privacy" },
-  openGraph: { title: "KoachMe privacy policy", url: "/privacy" },
+  openGraph: openGraph({
+    title: "KoachMe privacy policy",
+    description: "What we collect from athletes, what we never collect, and how to delete it.",
+    path: "/privacy",
+  }),
+  twitter: twitter({
+    title: "KoachMe privacy policy",
+    description: "What we collect from athletes, what we never collect, and how to delete it.",
+    path: "/privacy",
+  }),
 };
 
 // DRAFT: written to match actual current practice in the codebase as of

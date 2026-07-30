@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { openGraph, twitter } from "@/lib/og";
 import Link from "next/link";
 import { AboutJsonLd } from "@/components/marketing/json-ld";
 
@@ -7,12 +8,16 @@ export const metadata: Metadata = {
   description:
     "KoachMe is a family-built platform from Miami giving young athletes an honest training profile: real logged work, honestly labeled stats and AI content.",
   alternates: { canonical: "/about" },
-  openGraph: {
+  openGraph: openGraph({
     title: "About KoachMe",
-    description:
-      "A father and son project from Miami: an honest training profile for young athletes.",
-    url: "/about",
-  },
+    description: "A father and son project from Miami: an honest training profile for young athletes.",
+    path: "/about",
+  }),
+  twitter: twitter({
+    title: "About KoachMe",
+    description: "A father and son project from Miami: an honest training profile for young athletes.",
+    path: "/about",
+  }),
 };
 
 // ============================================================

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { openGraph, twitter } from "@/lib/og";
 import Link from "next/link";
 
 export const metadata: Metadata = {
@@ -6,7 +7,16 @@ export const metadata: Metadata = {
   description:
     "How to reach the KoachMe team: questions, data deletion requests, coach applications, and bug reports.",
   alternates: { canonical: "/contact" },
-  openGraph: { title: "Contact KoachMe", url: "/contact" },
+  openGraph: openGraph({
+    title: "Contact KoachMe",
+    description: "Questions, data deletion requests, coach applications, and safety reports.",
+    path: "/contact",
+  }),
+  twitter: twitter({
+    title: "Contact KoachMe",
+    description: "Questions, data deletion requests, coach applications, and safety reports.",
+    path: "/contact",
+  }),
 };
 
 // [CONTACT_EMAIL]: Rasheid, drop the real support address in here (it

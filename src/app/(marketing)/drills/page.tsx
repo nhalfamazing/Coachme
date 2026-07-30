@@ -7,6 +7,7 @@ import {
   sportPath, sportsWithDrills,
 } from "@/lib/drill-seo";
 import { BreadcrumbJsonLd, DrillListJsonLd } from "@/components/marketing/drill-json-ld";
+import { openGraph, twitter } from "@/lib/og";
 
 /* The library index. Every sport, every count, computed from the data. */
 
@@ -20,11 +21,16 @@ export const metadata: Metadata = {
     `${totals.drills} free drills across ${totals.sports} sports, each with numbered steps, `
     + `common mistakes and an AI-generated demo video. No signup needed.`,
   alternates: { canonical: "/drills" },
-  openGraph: {
+  openGraph: openGraph({
     title: "The KoachMe drill library",
-    description: `${totals.drills} free drills across ${totals.sports} sports, with steps and demo videos.`,
-    url: "/drills",
-  },
+    description: `${totals.drills} free drills across ${totals.sports} sports, with steps and AI-generated demos.`,
+    path: "/drills",
+  }),
+  twitter: twitter({
+    title: "The KoachMe drill library",
+    description: `${totals.drills} free drills across ${totals.sports} sports, with steps and AI-generated demos.`,
+    path: "/drills",
+  }),
 };
 
 export default function DrillLibraryPage() {

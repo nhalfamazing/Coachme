@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Archivo, JetBrains_Mono } from "next/font/google";
 import localFont from "next/font/local";
 import { Analytics } from "@vercel/analytics/next";
+import { openGraph, twitter } from "@/lib/og";
 import "./globals.css";
 
 /* KoachMe type stack (see docs/design-system.md):
@@ -61,29 +62,21 @@ export const metadata: Metadata = {
     "football",
     "soccer",
   ],
-  openGraph: {
-    type: "website",
-    siteName: "KoachMe",
-    title: "KoachMe - The performance graph for emerging athletes",
-    description:
-      "Find a real coach. Train. Track every PR. Climb the ranks.",
-    url: siteUrl,
-    images: [
-      {
-        url: "/brand/og-image.png",
-        width: 1200,
-        height: 630,
-        alt: "KoachMe - shield monogram and wordmark",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "KoachMe - The performance graph for emerging athletes",
-    description:
-      "Find a real coach. Train. Track every PR. Climb the ranks.",
-    images: ["/brand/og-image.png"],
-  },
+  /* Defaults for any page that does not set its own. NOTE: Next replaces
+     the whole `openGraph` object when a page defines one — it does not
+     merge into it — so a page that wants a custom OG title must build the
+     object with the openGraph() helper in @/lib/og rather than writing it
+     by hand, or it silently loses the image, type and siteName. */
+  openGraph: openGraph({
+    title: "The performance graph for emerging athletes",
+    description: "Find a real coach. Train. Track every PR. Climb the ranks.",
+    path: "/",
+  }),
+  twitter: twitter({
+    title: "The performance graph for emerging athletes",
+    description: "Find a real coach. Train. Track every PR. Climb the ranks.",
+    path: "/",
+  }),
 };
 
 export const viewport: Viewport = {

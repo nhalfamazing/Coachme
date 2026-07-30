@@ -4,10 +4,11 @@
 import { describe, it, expect } from "vitest";
 import { DRILLS, type Drill } from "./drills";
 import {
-  MAX_DESCRIPTION_LEN, MAX_TITLE_LEN,
+  MAX_DESCRIPTION_LEN, MAX_OG_DESCRIPTION_LEN, MAX_TITLE_LEN,
   drillDescription, drillHeading, drillPath, drillSlug, drillTitle, drillTldr,
   drillsInSport, findDrill, findSport, humanList, relatedForPublic,
-  humanListOr, libraryTldr, libraryTotals, sportDescription, sportTitle, sportTldr,
+  humanListOr, libraryTldr, libraryTotals, ogDescription, sportDescription,
+  sportOgDescription, sportTitle, sportTldr,
   sportPath, sportSlug, sportsWithDrills, wordCount,
 } from "./drill-seo";
 
@@ -337,5 +338,32 @@ describe("humanListOr", () => {
     expect(humanListOr(["a", "b", "c"])).toBe("a, b or c");
     expect(humanListOr(["a"])).toBe("a");
     expect(humanListOr([])).toBe("");
+  });
+});
+
+describe("Open Graph descriptions", () => {
+  it("keeps every drill share card within 125 chars", () => {
+    for (const d of DRILLS) {
+      expect(ogDescription(d).length, `${d.id}: "${ogDescription(d)}"`)
+        .toBeLessThanOrEqual(MAX_OG_DESCRIPTION_LEN);
+    }
+  });
+
+  it("keeps every sport share card within 125 chars", () => {
+    for (const s of sportsWithDrills()) {
+      expect(sportOgDescription(s).length, `${s}: "${sportOgDescription(s)}"`)
+        .toBeLessThanOrEqual(MAX_OG_DESCRIPTION_LEN);
+    }
+  });
+
+  it("still discloses AI generation in the share card", () => {
+    for (const d of DRILLS) expect(ogDescription(d), d.id).toMatch(/AI-generated/);
+    for (const s of sportsWithDrills()) expect(sportOgDescription(s), s).toMatch(/AI-generated/);
+  });
+
+  it("states the real per-sport count", () => {
+    for (const s of sportsWithDrills()) {
+      expect(sportOgDescription(s), s).toContain(`${drillsInSport(s).length} free ${s.toLowerCase()}`);
+    }
   });
 });

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { openGraph, twitter } from "@/lib/og";
 import Image from "next/image";
 import { ReturningUserBanner } from "@/components/marketing/returning-user";
 import { FaqList } from "@/components/marketing/faq";
@@ -58,12 +59,16 @@ export const metadata: Metadata = {
   description:
     "The kids who start are the kids who train between practices. Pro-style drills at home, a stat sheet that proves the work, vetted coaches. Free, no email.",
   alternates: { canonical: "/" },
-  openGraph: {
-    title: "KoachMe - Training between practices for young athletes",
-    description:
-      "Pro-style drills at home, a stat sheet that proves the work, and vetted coaches when you're ready. Free for athletes, no email needed.",
-    url: "/",
-  },
+  openGraph: openGraph({
+    title: "Training between practices for young athletes",
+    description: "Pro-style drills at home, a stat sheet that proves the work, and vetted coaches.",
+    path: "/",
+  }),
+  twitter: twitter({
+    title: "Training between practices for young athletes",
+    description: "Pro-style drills at home, a stat sheet that proves the work, and vetted coaches.",
+    path: "/",
+  }),
 };
 
 // INTEGRITY RULE for this page: zero fabricated data. No invented

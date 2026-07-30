@@ -130,6 +130,32 @@ export function drillDescription(drill: Drill): string {
   return candidates.find(c => c.length <= MAX_DESCRIPTION_LEN) ?? candidates[candidates.length - 1];
 }
 
+/* Facebook truncates around 130 characters on mobile and X shows less, so
+   share cards get a tighter budget than meta descriptions. */
+export const MAX_OG_DESCRIPTION_LEN = 125;
+
+export function ogDescription(drill: Drill): string {
+  const steps = drill.steps?.length ?? 0;
+  const sport = drill.sport.toLowerCase();
+  const candidates = [
+    steps > 0
+      ? `${steps} steps, common mistakes and fixes, and an AI-generated demo. Free ${sport} drill, no signup.`
+      : `An AI-generated demo of this ${sport} drill. Free to watch, no signup.`,
+    `Free ${sport} drill with steps and an AI-generated demo.`,
+  ];
+  return candidates.find(c => c.length <= MAX_OG_DESCRIPTION_LEN) ?? candidates[candidates.length - 1];
+}
+
+export function sportOgDescription(sport: string, pool: Drill[] = DRILLS): string {
+  const n = drillsInSport(sport, pool).length;
+  const lower = sport.toLowerCase();
+  const candidates = [
+    `${n} free ${lower} drills for young athletes: steps, common mistakes, and AI-generated demos.`,
+    `${n} free ${lower} drills with steps and AI-generated demos.`,
+  ];
+  return candidates.find(c => c.length <= MAX_OG_DESCRIPTION_LEN) ?? candidates[candidates.length - 1];
+}
+
 /* ------------------------------- TL;DR ------------------------------ */
 
 /* A neutral, factual paragraph an AI assistant can lift verbatim and still
