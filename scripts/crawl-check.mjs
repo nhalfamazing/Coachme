@@ -24,27 +24,50 @@ const norm = (href, from) => {
   } catch { return null; }
 };
 
-async function visit(path, depth) {
-  if (depth > MAX_DEPTH) return;
-  if (seen.has(path) && seen.get(path) <= depth) return;
-  seen.set(path, Math.min(seen.get(path) ?? Infinity, depth));
-  if (status.has(path)) return;
+/* BREADTH-FIRST, and it has to be.
+ *
+ * This was a depth-first walk that fetched each page once and returned
+ * early on the second encounter. That makes the recorded depth depend on
+ * traversal ORDER rather than on the shortest path: reaching /drills at
+ * depth 2 first would fix its children at 3, and later finding /drills at
+ * depth 1 corrected /drills itself but never re-walked what it linked to.
+ * The number this script exists to produce — is every drill within three
+ * clicks of home — was therefore unreliable in both directions, and had
+ * been reporting a clean 0 by luck.
+ *
+ * BFS visits every page at its true minimum depth the first time, so one
+ * fetch per page is correct rather than merely cheap. */
+async function crawl(start) {
+  const queue = [[start, 0]];
+  seen.set(start, 0);
 
-  const res = await fetch(base + path, { redirect: "manual" });
-  status.set(path, res.status);
-  if (res.status !== 200) { broken.push(`${path} -> ${res.status}`); return; }
-  const html = await res.text();
+  while (queue.length) {
+    const [path, depth] = queue.shift();
 
-  const out = new Set();
-  for (const m of html.matchAll(/<a\b[^>]*href=["']([^"']+)["']/gi)) {
-    const p = norm(m[1], path);
-    if (p) out.add(p);
+    const res = await fetch(base + path, { redirect: "manual" });
+    status.set(path, res.status);
+    if (res.status !== 200) { broken.push(`${path} -> ${res.status}`); continue; }
+    const html = await res.text();
+
+    const out = new Set();
+    for (const m of html.matchAll(/<a\b[^>]*href=["']([^"']+)["']/gi)) {
+      const p = norm(m[1], path);
+      if (p) out.add(p);
+    }
+    linksOut.set(path, out);
+
+    // Anything not yet seen is first reached HERE, which under BFS is its
+    // shortest depth. Nothing needs revisiting.
+    if (depth >= MAX_DEPTH) continue;
+    for (const p of out) {
+      if (seen.has(p)) continue;
+      seen.set(p, depth + 1);
+      queue.push([p, depth + 1]);
+    }
   }
-  linksOut.set(path, out);
-  for (const p of out) await visit(p, depth + 1);
 }
 
-await visit("/", 0);
+await crawl("/");
 
 const { DRILLS } = await import("../src/lib/drills.ts").catch(() => ({ DRILLS: null }));
 
@@ -64,4 +87,6 @@ for (const o of orphans) console.log(`  - ${o}`);
 const deep = byDepth.filter(([, d]) => d > 3).map(([p]) => p);
 console.log(`\npages deeper than 3 clicks: ${deep.length}`);
 for (const p of deep) console.log(`  - ${p}`);
-process.exit(broken.length || orphans.length || deep.length ? 1 : 0);
+// exitCode, not process.exit(): exiting on top of open undici sockets
+// trips a libuv assertion on Windows that overwrites the code.
+process.exitCode = broken.length || orphans.length || deep.length ? 1 : 0;
