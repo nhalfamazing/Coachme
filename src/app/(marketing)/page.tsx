@@ -11,6 +11,7 @@ import { SectionViews } from "@/components/marketing/section-views";
 import { HeroVideo } from "@/components/marketing/hero-video";
 import { FieldGeo } from "@/components/marketing/field-lines";
 import { DRILLS, DRILL_BLOB_BASE, SPORTS as TICKER_SPORTS, coachFor, type Drill } from "@/lib/drills";
+import { safetyTldr, siteTldr } from "@/lib/aeo";
 
 // The hero mockup plays the crossover demo (a silent rep - no speech
 // wasted on a muted loop). scripts/make-hero-clip.mjs maintains the
@@ -140,6 +141,17 @@ export default function LandingPage() {
             <p className="mk-caption body">AI-generated drill demo, muted</p>
           </div>
         </div>
+      </section>
+
+      {/* Answer-first block for assistants and for anyone who wants the
+          plain version before the pitch. The landing H2s below are
+          deliberately NOT questions — they are the argument, and rewriting
+          "Starting spots are earned between practices" into a question
+          would cost more than the heading match is worth. This block is
+          where the extractable, neutral version lives instead. */}
+      <section className="mk-wrap mk-tldr mk-tldr--landing" aria-labelledby="what-is-h">
+        <h2 className="stamp stamp--flat mk-answer-h" id="what-is-h">What is KoachMe?</h2>
+        <p className="body">{siteTldr()}</p>
       </section>
 
       {/* ---------------- sports ticker ---------------- */}
@@ -366,6 +378,15 @@ export default function LandingPage() {
             Safety on KoachMe is not a settings page you have to find. It
             is how the platform works by default.
           </p>
+
+          {/* The extractable version of this section, for an assistant
+              asked "how does KoachMe keep kids safe". */}
+          <div className="mk-tldr mk-tldr--inline" role="region" aria-labelledby="safety-answer-h">
+            <h3 className="stamp stamp--flat mk-answer-h" id="safety-answer-h">
+              How does KoachMe keep kids safe?
+            </h3>
+            <p className="body">{safetyTldr()}</p>
+          </div>
           <div className="mk-truth body">
             <div className="mk-truth-item">
               <span className="mk-tick" aria-hidden="true">✓</span>

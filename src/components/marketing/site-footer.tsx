@@ -9,7 +9,15 @@ export function SiteFooter() {
         <p className="mk-footer-tagline mono">
           THE PERFORMANCE GRAPH FOR EMERGING ATHLETES
         </p>
+        {/* /drills, /verification and /pricing are here so every public
+            page links to them: the drill library is the site's largest
+            content asset and the verification standard is its most citable
+            page, and neither should depend on a visitor reaching the
+            landing page to be discoverable. */}
         <nav className="mk-footer-links" aria-label="Footer">
+          <Link href="/drills">Drills</Link>
+          <Link href="/verification">Verification</Link>
+          <Link href="/pricing">Pricing</Link>
           <Link href="/about">About</Link>
           <Link href="/privacy">Privacy</Link>
           <Link href="/terms">Terms</Link>

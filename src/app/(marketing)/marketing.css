@@ -561,6 +561,49 @@
 .mk-drillpage-report a { color: #5F636B; }
 .mk-drillpage-report a:hover { color: #9CA0A8; }
 
+/* ---------- answer blocks (AEO) ---------- */
+
+/* The heading of an extractable answer block. Styled as a stamp so it
+   carries no visual weight, but it is a real h2/h3 in the outline — an
+   assistant matching "what is KoachMe" needs a heading, not a styled div. */
+.mk-answer-h {
+  display: inline-block;
+  margin: 0 0 10px;
+}
+
+/* Landing-page variant: full-width band between the hero and the ticker. */
+.mk-tldr--landing {
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+/* Inside an existing section (the safety block), so it needs its own
+   breathing room but not the wrap's horizontal padding. */
+.mk-tldr--inline {
+  margin: 22px 0 4px;
+}
+
+/* ---------- verification ladder ---------- */
+.mk-verify-ladder { margin: 22px 0 30px; display: grid; gap: 14px; }
+.mk-verify-tier {
+  background: var(--km-raised); border-radius: 14px; padding: 16px 18px;
+}
+.mk-verify-tier dt {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.mk-verify-tier dd { margin: 0; }
+.mk-verify-soon {
+  font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: #5F636B;
+}
+.mk-verify-def { margin: 0 0 8px; font-size: 15px; line-height: 1.6; color: #C7CBD2; }
+.mk-verify-meta {
+  margin: 0 0 4px; font-size: 11.5px; line-height: 1.55; color: #9CA0A8;
+}
+
+/* ---------- pricing ---------- */
+.mk-pricing-list { margin: 14px 0 20px; }
+
 /* "Updated 29 July 2026". Sits under the H1, quiet enough not to compete
    with it — it is provenance, not a headline. The date is real manifest
    data and matches dateModified in the page's structured data. */

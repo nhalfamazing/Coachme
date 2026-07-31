@@ -38,6 +38,33 @@ export function LandingJsonLd() {
     logo: `${SITE_URL}/brand/mark.png`,
     description:
       "KoachMe gives young athletes a free training profile: logged workouts, honestly labeled stats, and access to real coaches.",
+    /* foundingDate is the date the KoachMe repository's first commit
+       landed — the earliest date we can actually evidence for the project
+       existing, rather than a rounder one that would read better. If the
+       family considers a different date the real founding, change it here;
+       do not widen it to a year to look established. */
+    foundingDate: "2026-05-22",
+    /* Miami is stated on /about and in the AboutPage schema already. No
+       street address: this is a father-and-son project run from a home,
+       and publishing a child's home address to strengthen an entity
+       signal is not a trade we make. areaServed is deliberately absent
+       too — the product is a website with no geographic restriction, and
+       claiming a service area we have not defined would be invention. */
+    foundingLocation: {
+      "@type": "Place",
+      address: {
+        "@type": "PostalAddress",
+        addressLocality: "Miami",
+        addressRegion: "FL",
+        addressCountry: "US",
+      },
+    },
+    knowsAbout: [
+      "youth sports training",
+      "athlete performance tracking",
+      "sports skill drills",
+      "youth coach verification",
+    ],
   };
   const website = {
     "@context": "https://schema.org",

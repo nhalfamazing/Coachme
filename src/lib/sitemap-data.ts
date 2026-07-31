@@ -26,11 +26,23 @@ export interface SitemapEntry {
   priority?: number;
 }
 
+/* Publication dates for the two pages added on 2026-07-30. Exported because
+   the pages themselves render them as a visible "Updated" line and emit
+   them as datePublished/dateModified — one date, three places, no chance of
+   the sitemap disagreeing with the page. */
+export const VERIFICATION_PUBLISHED = "2026-07-30";
+export const PRICING_PUBLISHED = "2026-07-30";
+
 /** Static marketing pages. /app, /coach and /admin are absent on purpose:
  *  they are noindex product surfaces. */
 const STATIC_PAGES: SitemapEntry[] = [
   { path: "/", lastModified: "2026-07-30", changeFrequency: "weekly", priority: 1 },
+  // The verification standard is the most distinctive thing the site
+  // publishes and the page most worth citing, so it ranks above the rest
+  // of the static set.
+  { path: "/verification", lastModified: VERIFICATION_PUBLISHED, changeFrequency: "monthly", priority: 0.9 },
   { path: "/become-a-coach", lastModified: "2026-07-29", changeFrequency: "monthly", priority: 0.8 },
+  { path: "/pricing", lastModified: PRICING_PUBLISHED, changeFrequency: "monthly", priority: 0.7 },
   { path: "/about", lastModified: "2026-07-28", changeFrequency: "monthly", priority: 0.6 },
   { path: "/contact", lastModified: "2026-07-28", changeFrequency: "yearly", priority: 0.4 },
   { path: "/privacy", lastModified: "2026-07-28", changeFrequency: "monthly", priority: 0.3 },

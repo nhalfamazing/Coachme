@@ -129,7 +129,7 @@ export default async function DrillPage({ params }: { params: Params }) {
 
       {drill.builds?.length ? (
         <section className="mk-drillpage-sec" aria-labelledby="builds-heading">
-          <h2 className="display" id="builds-heading">What this builds</h2>
+          <h2 className="display" id="builds-heading">What does the {drill.title.toLowerCase()} drill build?</h2>
           <ul className="mk-chips" aria-label="Skills this drill develops">
             {drill.builds.map(b => (
               <li key={b} className="stamp stamp--lime stamp--flat">{b}</li>
@@ -172,7 +172,8 @@ export default async function DrillPage({ params }: { params: Params }) {
           behind a tab or an accordion. */}
       {drill.steps?.length ? (
         <section className="mk-drillpage-sec" aria-labelledby="howto-heading">
-          <h2 className="display" id="howto-heading">How to do it</h2>
+          {/* The heading a parent actually types into a search box. */}
+          <h2 className="display" id="howto-heading">How do you do the {drill.title.toLowerCase()} drill?</h2>
           <ol className="mk-howto">
             {drill.steps.map(s => (
               <li key={s.n} id={`step-${s.n}`} className="mk-howto-item">
@@ -189,7 +190,7 @@ export default async function DrillPage({ params }: { params: Params }) {
 
       {drill.mistakes?.length ? (
         <section className="mk-drillpage-sec" aria-labelledby="mistakes-heading">
-          <h2 className="display" id="mistakes-heading">Common mistakes</h2>
+          <h2 className="display" id="mistakes-heading">What are the most common {drill.title.toLowerCase()} mistakes?</h2>
           <ul className="mk-mistakes">
             {drill.mistakes.map(m => (
               <li key={m.mistake} className="mk-mistake">
@@ -209,7 +210,7 @@ export default async function DrillPage({ params }: { params: Params }) {
       ) : null}
 
       <section className="mk-drillpage-sec" aria-labelledby="coach-heading">
-        <h2 className="display" id="coach-heading">Who demonstrates this</h2>
+        <h2 className="display" id="coach-heading">Who demonstrates this drill?</h2>
         <div className="mk-coach">
           <Image
             src={coach.portrait.blob}

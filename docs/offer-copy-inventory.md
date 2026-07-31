@@ -31,6 +31,20 @@ Line numbers are as of commit `0ae6283`.
 | [`src/app/(marketing)/drills/page.tsx`](../src/app/(marketing)/drills/page.tsx) | 114–118 | "…the whole library — free for the first month, and nobody is charged while subscriptions are still to launch." |
 | [`src/app/(marketing)/drills/[sport]/page.tsx`](../src/app/(marketing)/drills/[sport]/page.tsx) | 117–121 | Same sentence, sport hub. |
 | [`src/app/(marketing)/drills/[sport]/[drillSlug]/page.tsx`](../src/app/(marketing)/drills/[sport]/[drillSlug]/page.tsx) | 260–264 | Same sentence, drill page. Comment at 255–258 explicitly requires it to match the FAQ word for word. |
+| [`src/app/(marketing)/pricing/page.tsx`](../src/app/(marketing)/pricing/page.tsx) | whole page | **Added 2026-07-30.** Takes every number from `src/lib/offer.ts` — no price is typed out in its prose. |
+| [`src/lib/aeo.ts`](../src/lib/aeo.ts) | `pricingTldr`, `siteTldr` | Answer-first blocks. Also read their numbers from `OFFER`. |
+
+## The numbers, in one place
+
+[`src/lib/offer.ts`](../src/lib/offer.ts) (added 2026-07-30) holds
+`proPriceUsd`, `trialDays`, `paymentsLive`, `coachTakeRatePercent` and the
+free-feature list. `/pricing`, the pricing schema, and the answer-first
+blocks all read from it, so changing the price there changes all of them.
+
+**The seven prose surfaces above still spell "$9" out longhand** and are
+untouched by design. `paymentsLive` is the switch that matters most: while
+it is `false`, every surface must keep saying nobody is charged, and
+`src/lib/aeo.test.ts` asserts that.
 
 ## Structured data
 

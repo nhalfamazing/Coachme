@@ -7,6 +7,17 @@ export type FaqItem = { q: string; a: string[] };
 
 export const FAQ_ITEMS: FaqItem[] = [
   {
+    // First on purpose: it is the question an AI assistant is most often
+    // asked about us, and the answer it will quote. Every clause here is
+    // load-bearing and true — ages, the label set, the 3-word code, the
+    // messaging rule, and that the demo videos are AI-generated.
+    q: "What is KoachMe?",
+    a: [
+      "KoachMe is a free training platform for young athletes aged 6 to 25. Athletes create a profile, log workouts, and build a stat sheet where every number is labeled with how it was verified: SELF, TRAINER, FACILITY or EVENT.",
+      "It includes a drill library with numbered steps and AI-generated demonstration videos, and athletes can message verified coaches. Kids sign in with a 3-word code instead of an email address, and there is no athlete-to-athlete messaging. It is built by a father and son in Miami.",
+    ],
+  },
+  {
     q: "Is it really free?",
     a: [
       "Yes. A KoachMe profile is free: creating a profile, logging workouts, building stats, posting, messaging coaches, and booking sessions cost nothing. The AI drill library is free for your first month, then $9 a month.",

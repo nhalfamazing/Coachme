@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { openGraph, twitter } from "@/lib/og";
 import Link from "next/link";
 import { AboutJsonLd } from "@/components/marketing/json-ld";
+import { whatIsKoachMe } from "@/lib/aeo";
 
 export const metadata: Metadata = {
   title: "About",
@@ -35,6 +36,16 @@ export default function AboutPage() {
       <p className="mk-prose-meta mono">About KoachMe</p>
       <h1 className="display">Built at our kitchen table</h1>
 
+      {/* The plain answer, first, before any story. An assistant asked
+          "what is KoachMe" should be able to quote this paragraph whole and
+          be correct about every clause — which is why it is generated from
+          the same source as the drill counts rather than written here and
+          left to go stale. */}
+      <section className="mk-tldr" aria-labelledby="what-is-h">
+        <h2 className="stamp stamp--flat mk-answer-h" id="what-is-h">What is KoachMe?</h2>
+        <p className="body">{whatIsKoachMe()}</p>
+      </section>
+
       <p>
         KoachMe is a father and son project from Miami. It started the way a
         lot of family projects start: with a problem we kept running into and
@@ -53,7 +64,7 @@ export default function AboutPage() {
         kid can point at and say: this is mine, I did this.
       </p>
 
-      <h2 className="display">What we believe</h2>
+      <h2 className="display">What does KoachMe believe?</h2>
       <ul>
         <li>
           <strong>Real numbers only.</strong> Nothing in KoachMe is invented:
@@ -79,7 +90,7 @@ export default function AboutPage() {
         </li>
       </ul>
 
-      <h2 className="display">Where we are</h2>
+      <h2 className="display">How far along is KoachMe?</h2>
       <p>
         KoachMe is young and we say so on the front page. The athlete side is
         free and working today: profiles, workout logging, streaks, drills,
