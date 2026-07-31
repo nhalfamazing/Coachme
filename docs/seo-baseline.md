@@ -429,3 +429,83 @@ tracking, so that trade is a product decision, not a performance cleanup.
 
 Re-measure against production after this deploys; the numbers there are the
 ones that count.
+
+---
+
+# After Phase D — 2026-07-30, measured against production
+
+Measured on `https://koachme.ai` after `2e86e6f` deployed. Lighthouse
+12.8.2 driving Edge headless, median of 3 mobile runs and 2 desktop runs.
+Reproduce with `node scripts/crawl-check.mjs https://koachme.ai`,
+`node scripts/schema-check.mjs https://koachme.ai` and
+`node scripts/faq-schema-check.mjs https://koachme.ai`.
+
+## Lighthouse, production
+
+| Route | Mobile SEO | Mobile perf | Mobile LCP | Desktop perf | Desktop LCP |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `/` | **100** | 92 | 3,014 ms | 99 | 747 ms |
+| `/drills` | **100** | 92 | 2,755 ms | 100 | 619 ms |
+| `/drills/softball` | **100** | 95 | 2,795 ms | 100 | 640 ms |
+| drill page | **100** | 94 | 3,002 ms | 100 | 649 ms |
+
+CLS is 0 everywhere, on both form factors.
+
+## Against the baseline
+
+| | Baseline | After 1-3 | **After D** |
+| --- | ---: | ---: | ---: |
+| Indexable pages | 7 | 38 | **40** |
+| URLs in sitemap | 6 | 38 | **40** |
+| Mobile SEO, home | 100 | 100 | **100** |
+| Mobile SEO, drill page | — | 100 | **100** |
+| Mobile perf, home | 90 | 86 | **92** |
+| Mobile perf, drill page | — | 76 | **94** |
+| Mobile LCP, home | 3,400 ms | 3,400 ms | **3,014 ms** |
+| Mobile LCP, drill page | — | 4,300 ms | **3,002 ms** |
+| Desktop perf, home | 99 | 100 | **99** |
+| JSON-LD types | 5 | 9 | **19** |
+| `/llms.txt` | 404 | 404 | **200** |
+
+Performance did not regress; it improved on every route measured. The drill
+page moved from the worst number on the site to among the best, which is
+the Phase B bundle work showing up in production rather than anything Phase
+D did.
+
+Mobile LCP is still above the 2,500 ms target on `/` and the drill page,
+and `/drills` and the softball hub now sit under 2,800 ms. What remains is
+the App Router hydrating pages that have almost nothing to hydrate — see
+the Phase B section above for why cutting further is a product decision
+about `CtaLink` rather than a performance cleanup.
+
+## Crawl and schema
+
+| Check | Result |
+| --- | --- |
+| Pages crawled from home | 41 |
+| Broken internal links | 0 |
+| Orphan pages | 0 |
+| Pages deeper than 3 clicks | 0 |
+| JSON-LD nodes validated | 25 across 19 types |
+| Schema problems | 0 |
+| FAQ answers marked up but not visible | 0 of 16 |
+| Drill pages missing a visible AI label | 0 of 24 |
+| Drill pages missing AI disclosure in schema | 0 of 24 |
+| `HowTo` emitted without real steps | 0 |
+| Dates not matching the manifest | 0 of 24 |
+
+Crawl depth is trustworthy for the first time: `crawl-check.mjs` walked
+depth-first and returned early on a second encounter, so recorded depths
+depended on traversal order. It is breadth-first now. The clean 0 it
+reported in earlier phases was luck, not evidence.
+
+## Schema types shipped
+
+`Organization` (now with `foundingDate`, `foundingLocation`, `knowsAbout`),
+`WebSite`, `WebApplication`, `WebPage`, `AboutPage`, `FAQPage`, `Question`,
+`Answer`, `VideoObject` (now with real `duration`), `HowTo`, `HowToStep`,
+`HowToSupply`, `BreadcrumbList`, `ItemList`, `ListItem`, `Offer`,
+`ImageObject`, `Place`, `PostalAddress`.
+
+`sameAs` remains empty: no KoachMe social profiles exist, confirmed
+2026-07-30.

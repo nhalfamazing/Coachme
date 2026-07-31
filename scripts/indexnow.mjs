@@ -74,15 +74,28 @@ function manifestAt(ref) {
   }
 }
 
-function sitemapPaths() {
-  const manifest = JSON.parse(readFileSync(new URL('../data/drills-manifest.json', import.meta.url), 'utf8'));
-  const sports = [...new Set(manifest.drills.map(d => d.sport))];
-  return [
-    '/', '/about', '/become-a-coach', '/contact', '/privacy', '/terms',
-    '/drills',
-    ...sports.map(s => `/drills/${s}`),
-    ...manifest.drills.map(d => `/drills/${d.sport}/${d.slug}`),
-  ];
+/* --all reads the LIVE SITEMAP rather than restating what is in it.
+ *
+ * This used to hardcode the static page list and promptly drifted: adding
+ * /verification and /pricing gave the sitemap 40 URLs while --all still
+ * submitted 38, silently leaving out the two newest and most valuable
+ * pages — from the one mechanism whose entire job is announcing new pages.
+ *
+ * The sitemap is the authoritative answer to "which URLs do we want
+ * indexed", and it is already deployed by the time this runs, so reading it
+ * cannot disagree with what a crawler will find. It also means a page can
+ * never be added to the site and missed here. */
+async function sitemapUrls() {
+  const locs = async (url) => {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`${url} -> HTTP ${res.status}`);
+    const xml = await res.text();
+    return [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map(m => m[1].trim());
+  };
+  const children = await locs(`${SITE_URL}/sitemap.xml`);
+  const all = [];
+  for (const child of children) all.push(...(await locs(child)));
+  return all;
 }
 
 /** Refuse to submit until the key file is actually reachable. A submission
@@ -106,7 +119,7 @@ let urls;
 if (explicit.length) {
   urls = explicit;
 } else if (has('--all')) {
-  urls = toAbsolute(sitemapPaths(), SITE_URL);
+  urls = await sitemapUrls();
 } else {
   const since = valueOf('--since') ?? 'HEAD~1';
   const before = manifestAt(since);
