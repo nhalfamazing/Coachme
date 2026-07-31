@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { track } from '@vercel/analytics';
+import { trackWhenReady } from '@/lib/analytics';
 import * as sync from '@/lib/sync';
 import * as bookingApi from '@/lib/scheduling/client';
 import { checkHardBlock, BLOCK_MESSAGE } from '@/lib/safety/patterns';
@@ -619,6 +620,9 @@ export default function CoachMeApp() {
   };
   const addWorkout = (w) => {
     const entry = { id: Date.now(), ...w };
+    // The other half of activation: the first workout an athlete ever logs.
+    // Checked before the save so `workouts` is still the pre-write list.
+    if (workouts.length === 0) track('first_workout_logged', { type: entry.type ?? null });
     saveWorkouts([entry, ...workouts]);
     if (athlete && athlete.code) {
       sync.logWorkout({
@@ -1443,14 +1447,31 @@ function SignUpFlow({ onComplete, savedAthlete, onLogin, onCodeLogin, deviceAthl
 
   const upd = (field, value) => setForm(f => ({ ...f, [field]: value }));
 
-  // The marketing site's "Get started free" links to /app?signup=1:
-  // jump straight to the first form step (one tap shorter than landing
-  // on the welcome screen first).
+  // The marketing site's "Get started free" links to /app?signup=1: jump
+  // straight to the first form step (one tap shorter than landing on the
+  // welcome screen first).
+  //
+  // Public drill pages add &sport=softball, so an athlete who arrived from
+  // a search for one drill does not have to re-answer a question the URL
+  // already knows. The value is matched against the real SPORTS list rather
+  // than trusted — an unknown ?sport= leaves the default alone instead of
+  // putting an invalid sport in the form.
   useEffect(() => {
     try {
-      if (new URLSearchParams(window.location.search).get('signup') === '1') {
-        track('signup_started', { source: 'landing_cta' });
+      const params = new URLSearchParams(window.location.search);
+      const wanted = (params.get('sport') || '').toLowerCase();
+      const matched = SPORTS.find(s => s.name.toLowerCase() === wanted);
+      if (matched) setForm(f => ({ ...f, sport: matched.name }));
+      if (params.get('signup') === '1') {
         setStep(s => (s === 0 ? 1 : s));
+        // trackWhenReady, not track: this fires on mount, before the
+        // analytics queue exists, and plain track() is silently discarded
+        // there — which is why this event had never actually been
+        // recorded. See src/lib/analytics.ts.
+        return trackWhenReady('signup_started', {
+          source: params.get('from') === 'drill' ? 'drill_page' : 'landing_cta',
+          ...(matched ? { sport: matched.name } : {}),
+        });
       }
     } catch {}
   }, []);
@@ -1458,6 +1479,10 @@ function SignUpFlow({ onComplete, savedAthlete, onLogin, onCodeLogin, deviceAthl
   const totalSteps = 5;
   const next = () => {
     if (step === 0) track('signup_started', { source: 'app_welcome' });
+    // Which step someone abandons on is the only thing that tells us WHERE
+    // the form loses people; signup_started and signup_completed together
+    // only say that it happened.
+    else track('signup_step_completed', { step });
     setStep(s => s + 1);
   };
   const back = () => setStep(s => Math.max(0, s - 1));
@@ -3613,6 +3638,11 @@ function DrillSheet({ drill, athleteId, athleteStats, sessions = [], onLogDrill,
       : null;
     setLogged({ first: before === 0, xp: unlocked ? achievementXp(unlocked) : 0 });
     track('drill_logged', { hasReps: entry.reps != null });
+    // ACTIVATION. This is the event that matters most on the whole site:
+    // a signup that never logs anything is a vanity number while nothing is
+    // charged, and the first logged drill is what predicts a return visit.
+    // See docs/conversion-goals.md.
+    if (totalBefore === 0) track('first_drill_played', { sport: drill.sport, drillId: drill.id });
   };
 
   const showHowTo = hasHowTo(drill);

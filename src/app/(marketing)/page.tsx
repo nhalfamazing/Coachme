@@ -12,6 +12,7 @@ import { HeroVideo } from "@/components/marketing/hero-video";
 import { FieldGeo } from "@/components/marketing/field-lines";
 import { DRILLS, DRILL_BLOB_BASE, SPORTS as TICKER_SPORTS, coachFor, type Drill } from "@/lib/drills";
 import { safetyTldr, siteTldr } from "@/lib/aeo";
+import { activeVariant } from "@/lib/variants";
 
 // The hero mockup plays the crossover demo (a silent rep - no speech
 // wasted on a muted loop). scripts/make-hero-clip.mjs maintains the
@@ -52,6 +53,9 @@ const GIRLS_DRILLS = GIRLS_DRILL_IDS
 
 // Real sport count, derived from the manifest - never hand-written.
 const SPORT_COUNT = new Set(DRILLS.map(d => d.sport)).size;
+
+// Landing copy variant for this build. Mechanism only - see src/lib/variants.ts.
+const VARIANT = activeVariant();
 
 export const metadata: Metadata = {
   // Root layout template appends "- KoachMe"; no brand prefix here or
@@ -99,8 +103,12 @@ export default function LandingPage() {
           <div className="mk-hero-copy">
             <p className="stamp">Free for athletes · Built family-first</p>
             <div style={{ height: 18 }} />
+            {/* Copy comes through the A/B seam (src/lib/variants.ts).
+                Resolved at build time, identical for every visitor, no
+                client swap — so the page stays static and nobody sees a
+                flash of control copy. No test is running. */}
             <h1 className="mk-hero-title display">
-              Starting spots are earned <span>between practices</span>
+              {VARIANT.heroTitle.lead} <span>{VARIANT.heroTitle.emphasis}</span>
             </h1>
             <p className="mk-hero-sub body">
               KoachMe gives your athlete a plan for the hours that separate
@@ -108,10 +116,10 @@ export default function LandingPage() {
               the work, and real vetted coaches when you&apos;re ready.
             </p>
             <div className="mk-hero-ctas">
-              <CtaLink href="/app?signup=1" cta="hero_start_free" className="mk-btn mk-btn--primary body">
-                Start free - no email needed
+              <CtaLink href="/app?signup=1" cta="hero_start_free" section="hero" className="mk-btn mk-btn--primary body">
+                {VARIANT.primaryCta}
               </CtaLink>
-              <CtaLink href="#progress" cta="hero_see_how" className="mk-btn mk-btn--ghost body">
+              <CtaLink href="#progress" cta="hero_see_how" section="hero" className="mk-btn mk-btn--ghost body">
                 See how it works
               </CtaLink>
             </div>
@@ -253,7 +261,7 @@ export default function LandingPage() {
               screen instead. It is also the landing page's link into the
               indexable drill pages. */}
           <div className="mk-drills-cta">
-            <CtaLink href="/drills" cta="drills_browse_all" className="mk-btn mk-btn--primary body">
+            <CtaLink href="/drills" cta="drills_browse_all" section="drills" className="mk-btn mk-btn--primary body">
               Browse all {DRILLS.length} drills
             </CtaLink>
           </div>
@@ -355,10 +363,10 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="mk-hero-ctas" style={{ justifyContent: "flex-start", marginTop: 28 }}>
-            <CtaLink href="/app" cta="coaches_browse" className="mk-btn mk-btn--primary body">
+            <CtaLink href="/app" cta="coaches_browse" section="coaches" className="mk-btn mk-btn--primary body">
               Browse coaches
             </CtaLink>
-            <CtaLink href="/become-a-coach" cta="coaches_apply" className="mk-btn mk-btn--ghost body">
+            <CtaLink href="/become-a-coach" cta="coaches_apply" section="coaches" className="mk-btn mk-btn--ghost body">
               Apply as a coach
             </CtaLink>
           </div>
@@ -474,8 +482,8 @@ export default function LandingPage() {
           {/* Desktop override on mk-hero-ctas is flex-start; the single
               closing button should sit centered under the centered H2. */}
           <div className="mk-hero-ctas" style={{ marginTop: 24, justifyContent: "center" }}>
-            <CtaLink href="/app?signup=1" cta="closing_start_free" className="mk-btn mk-btn--primary body">
-              Start free - no email needed
+            <CtaLink href="/app?signup=1" cta="closing_start_free" section="closing" className="mk-btn mk-btn--primary body">
+              {VARIANT.primaryCta}
             </CtaLink>
           </div>
         </div>

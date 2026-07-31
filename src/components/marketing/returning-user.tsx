@@ -52,7 +52,8 @@ export function ReturningUserBanner() {
           href={returning.href}
           className="mk-btn mk-btn--primary mk-btn--sm body"
           onClick={() =>
-            track("landing_cta_click", {
+            track("cta_click", {
+              section: "returning_banner",
               cta: returning.href === "/coach" ? "returning_open_console" : "returning_open_app",
             })
           }

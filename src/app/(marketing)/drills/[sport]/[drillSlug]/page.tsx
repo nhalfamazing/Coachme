@@ -9,6 +9,9 @@ import {
 } from "@/lib/drill-seo";
 import { DrillJsonLd, aiVideoDisclosure } from "@/components/marketing/drill-json-ld";
 import { UpdatedStamp } from "@/components/marketing/updated-stamp";
+import { CtaLink } from "@/components/marketing/cta-link";
+import { CoachCta } from "@/components/marketing/coach-cta";
+import { DrillPageAnalytics } from "@/components/marketing/drill-page-analytics";
 import { drillDates } from "@/lib/content-dates";
 import { openGraph, twitter } from "@/lib/og";
 
@@ -82,6 +85,9 @@ export default async function DrillPage({ params }: { params: Params }) {
   return (
     <main className="mk-wrap mk-drillpage">
       <DrillJsonLd drill={drill} coach={coach} />
+      {/* The page's only client JavaScript. Renders nothing; attaches a
+          play listener to the server-rendered <video> above. */}
+      <DrillPageAnalytics drillId={drill.id} sport={drill.sport} videoId="drill-video" />
 
       <nav className="mk-crumbs mono" aria-label="Breadcrumb">
         <Link href="/drills">Drills</Link>
@@ -108,6 +114,7 @@ export default async function DrillPage({ params }: { params: Params }) {
         {/* preload="none": the poster shows, the mp4 is not fetched until
             somebody presses play. No autoplay, no signup, no paywall. */}
         <video
+          id="drill-video"
           className="mk-video"
           poster={poster}
           preload="none"
@@ -265,12 +272,30 @@ export default async function DrillPage({ params }: { params: Params }) {
           needed to start.
         </p>
         <div className="mk-drillpage-cta-row">
-          <Link href={`/app?signup=1&sport=${sportSlug(drill.sport)}`} className="mk-btn mk-btn--primary body">
+          {/* Carries the sport AND the drill: the signup form arrives with
+              the sport already chosen, and `drill` names the one this
+              visitor came for so the app can open it straight after. A
+              stranger who searched "windmill pitching drill" should land on
+              windmill pitching, not on a generic library. `from=drill`
+              separates this funnel from the landing one. */}
+          <CtaLink
+            href={`/app?signup=1&from=drill&sport=${sportSlug(drill.sport)}&drill=${drill.id}`}
+            cta="drill_start_free"
+            section="drill_cta"
+            event="drill_page_cta_click"
+            className="mk-btn mk-btn--primary body"
+          >
             Start training free
-          </Link>
-          <Link href={sportPath(drill.sport)} className="mk-btn mk-btn--ghost body">
+          </CtaLink>
+          <CtaLink
+            href={sportPath(drill.sport)}
+            cta="drill_all_in_sport"
+            section="drill_cta"
+            event="drill_page_cta_click"
+            className="mk-btn mk-btn--ghost body"
+          >
             All {drill.sport.toLowerCase()} drills
-          </Link>
+          </CtaLink>
         </div>
       </section>
 
@@ -279,6 +304,8 @@ export default async function DrillPage({ params }: { params: Params }) {
       <p className="mk-drillpage-report body">
         <Link href="/contact">Something look wrong with this drill?</Link>
       </p>
+
+      <CoachCta />
     </main>
   );
 }

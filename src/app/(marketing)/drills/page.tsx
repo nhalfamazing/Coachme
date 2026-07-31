@@ -8,6 +8,8 @@ import {
 } from "@/lib/drill-seo";
 import { BreadcrumbJsonLd, DrillListJsonLd } from "@/components/marketing/drill-json-ld";
 import { UpdatedStamp } from "@/components/marketing/updated-stamp";
+import { CoachCta } from "@/components/marketing/coach-cta";
+import { CtaLink } from "@/components/marketing/cta-link";
 import { collectionDates } from "@/lib/content-dates";
 import { openGraph, twitter } from "@/lib/og";
 
@@ -118,12 +120,24 @@ export default function DrillLibraryPage() {
           needed to start.
         </p>
         <div className="mk-drillpage-cta-row">
-          <Link href="/app?signup=1" className="mk-btn mk-btn--primary body">
+          <CtaLink
+            href="/app?signup=1&from=drill"
+            cta="library_start_free"
+            section="library_cta"
+            event="drill_page_cta_click"
+            className="mk-btn mk-btn--primary body"
+          >
             Start training free
-          </Link>
-          <Link href="/about" className="mk-btn mk-btn--ghost body">
+          </CtaLink>
+          <CtaLink
+            href="/about"
+            cta="library_what_is"
+            section="library_cta"
+            event="drill_page_cta_click"
+            className="mk-btn mk-btn--ghost body"
+          >
             What is KoachMe?
-          </Link>
+          </CtaLink>
         </div>
       </section>
 
@@ -131,6 +145,8 @@ export default function DrillLibraryPage() {
         Every demonstration video on these pages is AI-generated and labeled
         as such. <Link href="/contact">Something look wrong?</Link>
       </p>
+
+      <CoachCta />
     </main>
   );
 }

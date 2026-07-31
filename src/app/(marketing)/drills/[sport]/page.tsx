@@ -9,6 +9,8 @@ import {
 } from "@/lib/drill-seo";
 import { BreadcrumbJsonLd, DrillListJsonLd } from "@/components/marketing/drill-json-ld";
 import { UpdatedStamp } from "@/components/marketing/updated-stamp";
+import { CoachCta } from "@/components/marketing/coach-cta";
+import { CtaLink } from "@/components/marketing/cta-link";
 import { collectionDates } from "@/lib/content-dates";
 import { openGraph, twitter } from "@/lib/og";
 
@@ -121,14 +123,30 @@ export default async function SportHubPage({ params }: { params: Params }) {
           launch. No email needed to start.
         </p>
         <div className="mk-drillpage-cta-row">
-          <Link href={`/app?signup=1&sport=${sportSlug(sport)}`} className="mk-btn mk-btn--primary body">
+          {/* Sport-aware, same as the drill pages: the form arrives with
+              this sport already chosen. */}
+          <CtaLink
+            href={`/app?signup=1&from=drill&sport=${sportSlug(sport)}`}
+            cta="hub_start_free"
+            section="hub_cta"
+            event="drill_page_cta_click"
+            className="mk-btn mk-btn--primary body"
+          >
             Start training free
-          </Link>
-          <Link href="/drills" className="mk-btn mk-btn--ghost body">
+          </CtaLink>
+          <CtaLink
+            href="/drills"
+            cta="hub_all_drills"
+            section="hub_cta"
+            event="drill_page_cta_click"
+            className="mk-btn mk-btn--ghost body"
+          >
             All {DRILLS.length} drills
-          </Link>
+          </CtaLink>
         </div>
       </section>
+
+      <CoachCta />
     </main>
   );
 }

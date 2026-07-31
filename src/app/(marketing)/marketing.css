@@ -604,6 +604,18 @@
 /* ---------- pricing ---------- */
 .mk-pricing-list { margin: 14px 0 20px; }
 
+/* Coach CTA at the foot of drill pages and hubs. Deliberately the quietest
+   thing on the page: it is the wrong CTA for almost everyone who sees it,
+   and a banner here would cost more athlete conversions than it wins
+   coaches. One line, muted, findable. */
+.mk-coach-cta {
+  margin: 34px 0 0; padding-top: 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 12.5px; line-height: 1.6; color: #5F636B;
+}
+.mk-coach-cta a { color: #9CA0A8; }
+.mk-coach-cta a:hover { color: var(--km-lime); }
+
 /* "Updated 29 July 2026". Sits under the H1, quiet enough not to compete
    with it — it is provenance, not a headline. The date is real manifest
    data and matches dateModified in the page's structured data. */
