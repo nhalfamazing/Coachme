@@ -7,6 +7,8 @@ import {
   sportPath, sportsWithDrills,
 } from "@/lib/drill-seo";
 import { BreadcrumbJsonLd, DrillListJsonLd } from "@/components/marketing/drill-json-ld";
+import { UpdatedStamp } from "@/components/marketing/updated-stamp";
+import { collectionDates } from "@/lib/content-dates";
 import { openGraph, twitter } from "@/lib/og";
 
 /* The library index. Every sport, every count, computed from the data. */
@@ -14,6 +16,7 @@ import { openGraph, twitter } from "@/lib/og";
 export const dynamic = "force-static";
 
 const totals = libraryTotals();
+const libraryDates = collectionDates(DRILLS);
 
 export const metadata: Metadata = {
   title: `Free sports drills for young athletes`,
@@ -53,6 +56,10 @@ export default function DrillLibraryPage() {
       </nav>
 
       <h1 className="display mk-hub-h1">Free sports drills for young athletes</h1>
+
+      {/* Newest drill in the whole library. Matches dateModified in the
+          WebPage node above; never a build timestamp. */}
+      {libraryDates ? <UpdatedStamp date={libraryDates.modified} /> : null}
 
       <section className="mk-tldr" aria-labelledby="tldr-heading">
         <span className="stamp stamp--flat" id="tldr-heading">In short</span>

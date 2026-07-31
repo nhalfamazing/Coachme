@@ -4,10 +4,12 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { DRILLS } from "@/lib/drills";
 import {
-  drillPath, drillsInSport, findSport, libraryTotals, sportDescription,
+  drillPath, drillsInSport, findSport, libraryTotals, sportCardImage, sportDescription,
   sportOgDescription, sportPath, sportSlug, sportTitle, sportTldr, sportsWithDrills,
 } from "@/lib/drill-seo";
 import { BreadcrumbJsonLd, DrillListJsonLd } from "@/components/marketing/drill-json-ld";
+import { UpdatedStamp } from "@/components/marketing/updated-stamp";
+import { collectionDates } from "@/lib/content-dates";
 import { openGraph, twitter } from "@/lib/og";
 
 /* One sport's drill library. Server-rendered, every count read from the
@@ -25,21 +27,27 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const { sport: param } = await params;
   const sport = findSport(param);
   if (!sport) return { title: "Sport not found", robots: { index: false, follow: false } };
+  // The sport's newest drill poster is the hub's share card: a real image
+  // of the sport, already sized and already on Blob. Falls back to the
+  // brand card via the helper if a sport somehow has no drills.
+  const card = sportCardImage(sport);
+  const image = card ? { url: card.url, alt: card.alt } : null;
+
   return {
     title: sportTitle(sport),
     description: sportDescription(sport),
     alternates: { canonical: sportPath(sport) },
-    // Sport hubs have no card of their own yet, so the helper falls back
-    // to the brand card rather than shipping a bare link.
     openGraph: openGraph({
       title: `${sport} drills for young athletes`,
       description: sportOgDescription(sport),
       path: sportPath(sport),
+      image,
     }),
     twitter: twitter({
       title: `${sport} drills for young athletes`,
       description: sportOgDescription(sport),
       path: sportPath(sport),
+      image,
     }),
   };
 }
@@ -51,6 +59,7 @@ export default async function SportHubPage({ params }: { params: Params }) {
 
   const drills = drillsInSport(sport);
   const totals = libraryTotals(drills);
+  const hubDates = collectionDates(drills);
 
   return (
     <main className="mk-wrap mk-hub">
@@ -69,6 +78,10 @@ export default async function SportHubPage({ params }: { params: Params }) {
       </nav>
 
       <h1 className="display mk-hub-h1">{sport} drills for young athletes</h1>
+
+      {/* Newest drill in this sport — the honest "last changed" for a page
+          whose content is these drills. Matches dateModified in the schema. */}
+      {hubDates ? <UpdatedStamp date={hubDates.modified} /> : null}
 
       <section className="mk-tldr" aria-labelledby="tldr-heading">
         <span className="stamp stamp--flat" id="tldr-heading">In short</span>

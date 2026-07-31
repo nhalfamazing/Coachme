@@ -8,6 +8,8 @@ import {
   drillsInSport, findDrill, humanList, ogDescription, relatedForPublic, sportPath, sportSlug,
 } from "@/lib/drill-seo";
 import { DrillJsonLd, aiVideoDisclosure } from "@/components/marketing/drill-json-ld";
+import { UpdatedStamp } from "@/components/marketing/updated-stamp";
+import { drillDates } from "@/lib/content-dates";
 import { openGraph, twitter } from "@/lib/og";
 
 /* The PUBLIC twin of the in-app drill detail view.
@@ -90,6 +92,10 @@ export default async function DrillPage({ params }: { params: Params }) {
       </nav>
 
       <h1 className="display mk-drillpage-h1">{drillHeading(drill)}</h1>
+
+      {/* Real date from the manifest, matching dateModified in the schema
+          above. Never a build timestamp. */}
+      <UpdatedStamp date={drillDates(drill).modified} />
 
       {/* Answer-first: the paragraph an assistant can lift and still be
           right. Assembled from manifest fields, never written freehand. */}

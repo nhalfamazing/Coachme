@@ -299,6 +299,28 @@ export function sportDescription(sport: string, pool: Drill[] = DRILLS): string 
   return candidates.find(c => c.length <= MAX_DESCRIPTION_LEN) ?? candidates[candidates.length - 1];
 }
 
+/* --------------------------- Share cards ---------------------------- */
+
+/** The image a sport hub shares as its social card: the poster of that
+ *  sport's newest drill.
+ *
+ *  A real photograph of the sport beats the generic brand card, and it
+ *  costs nothing new — the poster is already sized and already on Blob.
+ *  Returns null when a sport has no drills, so the caller falls back to
+ *  the brand card rather than linking a broken image. */
+export function sportCardImage(
+  sport: string,
+  pool: Drill[] = DRILLS,
+): { url: string; alt: string } | null {
+  const drills = drillsInSport(sport, pool);
+  if (!drills.length) return null;
+  const newest = drills.reduce((a, b) => (b.addedAt > a.addedAt ? b : a));
+  return {
+    url: newest.poster.blob,
+    alt: `${sport} drills on KoachMe — ${newest.title} demonstration`,
+  };
+}
+
 /* ---------------------------- Related ------------------------------- */
 
 /** Same sport first, then the same coach across sports. Returns fewer than

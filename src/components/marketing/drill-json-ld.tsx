@@ -21,6 +21,7 @@ import type { Drill, DrillCoach } from "@/lib/drills";
 import { SITE_URL } from "@/lib/site";
 import { hasHowTo } from "@/lib/drill-content";
 import { secondsToIso8601 } from "@/lib/duration";
+import { collectionDates, drillDates } from "@/lib/content-dates";
 import { drillHeading, drillPath, sportPath } from "@/lib/drill-seo";
 
 function Script({ data }: { data: Record<string, unknown> }) {
@@ -42,6 +43,7 @@ export function aiVideoDisclosure(coachName: string): string {
 export function DrillJsonLd({ drill, coach }: { drill: Drill; coach: DrillCoach }) {
   const url = abs(drillPath(drill));
   const duration = secondsToIso8601(drill.durationSeconds);
+  const dates = drillDates(drill);
 
   const description = [
     drill.summary ?? `${drill.title} is a ${drill.sport.toLowerCase()} drill.`,
@@ -54,8 +56,14 @@ export function DrillJsonLd({ drill, coach }: { drill: Drill; coach: DrillCoach 
     name: drillHeading(drill),
     description,
     thumbnailUrl: [drill.poster.blob],
-    // Real date the drill entered the library; never a build timestamp.
+    // All three are the real date the drill entered the library, never a
+    // build timestamp, and they match the visible "Updated" line on the
+    // page. modified equals published because we do not track edits after
+    // a drill lands — saying otherwise would claim a change we cannot
+    // evidence.
     uploadDate: drill.addedAt,
+    datePublished: dates.published,
+    dateModified: dates.modified,
     contentUrl: drill.demo.blob,
     url,
     isFamilyFriendly: true,
@@ -92,6 +100,8 @@ export function DrillJsonLd({ drill, coach }: { drill: Drill; coach: DrillCoach 
         "@type": "HowTo",
         name: drillHeading(drill),
         description,
+        datePublished: dates.published,
+        dateModified: dates.modified,
         ...(drill.equipment?.length && drill.equipment[0].toLowerCase() !== "none"
           ? { supply: drill.equipment.map(item => ({ "@type": "HowToSupply", name: item })) }
           : {}),
@@ -137,7 +147,37 @@ export function DrillListJsonLd({
       url: abs(drillPath(d)),
     })),
   };
-  return <Script data={data} />;
+
+  /* ItemList is an Intangible, so it cannot carry datePublished or
+     dateModified — those belong to CreativeWork. The page itself is the
+     CreativeWork, so the dates go on a WebPage node rather than being
+     bolted onto ItemList where a validator would reject them.
+
+     A hub is genuinely published when its oldest drill landed and
+     genuinely modified when its newest one did: adding a drill really does
+     change the hub. Both are manifest dates, matching the visible
+     "Updated" line. */
+  const dates = collectionDates(drills);
+
+  return (
+    <>
+      <Script data={data} />
+      {dates && (
+        <Script
+          data={{
+            "@context": "https://schema.org",
+            "@type": "WebPage",
+            name,
+            description,
+            url: abs(path),
+            datePublished: dates.published,
+            dateModified: dates.modified,
+            inLanguage: "en",
+          }}
+        />
+      )}
+    </>
+  );
 }
 
 export function BreadcrumbJsonLd({ trail }: { trail: { name: string; path: string }[] }) {

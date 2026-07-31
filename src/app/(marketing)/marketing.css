@@ -561,6 +561,14 @@
 .mk-drillpage-report a { color: #5F636B; }
 .mk-drillpage-report a:hover { color: #9CA0A8; }
 
+/* "Updated 29 July 2026". Sits under the H1, quiet enough not to compete
+   with it — it is provenance, not a headline. The date is real manifest
+   data and matches dateModified in the page's structured data. */
+.mk-updated {
+  font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: #5F636B; margin: -12px 0 24px;
+}
+
 /* Sport hub / index extras */
 .mk-hub-intro { font-size: 16px; line-height: 1.7; color: #B9BDC4; margin: 0 0 26px; }
 .mk-hub-count { display: block; font-size: 11px; letter-spacing: 0.12em; color: #5F636B; text-transform: uppercase; margin-bottom: 10px; }
