@@ -11,10 +11,10 @@
       }
     },
     {
-      "name": "coachme-start",
+      "name": "coachme-prod",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["start"],
-      "port": 3000
+      "runtimeArgs": ["start", "--port", "3100"],
+      "port": 3100
     }
   ]
 }

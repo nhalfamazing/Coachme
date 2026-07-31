@@ -310,6 +310,14 @@ Ruled out by measurement, not assumption:
   `drillTrialState`, `lucide`, `supabase`, and others). No matches: all
   858 KB is React and Next runtime.
 
+  > **Correction, 2026-07-30 (see "Phase B, take two" below).** The first
+  > half of that is right and the last sentence is wrong. It is not app
+  > code — but it is not all framework either. About 30% of it was the
+  > Sentry browser SDK. The search only looked for identifiers belonging to
+  > *our* code, so a third-party dependency was never a candidate, and
+  > "no app code found" got written up as "therefore framework". Absence of
+  > the thing you searched for is not presence of the thing you assumed.
+
 The remaining lever is shipping less framework JavaScript to pages that are
 almost entirely static — removing client components from the marketing tree
 (`CtaLink`, `SectionViews`, `FaqList`, `ReturningUserBanner`, `HeroVideo`).
@@ -318,3 +326,106 @@ Phase 5 wants for funnel tracking, and it should be decided rather than
 slipped in at the end of a performance pass.
 
 Desktop remains 100 / 0.7 s throughout.
+
+---
+
+# Phase B, take two — the bundle, 2026-07-30
+
+The Phase B brief named two suspects: a client component or provider in the
+root layout, and the large `@ts-nocheck` prototype files leaking into a
+shared chunk. Neither is the cause. Both were ruled out by measurement:
+
+- `src/app/layout.tsx` holds fonts and `<Analytics />`. There are no
+  providers in it, so there are none to move out of it.
+- The `(marketing)` route group and its own layout already shipped in
+  Phase 3. The split the brief asks for largely exists.
+- No app identifier appears in any marketing chunk.
+
+## What it actually was
+
+`src/instrumentation-client.ts` opened with
+`import * as Sentry from "@sentry/nextjs"`. The `if (dsn)` guard beneath it
+stopped `init()` from *running*; it could not stop the SDK from being
+*bundled*, because a static import is unconditional. It decides what ships,
+not what runs.
+
+So the Sentry browser SDK was in the chunk every route shares — the landing
+page, a drill page, and the privacy policy alike.
+
+**And it was doing nothing.** `NEXT_PUBLIC_SENTRY_DSN` is unset in every env
+file, and no Sentry ingest URL appears in any chunk deployed to
+`koachme.ai`. Every visitor downloaded and parsed the SDK so that it could
+decline to initialise.
+
+Measured by building both ways (`node scripts/bundle-report.mjs`):
+
+| `/privacy` | Brotli | Parsed |
+| --- | ---: | ---: |
+| Static import (before) | 193.5 KB | 752.8 KB |
+| No Sentry at all | 132.0 KB | 528.4 KB |
+| **Dynamic import (shipped)** | **134.6 KB** | **533.6 KB** |
+| Saving | **58.9 KB** | **219.2 KB** |
+
+The dynamic import lands 2.6 KB above full removal — the Sentry build
+plugin's own shim — and keeps the capability: set a DSN and tracking returns
+on its own, in its own chunk, asynchronously, without blocking first paint.
+
+## Two corrections to the earlier numbers
+
+**The 858 KB figure counted a bundle modern browsers never fetch.** 110 KB
+of it is Next's core-js polyfill chunk, served `noModule`. The real
+modern-browser payload was 752.8 KB parsed. `scripts/bundle-report.mjs`
+now reports the two separately.
+
+**Compressed vs uncompressed was never stated.** `next start` serves
+uncompressed; Vercel serves brotli. Comparing one against the other is how
+a bundle appears to triple overnight. The table above gives both.
+
+## JavaScript per route, after
+
+| Route | Brotli | Parsed |
+| --- | ---: | ---: |
+| `/` | 138.3 KB | 544.1 KB |
+| `/privacy` | 134.6 KB | 533.6 KB |
+| `/drills` | 134.6 KB | 533.6 KB |
+| `/drills/softball` | 134.6 KB | 533.6 KB |
+| `/drills/softball/windmill-pitching` | 134.6 KB | 533.6 KB |
+| `/app` | 184.8 KB | 785.3 KB |
+| `/coach` | 151.3 KB | 614.4 KB |
+
+The under-150 KB target is met on the wire, which is the number that costs a
+visitor time. It is not met uncompressed and cannot be: react-dom alone is
+222 KB parsed, and the App Router runtime ships on every route whether a
+page uses it or not.
+
+The drill pages carry **no page-specific client JavaScript at all** — the
+same ten chunks as `/privacy`, and not one more. The tap-to-play video is a
+plain `<video controls preload="none">`, so the "island" costs zero bytes.
+
+## Mobile LCP, before and after
+
+Localhost production builds, same machine, same script, median of three
+runs each. Localhost has no network latency, so treat the *delta* as the
+result and the absolute numbers as harness-specific.
+
+| Route | LCP before | LCP after | TBT before | TBT after | Perf before | Perf after |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `/` | 4,745 ms | **4,364 ms** | 212 ms | **196 ms** | 78 | **81** |
+| `/privacy` | 3,967 ms | **3,516 ms** | 180 ms | **157 ms** | 85 | **89** |
+| drill page | 4,436 ms | **3,798 ms** | 201 ms | **118 ms** | 82 | **88** |
+
+Every metric moved the right way on every route, which is the part worth
+trusting. Individual runs still spread by more than a second (the drill page
+measured 3,177 / 4,461 / 4,436 before), so no single figure here is
+meaningful on its own, and the honest read is "consistent direction, noisy
+magnitude". CLS stayed 0 everywhere.
+
+**LCP is still above the 2,500 ms target on this harness.** The remaining
+cost is the App Router runtime hydrating pages that have nothing to
+hydrate. Cutting further means removing the marketing tree's client
+components (`CtaLink`, `SectionViews`, `FaqList`, `ReturningUserBanner`,
+`HeroVideo`) — and `CtaLink` is exactly what Phase 5 wants for funnel
+tracking, so that trade is a product decision, not a performance cleanup.
+
+Re-measure against production after this deploys; the numbers there are the
+ones that count.
