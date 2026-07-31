@@ -17,12 +17,28 @@ import { DRILLS, type Drill } from "./drills";
 /* ------------------------------- URLs ------------------------------- */
 
 /* Slugs are IMMUTABLE once shipped: a changed URL is a dead URL plus a lost
- * ranking. The drill slug is therefore the drill id verbatim rather than
- * something prettier derived from the title — the id is already stable,
- * unique, and URL-safe, and a title can be reworded without anyone thinking
- * about redirects. */
-export function drillSlug(drill: Pick<Drill, "id">): string {
-  return drill.id;
+ * ranking.
+ *
+ * That rule used to be satisfied by making the slug the drill id verbatim,
+ * which was stable but spent the most valuable part of the URL on an
+ * internal key — /drills/softball/sb-windmill puts "sb" where "windmill
+ * pitching" should be, and repeats a sport the path already names. The slug
+ * is now a keyword-matching field on the drill itself, seeded from the title
+ * in kebab-case.
+ *
+ * Immutability is preserved by STORING it rather than deriving it: the slug
+ * does not follow the title, so a reword cannot silently move a page. The
+ * old id-based paths 301 to the new ones in next.config.ts, and
+ * drill-seo.test.ts pins every live URL. */
+export function drillSlug(drill: Pick<Drill, "slug">): string {
+  return drill.slug;
+}
+
+/** The pre-2026-07-30 path for a drill, when the slug was the drill id.
+ *  Exists so the redirect table and its test read from one definition
+ *  rather than two hand-written lists that can drift apart. */
+export function legacyDrillPath(drill: Pick<Drill, "id" | "sport">): string {
+  return `${sportPath(drill.sport)}/${drill.id}`;
 }
 
 /** Sport segment: the display name lowercased, which round-trips to the

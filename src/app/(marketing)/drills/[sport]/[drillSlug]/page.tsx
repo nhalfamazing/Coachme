@@ -4,7 +4,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { DRILLS, coachFor } from "@/lib/drills";
 import {
-  drillDescription, drillHeading, drillPath, drillTitle, drillTldr,
+  drillDescription, drillHeading, drillPath, drillSlug, drillTitle, drillTldr,
   drillsInSport, findDrill, humanList, ogDescription, relatedForPublic, sportPath, sportSlug,
 } from "@/lib/drill-seo";
 import { DrillJsonLd, aiVideoDisclosure } from "@/components/marketing/drill-json-ld";
@@ -29,9 +29,10 @@ import { openGraph, twitter } from "@/lib/og";
 
 export const dynamic = "force-static";
 
-/** Every drill page is known at build time. */
+/** Every drill page is known at build time. The route segment is the
+ *  drill's public slug, never its id — the id 301s from next.config.ts. */
 export function generateStaticParams() {
-  return DRILLS.map(d => ({ sport: sportSlug(d.sport), drillSlug: d.id }));
+  return DRILLS.map(d => ({ sport: sportSlug(d.sport), drillSlug: drillSlug(d) }));
 }
 
 type Params = Promise<{ sport: string; drillSlug: string }>;

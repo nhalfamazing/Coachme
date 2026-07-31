@@ -6,7 +6,7 @@ import { DRILLS, type Drill } from "./drills";
 import {
   MAX_DESCRIPTION_LEN, MAX_OG_DESCRIPTION_LEN, MAX_TITLE_LEN,
   drillDescription, drillHeading, drillPath, drillSlug, drillTitle, drillTldr,
-  drillsInSport, findDrill, findSport, humanList, relatedForPublic,
+  drillsInSport, findDrill, findSport, humanList, legacyDrillPath, relatedForPublic,
   humanListOr, libraryTldr, libraryTotals, ogDescription, sportDescription,
   sportOgDescription, sportTitle, sportTldr,
   sportPath, sportSlug, sportsWithDrills, wordCount,
@@ -15,13 +15,24 @@ import {
 const SUFFIX = " - KoachMe";
 
 describe("URLs", () => {
-  it("uses the drill id as the slug, so a retitled drill keeps its URL", () => {
-    for (const d of DRILLS) expect(drillSlug(d)).toBe(d.id);
+  it("uses the stored slug, not the id and not the title", () => {
+    for (const d of DRILLS) expect(drillSlug(d)).toBe(d.slug);
+    // The id is internal. If it ever leaks into a public path again we lose
+    // the keyword and gain nothing.
+    for (const d of DRILLS) expect(drillPath(d), d.id).not.toContain(d.id);
+  });
+
+  it("keeps the URL still when the title changes", () => {
+    // The whole reason the slug is stored rather than derived: a reword is
+    // a copy edit, not a redirect decision.
+    const d = DRILLS.find(x => x.id === "sb-windmill")!;
+    const reworded = { ...d, title: "Windmill pitching technique for beginners" };
+    expect(drillPath(reworded)).toBe(drillPath(d));
   });
 
   it("builds paths under /drills/<sport>/<drill>", () => {
     const d = DRILLS.find(x => x.id === "sb-windmill")!;
-    expect(drillPath(d)).toBe("/drills/softball/sb-windmill");
+    expect(drillPath(d)).toBe("/drills/softball/windmill-pitching");
     expect(sportPath(d.sport)).toBe("/drills/softball");
   });
 
@@ -48,10 +59,14 @@ describe("URLs", () => {
 
   it("returns null for unknown URLs rather than a near match", () => {
     expect(findDrill("basketball", "does-not-exist")).toBeNull();
-    expect(findDrill("quidditch", "bb-crossover")).toBeNull();
+    expect(findDrill("quidditch", "crossover")).toBeNull();
     // Right drill, wrong sport segment: still a miss, so one drill cannot
     // be reached at several URLs.
-    expect(findDrill("soccer", "bb-crossover")).toBeNull();
+    expect(findDrill("soccer", "crossover")).toBeNull();
+    // The retired id-based slug is NOT served here. It 301s at the edge
+    // (next.config.ts) and must never resolve as a second live URL for the
+    // same page — that is a duplicate, not a redirect.
+    expect(findDrill("basketball", "bb-crossover")).toBeNull();
     expect(findSport("quidditch")).toBeNull();
   });
 
@@ -68,11 +83,42 @@ describe("URLs", () => {
   });
 });
 
-/* The URLs shipped on 2026-07-30. A failure here means a live page has
+/* The URLs live from 2026-07-30. A failure here means a live page has
    silently moved, which costs its ranking and breaks every inbound link.
-   Changing this list is a redirect decision, not a test fix. */
+   Changing this list is a redirect decision, not a test fix: add the 301 to
+   next.config.ts and move the old entry into RETIRED below. */
 describe("slug stability", () => {
   const SHIPPED = [
+    "/drills/basketball/crossover",
+    "/drills/basketball/form-shooting",
+    "/drills/basketball/two-ball-dribbling",
+    "/drills/basketball/mikan-drill",
+    "/drills/soccer/inside-pass",
+    "/drills/soccer/first-touch",
+    "/drills/soccer/cone-dribbling",
+    "/drills/soccer/juggling",
+    "/drills/soccer/laces-shooting",
+    "/drills/soccer/sole-rolls-and-pull-backs",
+    "/drills/baseball/tee-work",
+    "/drills/baseball/ready-position",
+    "/drills/baseball/tee-drive",
+    "/drills/baseball/ground-balls",
+    "/drills/football/catch-triangle",
+    "/drills/football/three-point-stance",
+    "/drills/track/sprint-start",
+    "/drills/track/arm-drive",
+    "/drills/track/a-skip",
+    "/drills/track/bounding",
+    "/drills/volleyball/forearm-passing",
+    "/drills/volleyball/overhead-setting",
+    "/drills/softball/windmill-pitching",
+    "/drills/softball/soft-toss",
+  ];
+
+  /* The id-based paths served between 2026-07-30 and the slug change the
+     same day. They were live and crawlable, so they must keep 301ing
+     forever — deleting one turns an indexed URL into a 404. */
+  const RETIRED = [
     "/drills/basketball/bb-crossover",
     "/drills/basketball/bb-form-shooting",
     "/drills/basketball/bb-two-ball",
@@ -101,7 +147,30 @@ describe("slug stability", () => {
 
   it("still serves every URL that shipped", () => {
     const live = new Set(DRILLS.map(drillPath));
+    expect(live.size).toBe(SHIPPED.length);
     for (const url of SHIPPED) expect(live.has(url), `${url} has moved or gone`).toBe(true);
+  });
+
+  it("still has a redirect source for every retired URL", () => {
+    const retiring = new Set(DRILLS.map(legacyDrillPath));
+    for (const url of RETIRED) {
+      expect(retiring.has(url), `${url} would 404 — nothing redirects it any more`).toBe(true);
+    }
+  });
+
+  it("never sends a retired URL to another retired URL", () => {
+    // next.config.ts generates the 301 table from these same two functions
+    // and throws on a chain. This asserts the data can never produce one.
+    const sources = new Set(DRILLS.map(legacyDrillPath));
+    for (const d of DRILLS) {
+      expect(sources.has(drillPath(d)), `${legacyDrillPath(d)} -> ${drillPath(d)} is a chain`).toBe(false);
+    }
+  });
+
+  it("moves every drill, so no redirect is a self-loop", () => {
+    for (const d of DRILLS) {
+      expect(legacyDrillPath(d), d.id).not.toBe(drillPath(d));
+    }
   });
 });
 

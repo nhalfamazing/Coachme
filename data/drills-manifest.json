@@ -1,5 +1,5 @@
 {
-  "$comment": "Source of truth for the Drill Library. Edit this file, run `pnpm mirror:drills` (uploads any non-blob URLs to Vercel Blob), `pnpm posters:drills` (first-frame posters for drills with posterUrl null), then `pnpm build:drills` (regenerates src/lib/drills.ts). Fields: clips.* may be a CloudFront source URL (gets mirrored) or an existing Blob URL (served as-is). posterUrl null means: generate a poster from the demo clip's first frame. sourceCdn preserves the original CloudFront provenance of clips whose manifest URL is already a Blob URL. alternates are unused alternate takes, kept for reference only. sports maps every sport id (the lowercase value used in drills[].sport) to its display name and chip icon; add a sport here and it is fully supported — chips, icons, and counts all derive from this file, no code changes.",
+  "$comment": "Source of truth for the Drill Library. Edit this file, run `pnpm mirror:drills` (uploads any non-blob URLs to Vercel Blob), `pnpm posters:drills` (first-frame posters for drills with posterUrl null), then `pnpm build:drills` (regenerates src/lib/drills.ts). Fields: id is the INTERNAL key — storage, Blob paths and every data structure use it, and it never appears in a public URL. slug is the PUBLIC URL segment (/drills/<sport>/<slug>), keyword-matching and seeded from the drill name in kebab-case with no sport prefix, because the sport is already its own path segment. A slug is IMMUTABLE once shipped: retitling a drill must NOT move its URL, so the slug lives here as its own field rather than being derived from the name at build time. Changing one is a redirect decision (add a 301 to next.config.ts and update the pinned list in src/lib/drill-seo.test.ts), never a quiet edit. clips.* may be a CloudFront source URL (gets mirrored) or an existing Blob URL (served as-is). posterUrl null means: generate a poster from the demo clip's first frame. sourceCdn preserves the original CloudFront provenance of clips whose manifest URL is already a Blob URL. alternates are unused alternate takes, kept for reference only. sports maps every sport id (the lowercase value used in drills[].sport) to its display name and chip icon; add a sport here and it is fully supported — chips, icons, and counts all derive from this file, no code changes.",
   "$contentComment": "TEACHING CONTENT (summary, builds, equipment, space, steps, mistakes, trackedStat) is OPTIONAL on every drill and is the shared source for the in-app drill detail page and the future public drill pages. HARD RULE: this content is written by a human and copied verbatim. Never generate, infer, or paraphrase sports technique — a wrong detail here teaches a kid wrong form. A field that is absent is absent: the generator emits null and the UI renders no section at all rather than an empty one. Field shapes: summary string (2-3 plain sentences); builds string[] (2-4 short phrases); equipment string[] or [\"none\"]; space string (driveway | backyard | gym | field); steps [{ n int, title string, detail string }] with n starting at 1 and contiguous; mistakes [{ mistake string, fix string }]; trackedStat string naming the athlete stat-sheet key this drill improves, or null when no stat has been agreed for it (null everywhere today — the personal-best panel stays hidden until real stat keys are chosen).",
   "sports": {
     "baseball": {
@@ -99,6 +99,7 @@
   "drills": [
     {
       "id": "bb-crossover",
+      "slug": "crossover",
       "sport": "basketball",
       "name": "Crossover",
       "level": "beginner",
@@ -170,6 +171,7 @@
     },
     {
       "id": "bb-form-shooting",
+      "slug": "form-shooting",
       "sport": "basketball",
       "name": "Form shooting",
       "level": "beginner",
@@ -242,6 +244,7 @@
     },
     {
       "id": "so-inside-pass",
+      "slug": "inside-pass",
       "sport": "soccer",
       "name": "Inside pass",
       "level": "beginner",
@@ -314,6 +317,7 @@
     },
     {
       "id": "so-first-touch",
+      "slug": "first-touch",
       "sport": "soccer",
       "name": "First touch",
       "level": "beginner",
@@ -386,6 +390,7 @@
     },
     {
       "id": "ba-tee-work",
+      "slug": "tee-work",
       "sport": "baseball",
       "name": "Tee work",
       "level": "beginner",
@@ -460,6 +465,7 @@
     },
     {
       "id": "ba-ready-position",
+      "slug": "ready-position",
       "sport": "baseball",
       "name": "Ready position",
       "level": "beginner",
@@ -531,6 +537,7 @@
     },
     {
       "id": "fb-catch-triangle",
+      "slug": "catch-triangle",
       "sport": "football",
       "name": "Catch triangle",
       "level": "beginner",
@@ -604,6 +611,7 @@
     },
     {
       "id": "fb-stance-start",
+      "slug": "three-point-stance",
       "sport": "football",
       "name": "Three-point stance",
       "level": "beginner",
@@ -671,6 +679,7 @@
     },
     {
       "id": "tr-sprint-start",
+      "slug": "sprint-start",
       "sport": "track",
       "name": "Sprint start",
       "level": "beginner",
@@ -738,6 +747,7 @@
     },
     {
       "id": "tr-arm-drive",
+      "slug": "arm-drive",
       "sport": "track",
       "name": "Arm drive",
       "level": "beginner",
@@ -805,6 +815,7 @@
     },
     {
       "id": "bb-two-ball",
+      "slug": "two-ball-dribbling",
       "sport": "basketball",
       "name": "Two-ball dribbling",
       "level": "beginner",
@@ -871,6 +882,7 @@
     },
     {
       "id": "bb-mikan",
+      "slug": "mikan-drill",
       "sport": "basketball",
       "name": "Mikan drill",
       "level": "beginner",
@@ -938,6 +950,7 @@
     },
     {
       "id": "so-cone-dribble",
+      "slug": "cone-dribbling",
       "sport": "soccer",
       "name": "Cone dribbling",
       "level": "beginner",
@@ -1005,6 +1018,7 @@
     },
     {
       "id": "so-juggling",
+      "slug": "juggling",
       "sport": "soccer",
       "name": "Juggling",
       "level": "beginner",
@@ -1071,6 +1085,7 @@
     },
     {
       "id": "ba-tee-drive",
+      "slug": "tee-drive",
       "sport": "baseball",
       "name": "Tee drive",
       "level": "beginner",
@@ -1140,6 +1155,7 @@
     },
     {
       "id": "ba-ground-balls",
+      "slug": "ground-balls",
       "sport": "baseball",
       "name": "Ground balls",
       "level": "beginner",
@@ -1208,6 +1224,7 @@
     },
     {
       "id": "vb-forearm-pass",
+      "slug": "forearm-passing",
       "sport": "volleyball",
       "name": "Forearm passing",
       "level": "beginner",
@@ -1275,6 +1292,7 @@
     },
     {
       "id": "vb-setting",
+      "slug": "overhead-setting",
       "sport": "volleyball",
       "name": "Overhead setting",
       "level": "beginner",
@@ -1342,6 +1360,7 @@
     },
     {
       "id": "tr-a-skip",
+      "slug": "a-skip",
       "sport": "track",
       "name": "A-skip",
       "level": "beginner",
@@ -1408,6 +1427,7 @@
     },
     {
       "id": "tr-bounding",
+      "slug": "bounding",
       "sport": "track",
       "name": "Bounding",
       "level": "beginner",
@@ -1474,6 +1494,7 @@
     },
     {
       "id": "so-laces-shot",
+      "slug": "laces-shooting",
       "sport": "soccer",
       "name": "Laces shooting",
       "level": "beginner",
@@ -1541,6 +1562,7 @@
     },
     {
       "id": "so-sole-rolls",
+      "slug": "sole-rolls-and-pull-backs",
       "sport": "soccer",
       "name": "Sole rolls and pull-backs",
       "level": "beginner",
@@ -1607,6 +1629,7 @@
     },
     {
       "id": "sb-windmill",
+      "slug": "windmill-pitching",
       "sport": "softball",
       "name": "Windmill pitching",
       "level": "beginner",
@@ -1675,6 +1698,7 @@
     },
     {
       "id": "sb-soft-toss",
+      "slug": "soft-toss",
       "sport": "softball",
       "name": "Soft toss",
       "level": "beginner",

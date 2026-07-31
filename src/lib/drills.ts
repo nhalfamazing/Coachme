@@ -49,7 +49,14 @@ export interface DrillMistake {
 }
 
 export interface Drill {
+  /** Internal key. Storage, Blob paths and every data structure use this,
+      and it never appears in a public URL. */
   id: string;
+  /** Public URL segment: /drills/<sport>/<slug>. Keyword-matching, seeded
+      from the title in kebab-case, and IMMUTABLE once shipped — retitling a
+      drill must not move its URL. Changing one is a redirect decision, not
+      an edit. */
+  slug: string;
   sport: DrillSport;
   title: string;
   cue: string;
@@ -142,6 +149,7 @@ export const COACHES: DrillCoach[] = [
 export const DRILLS: Drill[] = [
   {
     id: "bb-crossover",
+    slug: "crossover",
     sport: "Basketball",
     title: "Crossover",
     cue: "Snap the ball across your body and change direction.",
@@ -172,6 +180,7 @@ export const DRILLS: Drill[] = [
   },
   {
     id: "bb-form-shooting",
+    slug: "form-shooting",
     sport: "Basketball",
     title: "Form shooting",
     cue: "Build a clean shot from close range, one rep at a time.",
@@ -202,6 +211,7 @@ export const DRILLS: Drill[] = [
   },
   {
     id: "so-inside-pass",
+    slug: "inside-pass",
     sport: "Soccer",
     title: "Inside pass",
     cue: "Pass with the inside of your foot for accuracy.",
@@ -232,6 +242,7 @@ export const DRILLS: Drill[] = [
   },
   {
     id: "so-first-touch",
+    slug: "first-touch",
     sport: "Soccer",
     title: "First touch",
     cue: "Cushion the ball so your next move is already set up.",
@@ -262,6 +273,7 @@ export const DRILLS: Drill[] = [
   },
   {
     id: "ba-tee-work",
+    slug: "tee-work",
     sport: "Baseball",
     title: "Tee work",
     cue: "Groove your swing path off the tee.",
@@ -292,6 +304,7 @@ export const DRILLS: Drill[] = [
   },
   {
     id: "ba-ready-position",
+    slug: "ready-position",
     sport: "Baseball",
     title: "Ready position",
     cue: "Get in an athletic stance before every pitch.",
@@ -322,6 +335,7 @@ export const DRILLS: Drill[] = [
   },
   {
     id: "fb-catch-triangle",
+    slug: "catch-triangle",
     sport: "Football",
     title: "Catch triangle",
     cue: "Palms out, thumbs and pointer fingers make a triangle. Catch with your hands, not your body.",
@@ -353,6 +367,7 @@ export const DRILLS: Drill[] = [
   },
   {
     id: "fb-stance-start",
+    slug: "three-point-stance",
     sport: "Football",
     title: "Three-point stance",
     cue: "Low stance, flat back, head up. Explode out on the first step.",
@@ -383,6 +398,7 @@ export const DRILLS: Drill[] = [
   },
   {
     id: "tr-sprint-start",
+    slug: "sprint-start",
     sport: "Track",
     title: "Sprint start",
     cue: "Stay low out of your stance and drive for the first steps.",
@@ -413,6 +429,7 @@ export const DRILLS: Drill[] = [
   },
   {
     id: "tr-arm-drive",
+    slug: "arm-drive",
     sport: "Track",
     title: "Arm drive",
     cue: "Elbows at 90, hands cheek to pocket. Fast arms make fast legs.",
@@ -443,6 +460,7 @@ export const DRILLS: Drill[] = [
   },
   {
     id: "bb-two-ball",
+    slug: "two-ball-dribbling",
     sport: "Basketball",
     title: "Two-ball dribbling",
     cue: "Dribble two balls at once. Your weak hand gets a lot better, fast.",
@@ -473,6 +491,7 @@ export const DRILLS: Drill[] = [
   },
   {
     id: "bb-mikan",
+    slug: "mikan-drill",
     sport: "Basketball",
     title: "Mikan drill",
     cue: "Layups off both hands, back and forth under the rim.",
@@ -503,6 +522,7 @@ export const DRILLS: Drill[] = [
   },
   {
     id: "so-cone-dribble",
+    slug: "cone-dribbling",
     sport: "Soccer",
     title: "Cone dribbling",
     cue: "Weave through cones with small touches. Keep the ball close.",
@@ -533,6 +553,7 @@ export const DRILLS: Drill[] = [
   },
   {
     id: "so-juggling",
+    slug: "juggling",
     sport: "Soccer",
     title: "Juggling",
     cue: "Keep it off the ground. Start with two, then beat your record.",
@@ -563,6 +584,7 @@ export const DRILLS: Drill[] = [
   },
   {
     id: "ba-tee-drive",
+    slug: "tee-drive",
     sport: "Baseball",
     title: "Tee drive",
     cue: "Load the back hip and drive through the ball. Finish balanced.",
@@ -593,6 +615,7 @@ export const DRILLS: Drill[] = [
   },
   {
     id: "ba-ground-balls",
+    slug: "ground-balls",
     sport: "Baseball",
     title: "Ground balls",
     cue: "Glove down, field it out front with two hands, step into the throw.",
@@ -623,6 +646,7 @@ export const DRILLS: Drill[] = [
   },
   {
     id: "vb-forearm-pass",
+    slug: "forearm-passing",
     sport: "Volleyball",
     title: "Forearm passing",
     cue: "Flat platform, low stance. Let the ball come to you.",
@@ -653,6 +677,7 @@ export const DRILLS: Drill[] = [
   },
   {
     id: "vb-setting",
+    slug: "overhead-setting",
     sport: "Volleyball",
     title: "Overhead setting",
     cue: "Hands make a window above your forehead. Push with your legs.",
@@ -683,6 +708,7 @@ export const DRILLS: Drill[] = [
   },
   {
     id: "tr-a-skip",
+    slug: "a-skip",
     sport: "Track",
     title: "A-skip",
     cue: "Knee up, toe up, land on the ball of your foot. Rhythm over speed.",
@@ -713,6 +739,7 @@ export const DRILLS: Drill[] = [
   },
   {
     id: "tr-bounding",
+    slug: "bounding",
     sport: "Track",
     title: "Bounding",
     cue: "Big leaping strides. This is how you build a stronger push.",
@@ -743,6 +770,7 @@ export const DRILLS: Drill[] = [
   },
   {
     id: "so-laces-shot",
+    slug: "laces-shooting",
     sport: "Soccer",
     title: "Laces shooting",
     cue: "Plant beside the ball and strike through the middle with your laces.",
@@ -773,6 +801,7 @@ export const DRILLS: Drill[] = [
   },
   {
     id: "so-sole-rolls",
+    slug: "sole-rolls-and-pull-backs",
     sport: "Soccer",
     title: "Sole rolls and pull-backs",
     cue: "Roll it side to side, then pull it back and turn away.",
@@ -803,6 +832,7 @@ export const DRILLS: Drill[] = [
   },
   {
     id: "sb-windmill",
+    slug: "windmill-pitching",
     sport: "Softball",
     title: "Windmill pitching",
     cue: "Full circle over the top, release past the hip, finish balanced.",
@@ -833,6 +863,7 @@ export const DRILLS: Drill[] = [
   },
   {
     id: "sb-soft-toss",
+    slug: "soft-toss",
     sport: "Softball",
     title: "Soft toss",
     cue: "Someone tosses from the side, you drive it into the net. Level swing.",

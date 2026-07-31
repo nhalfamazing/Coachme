@@ -31,6 +31,47 @@ const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
 
 const isBlobUrl = (url) => typeof url === 'string' && new URL(url).hostname.endsWith('.public.blob.vercel-storage.com');
 const titleCase = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
+/* ---------------------------------------------------------------
+   Slugs. The public URL segment for a drill, keyword-matching by
+   design: /drills/softball/windmill-pitching, not /drills/softball/
+   sb-windmill. The id stays the internal key for storage, Blob paths
+   and every data structure — this is URLs only.
+
+   A slug is IMMUTABLE once shipped. Renaming one is a dead page plus a
+   lost ranking, so a title reword must NOT move a URL: the slug lives
+   in the manifest as its own field rather than being derived from the
+   name at build time. It was seeded from the name in kebab-case, and
+   that is where the relationship ends.
+   --------------------------------------------------------------- */
+const SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+const slugErrors = [];
+const seenSlugs = new Map();
+for (const d of manifest.drills) {
+  if (typeof d.slug !== 'string' || !d.slug) {
+    slugErrors.push(`${d.id}: missing "slug" — every drill needs an explicit, permanent URL slug`);
+    continue;
+  }
+  if (!SLUG_RE.test(d.slug)) {
+    slugErrors.push(`${d.id}: slug "${d.slug}" must be lowercase kebab-case ([a-z0-9] separated by single hyphens)`);
+  }
+  // Uniqueness only has to hold within a sport, because the sport is its
+  // own path segment. Checking the pair is what actually keeps two pages
+  // from claiming one URL.
+  const key = `${d.sport}/${d.slug}`;
+  if (seenSlugs.has(key)) {
+    slugErrors.push(`${d.id}: slug collides with ${seenSlugs.get(key)} — both resolve to /drills/${key}`);
+  }
+  seenSlugs.set(key, d.id);
+  if (d.slug === d.id) {
+    console.error(`WARN: drill ${d.id} slug equals its id; slugs should read as keywords, not internal keys.`);
+  }
+}
+if (slugErrors.length) {
+  console.error('FATAL: bad drill slugs in the manifest — a slug is a public URL, fix the data:');
+  for (const e of slugErrors) console.error(`  ${e}`);
+  process.exit(1);
+}
 // manifest.sports maps sport id -> { display, icon }; a drill sport with
 // no entry still builds (title-cased, blank icon) but warns loudly.
 const sportMeta = manifest.sports ?? {};
@@ -193,6 +234,7 @@ const qMistakes = (mistakes) => (mistakes === undefined ? 'null' : `[\n${mistake
 
 const drillEntries = included.map(d => `  {
     id: ${q(d.id)},
+    slug: ${q(d.slug)},
     sport: ${q(sportDisplay(d.sport))},
     title: ${q(d.name)},
     cue: ${q(d.description)},
@@ -271,7 +313,14 @@ export interface DrillMistake {
 }
 
 export interface Drill {
+  /** Internal key. Storage, Blob paths and every data structure use this,
+      and it never appears in a public URL. */
   id: string;
+  /** Public URL segment: /drills/<sport>/<slug>. Keyword-matching, seeded
+      from the title in kebab-case, and IMMUTABLE once shipped — retitling a
+      drill must not move its URL. Changing one is a redirect decision, not
+      an edit. */
+  slug: string;
   sport: DrillSport;
   title: string;
   cue: string;
