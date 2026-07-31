@@ -167,7 +167,8 @@
           "fix": "Pick a spot on the wall and keep your eyes up."
         }
       ],
-      "trackedStat": null
+      "trackedStat": null,
+      "durationSeconds": 10.042
     },
     {
       "id": "bb-form-shooting",
@@ -240,7 +241,8 @@
           "fix": "Freeze the follow through on every single rep."
         }
       ],
-      "trackedStat": null
+      "trackedStat": null,
+      "durationSeconds": 10.042
     },
     {
       "id": "so-inside-pass",
@@ -313,7 +315,8 @@
           "fix": "Do half your reps with your weak foot every session."
         }
       ],
-      "trackedStat": null
+      "trackedStat": null,
+      "durationSeconds": 10.042
     },
     {
       "id": "so-first-touch",
@@ -386,7 +389,8 @@
           "fix": "Move your feet to the ball instead of stretching for it."
         }
       ],
-      "trackedStat": null
+      "trackedStat": null,
+      "durationSeconds": 10.042
     },
     {
       "id": "ba-tee-work",
@@ -461,7 +465,8 @@
           "fix": "Slow the swing down until you can finish under control."
         }
       ],
-      "trackedStat": null
+      "trackedStat": null,
+      "durationSeconds": 10.042
     },
     {
       "id": "ba-ready-position",
@@ -533,7 +538,8 @@
           "fix": "Keep them out front and ready."
         }
       ],
-      "trackedStat": null
+      "trackedStat": null,
+      "durationSeconds": 10.042
     },
     {
       "id": "fb-catch-triangle",
@@ -607,7 +613,8 @@
           "fix": "Turn your palms toward the ball so the triangle faces the throw."
         }
       ],
-      "trackedStat": null
+      "trackedStat": null,
+      "durationSeconds": 10.054
     },
     {
       "id": "fb-stance-start",
@@ -675,7 +682,8 @@
           "fix": "Flatten your back and lift your eyes."
         }
       ],
-      "trackedStat": null
+      "trackedStat": null,
+      "durationSeconds": 10.054
     },
     {
       "id": "tr-sprint-start",
@@ -743,7 +751,8 @@
           "fix": "Drive them straight forward and back."
         }
       ],
-      "trackedStat": null
+      "trackedStat": null,
+      "durationSeconds": 10.054
     },
     {
       "id": "tr-arm-drive",
@@ -811,7 +820,8 @@
           "fix": "Hold the ninety degree bend for the whole set."
         }
       ],
-      "trackedStat": null
+      "trackedStat": null,
+      "durationSeconds": 10.054
     },
     {
       "id": "bb-two-ball",
@@ -878,7 +888,8 @@
           "fix": "Slow and controlled first. Speed comes after control."
         }
       ],
-      "trackedStat": null
+      "trackedStat": null,
+      "durationSeconds": 10.054
     },
     {
       "id": "bb-mikan",
@@ -946,7 +957,8 @@
           "fix": "Stay close and go straight up."
         }
       ],
-      "trackedStat": null
+      "trackedStat": null,
+      "durationSeconds": 10.054
     },
     {
       "id": "so-cone-dribble",
@@ -1014,7 +1026,8 @@
           "fix": "Move at a jog. Control at speed is the whole goal."
         }
       ],
-      "trackedStat": null
+      "trackedStat": null,
+      "durationSeconds": 10.054
     },
     {
       "id": "so-juggling",
@@ -1081,7 +1094,8 @@
           "fix": "Once you can do ten, start alternating feet."
         }
       ],
-      "trackedStat": null
+      "trackedStat": null,
+      "durationSeconds": 10.054
     },
     {
       "id": "ba-tee-drive",
@@ -1151,7 +1165,8 @@
           "fix": "Swing level through the ball instead of up at it."
         }
       ],
-      "trackedStat": null
+      "trackedStat": null,
+      "durationSeconds": 10.054
     },
     {
       "id": "ba-ground-balls",
@@ -1220,7 +1235,8 @@
           "fix": "Move toward it. Waiting lets the ball play you instead."
         }
       ],
-      "trackedStat": null
+      "trackedStat": null,
+      "durationSeconds": 10.054
     },
     {
       "id": "vb-forearm-pass",
@@ -1288,7 +1304,8 @@
           "fix": "Move your feet so the ball comes to your middle."
         }
       ],
-      "trackedStat": null
+      "trackedStat": null,
+      "durationSeconds": 10.054
     },
     {
       "id": "vb-setting",
@@ -1356,7 +1373,8 @@
           "fix": "Push with your legs at the same time."
         }
       ],
-      "trackedStat": null
+      "trackedStat": null,
+      "durationSeconds": 10.054
     },
     {
       "id": "tr-a-skip",
@@ -1423,7 +1441,8 @@
           "fix": "Stay tall with a very slight forward lean."
         }
       ],
-      "trackedStat": null
+      "trackedStat": null,
+      "durationSeconds": 10.054
     },
     {
       "id": "tr-bounding",
@@ -1490,7 +1509,8 @@
           "fix": "Warm up first and bound on grass or a track. Your knees and ankles will thank you."
         }
       ],
-      "trackedStat": null
+      "trackedStat": null,
+      "durationSeconds": 10.054
     },
     {
       "id": "so-laces-shot",
@@ -1558,7 +1578,8 @@
           "fix": "Put it right beside the ball, not a step away."
         }
       ],
-      "trackedStat": null
+      "trackedStat": null,
+      "durationSeconds": 10.054
     },
     {
       "id": "so-sole-rolls",
@@ -1625,7 +1646,8 @@
           "fix": "Both feet, every single set."
         }
       ],
-      "trackedStat": null
+      "trackedStat": null,
+      "durationSeconds": 10.054
     },
     {
       "id": "sb-windmill",
@@ -1694,7 +1716,8 @@
           "fix": "Pitching stresses your arm. Build up slowly over weeks and stop as soon as you feel tired."
         }
       ],
-      "trackedStat": null
+      "trackedStat": null,
+      "durationSeconds": 10.054
     },
     {
       "id": "sb-soft-toss",
@@ -1764,7 +1787,8 @@
           "fix": "Let it come to your hitting zone instead of lunging at it."
         }
       ],
-      "trackedStat": null
+      "trackedStat": null,
+      "durationSeconds": 10.054
     }
   ],
   "alternates": {
