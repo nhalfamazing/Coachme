@@ -211,4 +211,8 @@ console.log(JSON.stringify({
 
 // A missing ffprobe is not a mirror failure: the assets are fine, we simply
 // could not measure them. Only real upload or probe failures fail the run.
-process.exit(failures.length || durations.failed.length ? 1 : 0);
+//
+// exitCode rather than process.exit(): exiting while undici still holds
+// open sockets trips a libuv assertion on Windows that overwrites the exit
+// code, so a clean run could report failure.
+process.exitCode = failures.length || durations.failed.length ? 1 : 0;

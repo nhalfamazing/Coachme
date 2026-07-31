@@ -11,7 +11,8 @@
     "mirror:drills": "node scripts/mirror-drills.mjs",
     "posters:drills": "node scripts/make-posters.mjs",
     "build:drills": "node scripts/build-drills.mjs",
-    "build:brand": "node scripts/build-brand.mjs"
+    "build:brand": "node scripts/build-brand.mjs",
+    "indexnow": "node scripts/indexnow.mjs"
   },
   "dependencies": {
     "@base-ui-components/react": "1.0.0-rc.0",

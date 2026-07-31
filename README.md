@@ -60,6 +60,27 @@ scripts/
   supabase-stop.sh
 ```
 
+## After a deploy
+
+Tell IndexNow (Bing, Yandex and others — not Google) which URLs changed:
+
+```bash
+pnpm indexnow
+```
+
+Defaults to everything that changed since `HEAD~1`: edited or added drill
+pages, the sport hubs that list them, and any marketing page whose file
+changed. `--all` submits every sitemap URL, `--dry-run` prints the selection
+without sending it.
+
+Run it **after** the deploy is live, never from a build step. IndexNow
+verifies ownership by fetching `public/6f6d5aaa2a50f9e821042cd69e3ec899.txt`
+from the site root, so submitting before the URLs exist announces pages that
+would 404 — and a build hook would also fire on preview deploys against the
+production host. The script refuses to submit unless it can fetch that key
+file and confirm it serves the key. The key is deliberately public; that is
+how the protocol works.
+
 ## Notes
 
 - Local-first by design. Hosted Supabase comes later.

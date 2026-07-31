@@ -422,4 +422,7 @@ console.log(JSON.stringify({
   sports,
   missingContent,
 }, null, 2));
-process.exit(excluded.length ? 2 : 0);
+// exitCode rather than process.exit(): the HEAD checks above leave undici
+// sockets open, and exiting on top of them trips a libuv assertion on
+// Windows that overwrites the exit code.
+process.exitCode = excluded.length ? 2 : 0;
