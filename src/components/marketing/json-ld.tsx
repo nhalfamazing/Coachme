@@ -16,6 +16,20 @@ function Script({ data }: { data: Record<string, unknown> }) {
 }
 
 export function LandingJsonLd() {
+  /* NO `sameAs`, ON PURPOSE.
+   *
+   * A 2026-07-30 audit flagged the empty sameAs as HIGH severity, and it
+   * stays empty: Rasheid confirmed on 2026-07-30 that KoachMe has no social
+   * profiles yet. sameAs exists so a search engine can reconcile this
+   * organization with the same organization elsewhere. Pointing it at a
+   * handle nobody has registered does not resolve an entity — it asserts a
+   * presence that does not exist, and anyone who follows the link finds out.
+   *
+   * WHEN PROFILES EXIST: add them here as an array of the exact profile
+   * URLs, each verified to return 200. Do not guess handles from the brand
+   * name, and do not add a profile that has never been posted to. Fixing
+   * the audit finding is not worth a claim we cannot stand behind.
+   */
   const organization = {
     "@context": "https://schema.org",
     "@type": "Organization",
