@@ -224,6 +224,21 @@ for (const d of included) {
   if (!sportMeta[d.sport]) console.error(`WARN: drill ${d.id} sport "${d.sport}" has no manifest.sports entry (no chip icon).`);
 }
 const q = (s) => JSON.stringify(s);
+
+/* Measured clip length, or null. Written by the ffprobe pass in
+   mirror-drills.mjs. A drill that has never been probed, or whose probe
+   failed, emits null and its VideoObject carries no duration at all —
+   never a default, never an estimate. Anything present but not a positive
+   number is a data error worth failing on rather than quietly dropping. */
+const duration = (d) => {
+  const v = d.durationSeconds;
+  if (v === undefined || v === null) return 'null';
+  if (typeof v !== 'number' || !Number.isFinite(v) || v <= 0) {
+    console.error(`FATAL: drill ${d.id} has durationSeconds ${JSON.stringify(v)}; expected a positive number or null.`);
+    process.exit(1);
+  }
+  return String(v);
+};
 /** Emit an optional content field: the value, or a bare null. Never a
     placeholder — the UI keys "render this section" off null. */
 const qOpt = (v) => (v === undefined ? 'null' : JSON.stringify(v));
@@ -245,6 +260,7 @@ const drillEntries = included.map(d => `  {
     intro: ${d.assets.intro ? `{ cdn: ${q(d.assets.intro.cdn)}, blob: ${q(d.assets.intro.blob)} }` : 'null'},
     demo: { cdn: ${q(d.assets.demo.cdn)}, blob: ${q(d.assets.demo.blob)} },
     poster: { cdn: ${q(d.assets.poster.cdn)}, blob: ${q(d.assets.poster.blob)} },
+    durationSeconds: ${duration(d)},
     summary: ${qOpt(d.content.summary)},
     builds: ${qOpt(d.content.builds)},
     equipment: ${qOpt(d.content.equipment)},
@@ -333,6 +349,12 @@ export interface Drill {
   intro: DrillAsset | null;
   demo: DrillAsset;
   poster: DrillAsset;
+  /** Measured length of the demo clip in seconds, from ffprobe (see
+      scripts/mirror-drills.mjs). null = never successfully measured, in
+      which case VideoObject emits NO duration. Never estimated: a wrong
+      length in structured data is repeated as fact by search results and
+      AI assistants. */
+  durationSeconds: number | null;
 
   /* ---- Teaching content. Human-written, copied verbatim from the
      manifest, NEVER generated. null means "not written yet": render

@@ -3,11 +3,12 @@
  * INTEGRITY RULES, which matter more here than anywhere else on the site
  * because structured data is read by machines that cannot sanity-check it:
  *
- *   - Nothing is estimated. We do not measure clip duration, so no
- *     `duration` is emitted. We have no dedicated player URL, so no
- *     `embedUrl`. A wrong value would be worse than an absent one: Google
- *     penalises structured data that contradicts the page, and an AI
- *     assistant would repeat the number as fact.
+ *   - Nothing is estimated. `duration` is emitted only for clips ffprobe has
+ *     actually measured (see scripts/mirror-drills.mjs); a drill with no
+ *     measurement emits no duration at all. We still have no dedicated
+ *     player URL, so still no `embedUrl`. A wrong value would be worse than
+ *     an absent one: Google penalises structured data that contradicts the
+ *     page, and an AI assistant would repeat the number as fact.
  *   - uploadDate is the real addedAt from the manifest.
  *   - The AI disclosure is IN the VideoObject description, not only in the
  *     visible copy. If that costs a rich result, we take the hit — a parent
@@ -19,6 +20,7 @@
 import type { Drill, DrillCoach } from "@/lib/drills";
 import { SITE_URL } from "@/lib/site";
 import { hasHowTo } from "@/lib/drill-content";
+import { secondsToIso8601 } from "@/lib/duration";
 import { drillHeading, drillPath, sportPath } from "@/lib/drill-seo";
 
 function Script({ data }: { data: Record<string, unknown> }) {
@@ -39,6 +41,7 @@ export function aiVideoDisclosure(coachName: string): string {
 
 export function DrillJsonLd({ drill, coach }: { drill: Drill; coach: DrillCoach }) {
   const url = abs(drillPath(drill));
+  const duration = secondsToIso8601(drill.durationSeconds);
 
   const description = [
     drill.summary ?? `${drill.title} is a ${drill.sport.toLowerCase()} drill.`,
@@ -57,8 +60,10 @@ export function DrillJsonLd({ drill, coach }: { drill: Drill; coach: DrillCoach 
     url,
     isFamilyFriendly: true,
     inLanguage: "en",
-    // No `duration`: we do not measure the clips, and inventing one would
-    // put a false number in a search result.
+    // Only when ffprobe actually measured this clip. Spread rather than set
+    // to undefined: JSON.stringify would drop an undefined value anyway, but
+    // an explicit omission is the behaviour we want to be able to read.
+    ...(duration ? { duration } : {}),
     // No `embedUrl`: there is no standalone player page to point at.
     publisher: {
       "@type": "Organization",

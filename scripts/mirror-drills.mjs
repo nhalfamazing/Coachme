@@ -16,12 +16,17 @@
    the store are skipped via the pathname listing. Sources shared by
    several targets download once.
 
+   Also measures each demo clip's DURATION with ffprobe and writes it back
+   into the manifest, so VideoObject can state a real length. See the
+   duration pass at the bottom of this file.
+
    Prints a JSON report: source -> blob mapping, bytes uploaded, failures.
    Exit 1 on any failure — a failed mirror EXCLUDES that drill from
    shipping (build-drills.mjs enforces this; we never serve CDN links). */
 
 import { fileURLToPath } from 'node:url';
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import { put, list } from '@vercel/blob';
 
 try {
@@ -36,9 +41,8 @@ if (!token) {
   process.exit(1);
 }
 
-const manifest = JSON.parse(
-  readFileSync(fileURLToPath(new URL('../data/drills-manifest.json', import.meta.url)), 'utf8'),
-);
+const manifestPath = fileURLToPath(new URL('../data/drills-manifest.json', import.meta.url));
+const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
 
 const isBlobUrl = (url) => typeof url === 'string' && new URL(url).hostname.endsWith('.public.blob.vercel-storage.com');
 
@@ -120,12 +124,91 @@ for (const asset of assets) {
   }
 }
 
+/* ---------------------------------------------------------------
+   Duration pass.
+
+   VideoObject should state how long a clip is, and until now it stated
+   nothing, because nothing measured it. ffprobe reads the duration out of
+   the container's own header — it is a measurement, not an estimate.
+
+   It probes the URL directly rather than downloading: ffprobe issues range
+   requests and reads only the header, so this costs kilobytes per clip
+   rather than megabytes.
+
+   This runs over EVERY drill, not just newly-mirrored ones. The upload pass
+   above skips assets already in Blob, and every asset is already there, so
+   scoping durations to new uploads would measure nothing forever.
+
+   IF FFPROBE IS NOT INSTALLED, NOTHING IS WRITTEN. The field stays absent
+   and VideoObject omits duration. That is the correct outcome: an absent
+   duration costs a rich-result feature, while a guessed one puts a false
+   number in a search result and in every AI answer that quotes it.
+   --------------------------------------------------------------- */
+
+function ffprobeVersion() {
+  const r = spawnSync('ffprobe', ['-version'], { encoding: 'utf8' });
+  if (r.error || r.status !== 0) return null;
+  return (r.stdout ?? '').split('\n')[0].trim();
+}
+
+/** Measured length of the clip at `url`, or null if it cannot be read. */
+function probeDuration(url) {
+  const r = spawnSync('ffprobe', [
+    '-v', 'error',
+    '-show_entries', 'format=duration',
+    '-of', 'default=noprint_wrappers=1:nokey=1',
+    url,
+  ], { encoding: 'utf8', timeout: 60_000 });
+  if (r.error || r.status !== 0) return null;
+  const value = Number.parseFloat((r.stdout ?? '').trim());
+  // ffprobe reports "N/A" for containers with no duration in the header.
+  return Number.isFinite(value) && value > 0 ? value : null;
+}
+
+const durations = { probed: 0, unchanged: 0, failed: [], skipped: null };
+const ffprobe = ffprobeVersion();
+
+if (!ffprobe) {
+  durations.skipped = 'ffprobe not found on PATH — durations left absent rather than guessed';
+  console.error(`WARN: ${durations.skipped}`);
+} else {
+  console.error(`durations: using ${ffprobe}`);
+  let changed = false;
+  for (const d of manifest.drills) {
+    // The demo clip is what VideoObject describes, so it is what we measure.
+    const url = d.clips?.demo;
+    if (!url) continue;
+    const seconds = probeDuration(url);
+    if (seconds === null) {
+      durations.failed.push(d.id);
+      console.error(`FAIL   duration ${d.id}`);
+      continue;
+    }
+    const rounded = +seconds.toFixed(3);
+    if (d.durationSeconds === rounded) {
+      durations.unchanged++;
+      continue;
+    }
+    d.durationSeconds = rounded;
+    durations.probed++;
+    changed = true;
+    console.error(`probe  ${d.id} ${rounded}s`);
+  }
+  if (changed) {
+    writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
+    console.error(`durations: manifest updated (${durations.probed} changed)`);
+  }
+}
+
 console.log(JSON.stringify({
   uploadedCount,
   uploadedMB: +(uploadedBytes / 1e6).toFixed(1),
   skippedCount,
   failures,
+  durations,
   mapping,
 }, null, 2));
 
-process.exit(failures.length ? 1 : 0);
+// A missing ffprobe is not a mirror failure: the assets are fine, we simply
+// could not measure them. Only real upload or probe failures fail the run.
+process.exit(failures.length || durations.failed.length ? 1 : 0);
