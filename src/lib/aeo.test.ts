@@ -54,18 +54,41 @@ describe("counts are real", () => {
 });
 
 describe("offer claims stay tied to OFFER", () => {
-  it("quotes the real price and trial length", () => {
-    expect(pricingTldr()).toContain(`$${OFFER.proPriceUsd} a month`);
-    expect(pricingTldr()).toContain(`first ${OFFER.trialDays} days`);
-    expect(pricingTldr()).toContain(`${OFFER.coachTakeRatePercent}%`);
+  it("states no price anywhere", () => {
+    // The whole reason this session happened: these paragraphs advertised
+    // $9 a month for something nobody was ever charged, and assistants
+    // quoted it as fact. No currency figure may reappear here.
+    for (const [name, fn] of BLOCKS) {
+      expect(fn(), name).not.toMatch(/\$\s?\d/);
+      expect(fn(), name).not.toMatch(/\b\d+ (a|per) month\b/);
+      expect(fn(), name).not.toMatch(/first month free|free (for the |your )?first month/i);
+    }
   });
 
-  it("says nobody is charged while payments are not live", () => {
-    // The single most important claim on the site to keep honest: we
-    // advertise a price we do not charge.
-    expect(OFFER.paymentsLive).toBe(false);
-    expect(pricingTldr()).toMatch(/nobody is charged/);
-    expect(siteTldr()).toMatch(/nobody is charged/);
+  it("says nobody is charged while pricing has not launched", () => {
+    expect(OFFER.PRICING_LAUNCHED).toBe(false);
+    expect(pricingTldr()).toMatch(/[Nn]obody is charged/);
+    expect(siteTldr()).toMatch(/[Nn]obody is charged/);
+  });
+
+  it("names every founding benefit, so the promise cannot shrink quietly", () => {
+    const t = pricingTldr().toLowerCase();
+    for (const b of OFFER.foundingBenefits) expect(t, b).toContain(b.toLowerCase());
+  });
+
+  it("states the exclusion and the notice period alongside the promise", () => {
+    // Grandfathering is a commitment to families. The limit on it and the
+    // notice we owe them travel with it or the promise is misleading.
+    expect(pricingTldr()).toContain(OFFER.foundingExcludes);
+    expect(pricingTldr()).toContain(`${OFFER.noticeDays} days`);
+  });
+
+  it("invents no urgency", () => {
+    // Permitted urgency is the notice period and the fact that founding
+    // status ends when pricing launches. Everything else is fabricated.
+    for (const [name, fn] of BLOCKS) {
+      expect(fn(), name).not.toMatch(/limited spots|only \d+|spots? left|hurry|act now|ends (today|soon)|\d+ (members|athletes) (have )?(joined|signed)/i);
+    }
   });
 });
 

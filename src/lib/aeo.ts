@@ -16,7 +16,7 @@
 
 import { DRILLS } from "./drills";
 import { humanList, libraryTotals, sportsWithDrills } from "./drill-seo";
-import { OFFER, proPriceLabel } from "./offer";
+import { OFFER, costSentence } from "./offer";
 
 /** What KoachMe is, in the words an assistant should use. This is the one
  *  that matters most: it is the answer to "what is KoachMe". */
@@ -38,27 +38,18 @@ export function siteTldr(): string {
     `KoachMe gives a young athlete a free training profile: logged workouts, a stat sheet, and ${t.drills} drills across ${t.sports} sports for practising at home.`,
     "Every stat carries a label showing how it was verified, and most are marked SELF because the athlete reported them.",
     "Drill demonstration videos are AI-generated and labeled as such everywhere they appear.",
-    `The profile, workout log, stat sheet, and coach messaging are free. ${paymentsSentence()}`,
+    `${costSentence()} Anyone who signs up during beta becomes a founding member and keeps today's features free while their account stays active.`,
   ].join(" ");
 }
 
-/** The sentence about charging. Derived from OFFER so it cannot drift from
- *  what the schema claims. */
-function paymentsSentence(): string {
-  return OFFER.paymentsLive
-    ? `The drill library is free for the first month, then ${proPriceLabel} a month.`
-    : `The drill library is free for the first month, then ${proPriceLabel} a month, though subscriptions have not launched and nobody is charged yet.`;
-}
-
-/** /pricing. Every number from OFFER. */
+/** /pricing. Every claim from OFFER, and no price, because there is not
+ *  one to state. */
 export function pricingTldr(): string {
   return [
-    `A KoachMe athlete profile is free: ${humanList(OFFER.athleteFree.map(f => f.toLowerCase()))} all cost nothing.`,
-    `The AI drill library is free for the first ${OFFER.trialDays} days from the first drill a profile opens, then ${proPriceLabel} a month.`,
-    OFFER.paymentsLive
-      ? "Subscriptions are live."
-      : "Subscriptions have not launched, so an expired free month locks the drill videos and nobody is charged.",
-    `Coaches set their own hourly rates and keep ${OFFER.coachTakeRatePercent}% of them when paid bookings launch.`,
+    costSentence(),
+    `Sign up during beta and you are a founding member, keeping these free while your account stays active: ${humanList(OFFER.foundingBenefits.map(f => f.toLowerCase()))}.`,
+    OFFER.foundingExcludes,
+    `Pricing for new users launches later, with at least ${OFFER.noticeDays} days notice first.`,
   ].join(" ");
 }
 

@@ -64,3 +64,29 @@ PHASE 6: VERIFY
 5. Push. REPORT: every copy change as before and after for Rasheid and Sophia to read, the two hero stamp options, and anything you found that contradicts the offer model.
 
 HARD RULES: no price stated anywhere, no fabricated urgency or counts, existing users grandfathered, AI disclosures untouched, no payment code, additive migrations only, never print secrets, .env.local gitignore check per commit.
+
+---
+
+## Mid-session corrections
+
+### Community feed added to the founding benefits (asked in Phase 0, answered)
+
+The founding-member list in the prompt above omits the community feed, but
+`OFFER.athleteFree` already listed "Posting to the community feed", the FAQ
+said posting costs nothing, and the in-app lock screen promised
+"PROFILE · WORKOUTS · FEED · MESSAGES · SESSIONS STAY FREE". Writing the
+list exactly as specified would have quietly withdrawn something existing
+users were already promised — the same class of problem this session exists
+to fix.
+
+**Decision: include the feed** in the permanent founding benefits.
+
+### The in-app drill trial gate contradicts the offer (found in Phase 0)
+
+`src/app/app/page.tsx` locks the drill library 30 days after the first drill
+is opened and shows "YOUR FREE MONTH IS DONE … $9 a month once payments
+launch". Founding members are promised the full drill library free, so the
+lock cannot stand. Scope decision: keep all the trial machinery, but treat
+the trial as never expiring while `PRICING_LAUNCHED` is false. One condition
+at the source, no gate rewrite.
+

@@ -1,40 +1,76 @@
-/* The offer, as numbers, in one place.
+/* The offer, as data, in one place.
  *
  * WHY THIS EXISTS: "$9 a month" was written out longhand in seven prose
- * surfaces, in the Offer schema, and in the app's PRO_PRICE_LABEL. The prose
- * is deliberately left alone (see docs/offer-copy-inventory.md — the offer
- * model is frozen until the monetization session), but every NEW surface
- * reads its numbers from here, so the count of places a price is typed out
- * stops growing.
+ * surfaces, in two Offer schema nodes, and in the app's PRO_PRICE_LABEL —
+ * a price nobody was ever charged. Search engines and AI assistants read
+ * that as fact. This module is now the single source of truth for every
+ * offer claim on the site, and no component may state anything about cost
+ * that does not come from here.
  *
- * THIS FILE DESCRIBES WHAT IS TRUE TODAY, not what is planned. In
- * particular `paymentsLive` is false and every surface must keep saying
- * nobody is charged while it stays false. Changing a value here changes what
- * the pricing page and the Offer schema claim, so it is a product decision.
+ * THERE IS NO PRICE FIELD, DELIBERATELY. Not zero, not null, not "TBD".
+ * We have not decided a price, and a price represented as data is a price
+ * something will eventually render. When pricing is decided, adding the
+ * field and flipping PRICING_LAUNCHED is one deliberate change.
+ *
+ * THIS FILE DESCRIBES WHAT IS TRUE TODAY, not what is planned.
  */
 
 export const OFFER = {
-  /** Free forever for athletes, and separately from the drill library. */
-  athleteFree: [
-    "Creating a profile",
-    "Logging workouts",
-    "Building a stat sheet",
+  /** KoachMe is in open beta. Nobody is charged anything. */
+  beta: true,
+
+  /** Has pricing launched for new users? While this is false, everything
+   *  below is free, every signup becomes a founding member, and no surface
+   *  may state or imply a cost. Flipping it is a product decision, not a
+   *  copy edit. */
+  PRICING_LAUNCHED: false,
+
+  /** What a founding member keeps permanently free, for as long as the
+   *  account is active. This is a promise to families, so it is written
+   *  once and read everywhere. See docs/terms-additions-draft.md. */
+  foundingBenefits: [
+    "An athlete profile",
+    "Unlimited workout and drill logging",
+    "Core stat tracking",
+    "Streaks and XP",
     "Posting to the community feed",
-    "Messaging coaches",
+    "The drill library as it stands when beta ends",
+    "Finding and messaging coaches",
     "Booking sessions",
   ],
-  /** The one paid thing. */
-  proName: "KoachMe Pro (AI drill library)",
-  proPriceUsd: 9,
-  /** Free-month length, counted from the first drill a profile opens. */
-  trialDays: 30,
-  /** Payments have NOT launched. While this is false, an expired free month
-   *  locks the drill videos and nobody is charged — every surface says so,
-   *  and none of them may stop saying so while this is false. */
-  paymentsLive: false,
-  /** Share a coach keeps of their own rate when paid bookings launch. */
+
+  /** The honest limit on the promise above. Features built AFTER beta ends
+   *  are not covered, and saying so plainly is the whole point. */
+  foundingExcludes:
+    "Features we build after beta ends may be paid, including for founding members.",
+
+  /** Days of notice before any pricing change affects anyone. The only
+   *  deadline we are allowed to mention, because it is the only one that
+   *  exists. */
+  noticeDays: 30,
+
+  /** Share a coach keeps of their own rate when paid bookings launch. Not
+   *  a price we charge — coaches set their own rates. */
   coachTakeRatePercent: 90,
 } as const;
 
-/** "$9" — formatted once so no surface invents its own currency style. */
-export const proPriceLabel = `$${OFFER.proPriceUsd}`;
+/** Is someone signing up today a founding member? */
+export const isFoundingWindowOpen = !OFFER.PRICING_LAUNCHED;
+
+/** The sentence about cost. Every surface that mentions money uses this or
+ *  something derived from it, so the claim cannot drift between pages. */
+export function costSentence(): string {
+  return OFFER.PRICING_LAUNCHED
+    ? "KoachMe is free to start, and paid plans are available."
+    : "KoachMe is free during beta. Nobody is charged anything.";
+}
+
+/** The founding promise in one sentence a kid can read. */
+export function foundingSentence(): string {
+  return "You joined during beta, so you are a founding member: the things you use today stay free for you.";
+}
+
+/** The notice commitment, stated the same way everywhere. */
+export function noticeSentence(): string {
+  return `If pricing ever changes anything for you, we will tell you at least ${OFFER.noticeDays} days before it happens.`;
+}
