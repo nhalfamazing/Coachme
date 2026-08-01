@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { openGraph, twitter } from "@/lib/og";
+import { OFFER } from "@/lib/offer";
 
 export const metadata: Metadata = {
   title: "Terms of use",
@@ -80,13 +82,21 @@ export default function TermsPage() {
 
       <h2 className="display">The service today</h2>
       <p>
-        KoachMe is early-stage software provided as is. Profiles, workout
-        logging, messaging, and session booking are free for athletes. The
-        AI drill library is free for the first month of use, then $9 a
-        month; until subscriptions launch, an ended free month locks the
-        drill videos and nobody is charged. Features may change, and we may
-        update these terms as the product grows; the date at the top
-        reflects the latest version.
+        KoachMe is early-stage software provided as is, and it is in beta.
+        Everything in it is free today and nobody is charged: there is no
+        card on file, no checkout, and no trial that expires. No price has
+        been set. Features may change, and we may update these terms as the
+        product grows; the date at the top reflects the latest version.
+      </p>
+      <p>
+        Pricing will launch for new users at some point, with no date set.
+        Accounts created during beta are founding accounts, and we intend
+        that they keep the features listed on{" "}
+        <Link href="/pricing">the pricing page</Link> free for as long as
+        the account is active. Features built after beta ends may be paid,
+        including for founding accounts. We will give at least{" "}
+        {OFFER.noticeDays} days notice before any pricing change affects
+        anyone.
       </p>
 
       <h2 className="display">Contact</h2>

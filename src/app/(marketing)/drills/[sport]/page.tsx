@@ -118,9 +118,9 @@ export default async function SportHubPage({ params }: { params: Params }) {
         <p className="body">
           Every drill here is free to read and watch. Inside the app your
           athlete also gets a training log, a stat sheet that shows how each
-          number was verified, and the whole library — free for the first
-          month, and nobody is charged while subscriptions are still to
-          launch. No email needed to start.
+          number was verified, and the whole library. KoachMe is free during
+          beta and nobody is charged, and anyone who signs up now is a
+          founding member who keeps it free. No email needed to start.
         </p>
         <div className="mk-drillpage-cta-row">
           {/* Sport-aware, same as the drill pages: the form arrives with

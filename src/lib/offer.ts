@@ -74,3 +74,11 @@ export function foundingSentence(): string {
 export function noticeSentence(): string {
   return `If pricing ever changes anything for you, we will tell you at least ${OFFER.noticeDays} days before it happens.`;
 }
+
+/** The founding benefits as prose, lowercased and comma-joined with a
+ *  trailing "and". Used wherever the list has to read as a sentence rather
+ *  than render as bullets, so the two can never disagree. */
+export function foundingBenefitsProse(): string {
+  const items = OFFER.foundingBenefits.map(b => b.toLowerCase());
+  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
+}

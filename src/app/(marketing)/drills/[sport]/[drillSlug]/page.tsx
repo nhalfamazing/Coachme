@@ -260,16 +260,15 @@ export default async function DrillPage({ params }: { params: Params }) {
           There {sportCount === 1 ? "is" : "are"} {sportCount} {drill.sport.toLowerCase()}{" "}
           {sportCount === 1 ? "drill" : "drills"} like this one
         </h2>
-        {/* Offer wording matches the FAQ exactly: the library is free for a
-            first month, and nobody is charged while subscriptions are still
-            to launch. Two pages must never describe the same offer
-            differently. */}
+        {/* Offer wording matches the FAQ exactly: free during beta, nobody
+            is charged, and signing up now makes you a founding member. Two
+            pages must never describe the same offer differently. */}
         <p className="body">
           Read every drill here for free. Inside the app your athlete also
           gets a training log, a stat sheet that shows how each number was
-          verified, and the whole library — free for the first month, and
-          nobody is charged while subscriptions are still to launch. No email
-          needed to start.
+          verified, and the whole library. KoachMe is free during beta and
+          nobody is charged, and anyone who signs up now is a founding member
+          who keeps it free. No email needed to start.
         </p>
         <div className="mk-drillpage-cta-row">
           {/* Carries the sport AND the drill: the signup form arrives with

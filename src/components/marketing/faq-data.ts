@@ -2,6 +2,11 @@
 // structured data. Answers are written to stand alone when quoted: the
 // first sentence of every answer is a complete, direct answer.
 // INTEGRITY: every claim below must stay true to the actual product.
+// Anything about cost or the founding promise comes from src/lib/offer.ts
+// rather than being typed out here — that is how "$9 a month" ended up in
+// eight places and outlived the offer it described.
+
+import { OFFER, foundingBenefitsProse, noticeSentence } from "@/lib/offer";
 
 export type FaqItem = { q: string; a: string[] };
 
@@ -20,8 +25,29 @@ export const FAQ_ITEMS: FaqItem[] = [
   {
     q: "Is it really free?",
     a: [
-      "Yes. A KoachMe profile is free: creating a profile, logging workouts, building stats, posting, messaging coaches, and booking sessions cost nothing. The AI drill library is free for your first month, then $9 a month.",
-      "Subscriptions have not launched yet. When a free month ends today, drills simply lock until payments go live - nobody is charged. Coaches set their own hourly rates for sessions, and when paid bookings launch, coaches keep 90% of their rate.",
+      "Yes. KoachMe is free during beta and nobody is charged anything. There is no card on file, no checkout, and no trial that runs out - creating a profile, logging workouts and drills, building stats, posting, the drill library, messaging coaches, and booking sessions all cost nothing today.",
+      "We have not decided on a price, so we are not going to name one. Coaches set their own hourly rates for sessions, and when paid bookings launch, coaches keep 90% of their rate.",
+    ],
+  },
+  {
+    q: "What is a founding member?",
+    a: [
+      "Anyone who signs up while KoachMe is in beta is a founding member. It costs nothing and there is nothing to claim - creating a profile during beta is all it takes.",
+      `Founding members keep these free for as long as their account is active: ${foundingBenefitsProse()}.`,
+    ],
+  },
+  {
+    q: "Will you ever charge me?",
+    a: [
+      "Not for what founding members are promised. If you sign up during beta, the features listed above stay free while your account is active, and we will not start billing you for them later.",
+      `${OFFER.foundingExcludes} We would rather say that plainly now than have you find out later. ${noticeSentence()}`,
+    ],
+  },
+  {
+    q: "What happens when beta ends?",
+    a: [
+      "Pricing will launch for new users at some point. No date is set, and we are not going to invent one to create urgency.",
+      `When it does launch, founding members keep what they already have and new signups stop becoming founding members. Nothing changes for anyone without at least ${OFFER.noticeDays} days notice first.`,
     ],
   },
   {

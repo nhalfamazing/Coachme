@@ -604,6 +604,33 @@
 /* ---------- pricing ---------- */
 .mk-pricing-list { margin: 14px 0 20px; }
 
+/* The founding-member comparison. Two columns on desktop, stacked on
+   phones — a parent comparing "free now" against "free permanently" needs
+   them side by side where there is room, and needs the permanent column
+   to arrive second where there is not, because that is the commitment. */
+.mk-pricing-cols {
+  display: grid; grid-template-columns: 1fr; gap: 16px;
+  margin: 24px 0 32px;
+}
+@media (min-width: 760px) {
+  .mk-pricing-cols { grid-template-columns: 1fr 1fr; gap: 20px; }
+}
+.mk-pricing-col {
+  padding: 22px 22px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.02);
+}
+/* The kept column carries the lime edge: it is the promise, and the other
+   column is only a description of today. */
+.mk-pricing-col--keep {
+  border-color: rgba(197, 255, 61, 0.28);
+  background: rgba(197, 255, 61, 0.04);
+}
+.mk-pricing-col > .body { margin: 12px 0 0; font-size: 13.5px; color: #9CA0A8; }
+.mk-pricing-col .mk-pricing-list { margin: 10px 0 14px; }
+.mk-pricing-col .mk-pricing-list li { margin-bottom: 6px; }
+
 /* Coach CTA at the foot of drill pages and hubs. Deliberately the quietest
    thing on the page: it is the wrong CTA for almost everyone who sees it,
    and a banner here would cost more athlete conversions than it wins

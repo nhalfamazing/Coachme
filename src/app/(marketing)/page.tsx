@@ -62,7 +62,7 @@ export const metadata: Metadata = {
   // the tab reads "KoachMe - ... - KoachMe".
   title: "Training between practices for young athletes",
   description:
-    "The kids who start are the kids who train between practices. Pro-style drills at home, a stat sheet that proves the work, vetted coaches. Free, no email.",
+    "The kids who start are the kids who train between practices. Pro-style drills at home, a stat sheet that proves the work, vetted coaches. Free during beta, no email.",
   alternates: { canonical: "/" },
   openGraph: openGraph({
     title: "Training between practices for young athletes",
@@ -101,7 +101,7 @@ export default function LandingPage() {
       <section className="mk-hero mk-section--layered" id="hero">
         <div className="mk-wrap mk-hero-in">
           <div className="mk-hero-copy">
-            <p className="stamp">Free for athletes · Built family-first</p>
+            <p className="stamp">Free during beta · Built family-first</p>
             <div style={{ height: 18 }} />
             {/* Copy comes through the A/B seam (src/lib/variants.ts).
                 Resolved at build time, identical for every visitor, no
@@ -202,8 +202,8 @@ export default function LandingPage() {
           <p className="mk-lead body">
             {DRILLS.length} drills across {SPORT_COUNT} sports, taught step
             by step: a spoken intro, then a slow demo rep your athlete can
-            copy tonight. First month free, then $9 a month. Everything
-            else in KoachMe stays free.
+            copy tonight. The whole library is free during beta, and if you
+            sign up now you keep it free as a founding member.
           </p>
           <div className="mk-drills">
             {SAMPLE_DRILLS.map(d => (
@@ -331,9 +331,9 @@ export default function LandingPage() {
             Vetted coaches, <span style={{ color: "#C5FF3D" }}>on your terms</span>
           </h2>
           <p className="mk-lead body">
-            The training log and the stat sheet cost nothing, forever.
-            When your family wants a real coach in the picture, here is
-            how that works.
+            The training log and the stat sheet are free during beta, and
+            founding members keep them free. When your family wants a real
+            coach in the picture, here is how that works.
           </p>
           <div className="mk-grid mk-grid--3">
             <div className="mk-card">
@@ -477,7 +477,7 @@ export default function LandingPage() {
             <span className="display-speed" style={{ color: "#C5FF3D" }}>is tonight.</span>
           </h2>
           <p className="mk-lead body" style={{ margin: "0 auto 8px" }}>
-            Free for athletes, 60 seconds to start, no email needed.
+            Free during beta, 60 seconds to start, no email needed.
           </p>
           {/* Desktop override on mk-hero-ctas is flex-start; the single
               closing button should sit centered under the centered H2. */}
