@@ -1,11 +1,25 @@
-/* KoachMe Pro drill-gate checks against a production build on
-   localhost:3000. Exit 0 = all pass.
+/* Drill-gate checks against a production build on localhost:3000.
+   Exit 0 = all pass.
 
-   Fresh profile: FIRST MONTH FREE chip, drills play, opening a drill
-   starts the 30-day clock (chip flips to DAYS LEFT).
-   Expired profile (trial stamp seeded 40 days back): PRO chip, locked
-   cards, drill sheet shows the honest lock screen with ZERO video
-   elements, everything-else-free line and AI disclosure visible. */
+   WHAT THIS USED TO CHECK: that a 30-day trial expired and locked the
+   drill videos behind a "PRO · $9/MO" screen. That gate is off. KoachMe is
+   free during beta, founding members keep the drill library free, and
+   drillTrialState() forces `expired` false while OFFER.PRICING_LAUNCHED is
+   false.
+
+   WHAT IT CHECKS NOW: that nothing expires. A profile whose trial stamp is
+   40 days old — which under the old rule was locked — sees exactly what a
+   fresh profile sees, and no price string appears anywhere in the app. The
+   old script asserted the bug; this one asserts it stays fixed.
+
+   ASSERTIONS ARE ON THE LIBRARY GRID, NOT THE DRILL SHEET. The old script
+   clicked a drill title and counted <video> elements in the sheet. That
+   never worked: the sheet does not open under this harness, so those
+   checks passed vacuously from the day they were written. The card badge
+   ("INTRO + DEMO" vs "LOCKED") is driven by the same `trial.expired` flag
+   the sheet is, is genuinely observable here, and is what this change
+   actually controls. Getting the sheet to open under Playwright is its own
+   piece of work. */
 
 import { chromium } from 'playwright';
 
@@ -22,6 +36,9 @@ const ATHLETE = {
   location: 'Miami, FL', photo: null, banner: '/banner.jpg', stats: [],
   level: 1, xp: 120, xpMax: 500, code: 'test-tiger-moon',
 };
+
+/* Any way a price could reach the screen. None of these may ever match. */
+const PRICE_RE = /\$\s?\d|\d+\s?\/\s?MO\b|\b\d+ (a|per) month\b|FIRST MONTH FREE|FREE MONTH ·/i;
 
 const browser = await chromium.launch();
 
@@ -45,23 +62,25 @@ async function openLibrary(context) {
   }, ATHLETE);
   const page = await openLibrary(context);
 
-  const chipBefore = await page.getByText('FIRST MONTH FREE').count();
-  check('fresh: FIRST MONTH FREE chip shown', chipBefore === 1);
+  const chip = await page.getByText('FREE DURING BETA').count();
+  check('fresh: FREE DURING BETA chip shown', chip === 1, `count=${chip}`);
 
-  await page.getByText('Tee Work', { exact: false }).first().click({ force: true });
-  await page.waitForTimeout(800);
-  const videos = await page.locator('video').count();
-  check('fresh: drill sheet has both videos', videos === 2, `videos=${videos}`);
-  const stamp = await page.evaluate((id) => localStorage.getItem(`coachme_drills_trial::${id}`), ATHLETE.id);
-  check('fresh: opening a drill starts the clock', !!stamp, `stamp=${stamp?.slice(0, 10)}`);
-  await page.mouse.click(8, 8);
-  await page.waitForTimeout(500);
-  const daysLeft = await page.getByText(/FREE MONTH · \d+ DAYS? LEFT/).count();
-  check('fresh: chip flips to days-left after first open', daysLeft === 1);
+  const playable = await page.getByText('INTRO + DEMO').count();
+  const locked = await page.getByText('LOCKED').count();
+  check('fresh: every drill card playable', playable > 0 && locked === 0,
+    `playable=${playable} locked=${locked}`);
+
+  const body = await page.evaluate(() => document.body.innerText);
+  check('fresh: no price anywhere in the app', !PRICE_RE.test(body),
+    PRICE_RE.exec(body)?.[0] ?? '');
+  check('fresh: no countdown language', !/DAYS? LEFT/i.test(body));
   await context.close();
 }
 
-/* ---------- expired profile ---------- */
+/* ---------- profile whose trial stamp is 40 days old ---------- */
+/* Under the old rule this was locked. It must not be. Real users have this
+   stamp in localStorage from before the gate was turned off, and they were
+   promised the library stays free. */
 {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   await context.addInitScript((athlete) => {
@@ -74,19 +93,23 @@ async function openLibrary(context) {
   }, ATHLETE);
   const page = await openLibrary(context);
 
-  const proChip = await page.getByText(/PRO · \$9\/MO/).count();
-  check('expired: PRO $9/MO markers shown', proChip >= 1, `count=${proChip}`);
+  const chip = await page.getByText('FREE DURING BETA').count();
+  check('40-day-old stamp: still FREE DURING BETA', chip === 1, `count=${chip}`);
 
-  await page.getByText('Tee Work', { exact: false }).first().click({ force: true });
-  await page.waitForTimeout(800);
-  const videos = await page.locator('video').count();
-  check('expired: zero video elements in locked sheet', videos === 0, `videos=${videos}`);
-  const lockCopy = await page.getByText('YOUR FREE MONTH IS').count();
-  check('expired: lock screen copy shown', lockCopy === 1);
-  const freeLine = await page.getByText('STAY FREE', { exact: false }).count();
-  check('expired: everything-else-free line shown', freeLine >= 1);
-  const disclosure = await page.getByText('This coach is AI-generated', { exact: false }).count();
-  check('expired: AI disclosure still visible', disclosure === 1);
+  const playable = await page.getByText('INTRO + DEMO').count();
+  const locked = await page.getByText('LOCKED').count();
+  check('40-day-old stamp: nothing locked, cards still playable',
+    playable > 0 && locked === 0, `playable=${playable} locked=${locked}`);
+
+  const body = await page.evaluate(() => document.body.innerText);
+  check('40-day-old stamp: no lock or expiry language',
+    !/LOCKED|FREE MONTH IS|DAYS? LEFT/i.test(body));
+  check('40-day-old stamp: no price anywhere', !PRICE_RE.test(body),
+    PRICE_RE.exec(body)?.[0] ?? '');
+
+  const disclosure = await page.getByText('AI COACH', { exact: false }).count();
+  check('40-day-old stamp: AI disclosure still visible', disclosure >= 1,
+    `count=${disclosure}`);
   await context.close();
 }
 

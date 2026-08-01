@@ -15,6 +15,7 @@ import { generateAthleteCode, decodeAnyCode } from '@/lib/codes';
 import { DRILLS, COACHES, SPORT_META, coachFor } from '@/lib/drills';
 import { hasHowTo, relatedDrills, drillProgress, trackedStatFor } from '@/lib/drill-content';
 import { ACHIEVEMENT_DEFS, achievementState, achievementXp } from '@/lib/achievements';
+import { OFFER, foundingSentence } from '@/lib/offer';
 import { FieldGeo, hasFieldGeo } from '@/components/marketing/field-lines';
 import {
   CheckCircle2, MapPin, Video, Send, Calendar as CalIcon, Star,
@@ -2339,8 +2340,18 @@ function SUDone({ form, onFinish }) {
       <div className="display" style={{ fontSize: 38, lineHeight: 1, marginBottom: 10, textTransform: 'uppercase' }}>
         YOU'RE IN, <span style={{ color: '#C5FF3D' }}>{form.firstName.toUpperCase()}</span>.
       </div>
-      <div className="body" style={{ fontSize: 14, color: '#9CA0A8', marginBottom: 28, lineHeight: 1.5, maxWidth: 320, margin: '0 auto 28px' }}>
+      <div className="body" style={{ fontSize: 14, color: '#9CA0A8', marginBottom: 18, lineHeight: 1.5, maxWidth: 320, margin: '0 auto 18px' }}>
         Your card is live. Find your first trainer and start logging verified stats.
+      </div>
+
+      {/* The founding promise, in one sentence a kid can read. It belongs
+          on the last screen of signup because this is the moment the
+          promise is actually made. */}
+      <div style={{ maxWidth: 320, margin: '0 auto 28px' }}>
+        <span className="stamp stamp--lime stamp--flat">Founding member</span>
+        <div className="body" style={{ fontSize: 12.5, color: '#9CA0A8', lineHeight: 1.5, marginTop: 8 }}>
+          {foundingSentence()}
+        </div>
       </div>
 
       <button onClick={onFinish} style={{
@@ -2413,6 +2424,14 @@ function ProfileView({ athlete, trainerIds, trainers = TRAINERS, workouts = [], 
                 {athlete.age ? ` · AGE ${athlete.age}` : ''}
                 {' · '}{athlete.city.toUpperCase()}
               </div>
+              {/* Founding status, visible on the profile it belongs to.
+                  Shown while the founding window is open, which is the
+                  only time it can be true of a profile being created. */}
+              {!OFFER.PRICING_LAUNCHED && (
+                <span className="stamp stamp--lime" style={{ marginTop: 8, display: 'inline-block' }}>
+                  Founding member
+                </span>
+              )}
             </div>
           </div>
 
@@ -3024,15 +3043,20 @@ function Mini({ num, label, small, icon }) {
 const NEW_DRILL_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
 const isNewDrill = (d) => Date.now() - Date.parse(d.addedAt) < NEW_DRILL_WINDOW_MS;
 
-/* KoachMe Pro: the AI drill library is free for 30 days from the first
-   drill a profile opens, then $9 a month. Payments are NOT live yet, so
-   an expired free month locks the drill videos behind an honest
-   "launching soon" screen - nobody is ever charged and nothing else in
-   the app is affected. The clock is per profile on this device, stored
-   under the app's historical coachme_ namespace (never rename keys). */
+/* The drill library is FREE. KoachMe is in beta, nobody is charged, and
+   founding members keep the library free — so nothing here may expire
+   while OFFER.PRICING_LAUNCHED is false.
+
+   This used to be a 30-day trial that locked the drill videos and showed
+   "$9/MO", a price nobody was ever charged. The clock machinery is left
+   intact rather than ripped out, because the localStorage keys are real
+   user data in the historical coachme_ namespace (never rename them) and
+   because a future paid tier would need the same shape. But `expired` is
+   forced false while pricing has not launched: the gate cannot fire, so
+   the lock screen cannot render, and the app cannot contradict what
+   /pricing promises. */
 const DRILL_TRIAL_DAYS = 30;
 const DRILL_TRIAL_MS = DRILL_TRIAL_DAYS * 24 * 60 * 60 * 1000;
-const PRO_PRICE_LABEL = '$9/MO';
 const drillTrialKey = (profileId) => `coachme_drills_trial::${profileId}`;
 function drillTrialState(profileId) {
   if (typeof window === 'undefined' || !profileId) {
@@ -3046,7 +3070,8 @@ function drillTrialState(profileId) {
   return {
     startedAt,
     daysLeft: Math.max(0, Math.ceil((DRILL_TRIAL_MS - elapsed) / 86400000)),
-    expired: elapsed >= DRILL_TRIAL_MS,
+    // Not `elapsed >= DRILL_TRIAL_MS`. Nothing expires during beta.
+    expired: OFFER.PRICING_LAUNCHED && elapsed >= DRILL_TRIAL_MS,
   };
 }
 function startDrillTrial(profileId) {
@@ -3159,8 +3184,9 @@ function DrillLibrary({ athleteSport, athleteId, onOpenDrill }) {
       <div style={{ padding: '0 16px 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
         <SectionLabel>DRILL LIBRARY</SectionLabel>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-          {/* Free-month state, always visible so the $9/month rule is
-              never a surprise. */}
+          {/* What the library costs, always visible. During beta that is
+              nothing, and there is no countdown to show because nothing is
+              counting down. */}
           <span className="mono" style={{
             fontSize: 8.5, padding: '3px 8px', borderRadius: 4, fontWeight: 700, letterSpacing: '0.12em',
             background: trial.expired ? 'rgba(244,244,245,0.08)' : 'rgba(197,255,61,0.12)',
@@ -3168,9 +3194,7 @@ function DrillLibrary({ athleteSport, athleteId, onOpenDrill }) {
             color: trial.expired ? '#9CA0A8' : '#C5FF3D',
             display: 'flex', alignItems: 'center', gap: 4,
           }}>
-            {trial.expired ? (<><Lock size={9}/> PRO · {PRO_PRICE_LABEL}</>)
-              : trial.startedAt ? `FREE MONTH · ${trial.daysLeft} DAY${trial.daysLeft === 1 ? '' : 'S'} LEFT`
-              : 'FIRST MONTH FREE'}
+            {trial.expired ? (<><Lock size={9}/> LOCKED</>) : 'FREE DURING BETA'}
           </span>
           <span className="stamp stamp--clay">AI Coach</span>
         </div>
@@ -3319,7 +3343,7 @@ function DrillLibrary({ athleteSport, athleteId, onOpenDrill }) {
                       {trial.expired ? <Lock size={10} color="#9CA0A8"/> : <Video size={11} color="#000"/>}
                     </span>
                     <span className="mono" style={{ fontSize: 8, color: '#D4D6DA', letterSpacing: '0.1em', fontWeight: 700 }}>
-                      {trial.expired ? `PRO · ${PRO_PRICE_LABEL}` : 'INTRO + DEMO'}
+                      {trial.expired ? 'LOCKED' : 'INTRO + DEMO'}
                     </span>
                   </div>
                 </div>
@@ -3704,23 +3728,24 @@ function DrillSheet({ drill, athleteId, athleteStats, sessions = [], onLogDrill,
             <div className="drill-aside">
             <div className="drill-media">
               {expired ? (
-                /* Free month over: the poster stays (dimmed), the clips
-                   are behind the honest Pro screen. Payments are not
-                   live, so this never charges anyone. Everything written
-                   on this page stays readable — the gate is on the
-                   videos, not on knowing how to do the drill. */
+                /* UNREACHABLE DURING BETA. drillTrialState() forces
+                   `expired` false while OFFER.PRICING_LAUNCHED is false,
+                   so nothing renders this today. It is kept, and kept
+                   honest, so that a future paid tier does not have to
+                   reinvent the screen — and so nobody reading this file
+                   mistakes the dead branch for a live promise. It states
+                   no price, because there is no price. */
                 <div className="drill-locked">
                   <img src={imgOpt(drill.poster.blob, 750)} alt="" referrerPolicy="no-referrer"/>
                   <div className="drill-locked-body">
                     <span className="drill-locked-icon"><Lock size={18} color="#000"/></span>
                     <div className="display" style={{ fontSize: 20, lineHeight: 1, textTransform: 'uppercase' }}>
-                      YOUR FREE MONTH IS <span style={{ color: '#C5FF3D' }}>DONE</span>
+                      DRILL VIDEOS ARE <span style={{ color: '#C5FF3D' }}>LOCKED</span>
                     </div>
                     <div className="body" style={{ fontSize: 12.5, color: '#D4D6DA', lineHeight: 1.5, maxWidth: 380 }}>
-                      Nice work training with {coach.name}. AI drills are part of
-                      KoachMe Pro: $9 a month once payments launch. Until then
-                      drills stay locked and nobody is charged. They unlock right
-                      here the day Pro goes live.
+                      Nice work training with {coach.name}. Every step of this
+                      drill stays readable — it is the videos that are locked,
+                      not knowing how to do it.
                     </div>
                     <div className="mono" style={{ fontSize: 9, color: '#9CA0A8', letterSpacing: '0.1em' }}>
                       PROFILE · WORKOUTS · FEED · MESSAGES · SESSIONS STAY FREE
