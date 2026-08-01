@@ -34,3 +34,4 @@ worth keeping.
 | 2026-07-30 | [2026-07-30-seo-aeo-cro.md](2026-07-30-seo-aeo-cro.md) | Original SEO/AEO/CRO plan, phases 0–6 | Phases 0–3 shipped; 4–6 open |
 | 2026-07-30 | [2026-07-30-seo-followup.md](2026-07-30-seo-followup.md) | SEO follow-up: slugs, bundle split, duration, addendum | Phases A, B, C, E, F shipped |
 | 2026-07-30 | [2026-07-30-aeo-cro-ship.md](2026-07-30-aeo-cro-ship.md) | Phase D: AEO layer, CRO, verify and ship | In progress |
+| 2026-07-31 | [2026-07-31-offer-copy-reconcile.md](2026-07-31-offer-copy-reconcile.md) | Founding member model, remove $9 claims, offer as data | In progress |
