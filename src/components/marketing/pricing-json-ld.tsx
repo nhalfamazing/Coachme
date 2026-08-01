@@ -1,17 +1,18 @@
 /* Structured data for /pricing.
  *
- * The Offer nodes take their numbers from src/lib/offer.ts, the same
- * constant the visible page renders, so the schema cannot advertise a price
- * the page does not show.
+ * ONE Offer, because there is one offer: free during beta. This file used
+ * to emit a second Offer at OFFER.proPriceUsd with PreOrder availability,
+ * on the reasoning that PreOrder was the honest value for a price published
+ * but not collected. That reasoning was wrong. The honest thing to do with
+ * a price we never charge is not to publish it — the availability field
+ * cannot rescue a price claim that was never true.
  *
- * `availability: PreOrder` while payments are not live. That is the honest
- * schema.org value for a price that is published but not collected, and it
- * is chosen deliberately over InStock — a search result offering a $9
- * subscription nobody can buy is a bad experience and a bad claim.
+ * The description below comes from src/lib/offer.ts, the same module the
+ * visible page renders, so the schema cannot drift from the page.
  */
 
 import { SITE_URL } from "@/lib/site";
-import { OFFER } from "@/lib/offer";
+import { OFFER, costSentence } from "@/lib/offer";
 import { PRICING_PUBLISHED } from "@/lib/sitemap-data";
 
 const abs = (path: string) => `${SITE_URL}${path}`;
@@ -32,37 +33,21 @@ export function PricingJsonLd() {
     "@type": "WebPage",
     name: "What does KoachMe cost?",
     description:
-      `A KoachMe athlete profile is free forever. The AI drill library is free for the first month, then $${OFFER.proPriceUsd} a month.`,
+      `${costSentence()} Anyone who signs up during beta becomes a founding member and keeps today's features free while their account stays active.`,
     url: abs(PATH),
     inLanguage: "en",
     datePublished: PRICING_PUBLISHED,
     dateModified: PRICING_PUBLISHED,
     isPartOf: { "@type": "WebSite", name: "KoachMe", url: SITE_URL },
-    offers: [
-      {
-        "@type": "Offer",
-        name: "KoachMe athlete profile",
-        price: "0",
-        priceCurrency: "USD",
-        availability: "https://schema.org/InStock",
-        url: abs(PATH),
-        description:
-          "Free for athletes: profile, workout log, stats, community feed, messaging coaches, and booking sessions.",
-      },
-      {
-        "@type": "Offer",
-        name: OFFER.proName,
-        price: String(OFFER.proPriceUsd),
-        priceCurrency: "USD",
-        availability: OFFER.paymentsLive
-          ? "https://schema.org/InStock"
-          : "https://schema.org/PreOrder",
-        url: abs(PATH),
-        description: OFFER.paymentsLive
-          ? `AI drill library after the first free month, $${OFFER.proPriceUsd} per month.`
-          : `AI drill library after the first free month, $${OFFER.proPriceUsd} per month. Subscriptions have not launched and nobody is charged yet.`,
-      },
-    ],
+    offers: {
+      "@type": "Offer",
+      name: "KoachMe during beta",
+      price: "0",
+      priceCurrency: "USD",
+      availability: "https://schema.org/InStock",
+      url: abs(PATH),
+      description: `${costSentence()} Founding members keep these free while their account stays active: ${OFFER.foundingBenefits.join(", ").toLowerCase()}.`,
+    },
   };
 
   const breadcrumb = {

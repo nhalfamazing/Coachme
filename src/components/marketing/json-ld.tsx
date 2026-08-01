@@ -79,25 +79,21 @@ export function LandingJsonLd() {
     url: `${SITE_URL}/app`,
     applicationCategory: "SportsApplication",
     operatingSystem: "Any (web browser)",
-    offers: [
-      {
-        "@type": "Offer",
-        price: "0",
-        priceCurrency: "USD",
-        description:
-          "Free for athletes: profile, workout log, stats, messaging, and session booking. AI drill library included free for the first month.",
-      },
-      {
-        // Subscriptions have not launched; PreOrder is the honest
-        // availability until payments go live.
-        "@type": "Offer",
-        name: "KoachMe Pro (AI drill library)",
-        price: "9",
-        priceCurrency: "USD",
-        availability: "https://schema.org/PreOrder",
-        description: "AI drill library after the first free month, $9 per month.",
-      },
-    ],
+    /* ONE Offer, because there is one offer: KoachMe is free during beta.
+       This node previously carried a second Offer at price "9" with
+       PreOrder availability — a price nobody was ever charged, published as
+       structured data on every marketing page and read by search engines
+       and AI assistants as fact. Structured data describes what IS. No
+       future pricing belongs here, and none may be added back before it is
+       actually being charged. */
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "USD",
+      availability: "https://schema.org/InStock",
+      description:
+        "KoachMe is free during beta and nobody is charged. Athletes get a profile, workout and drill logging, stats, streaks and XP, the community feed, the drill library, coach messaging, and session booking.",
+    },
   };
   const faq = {
     "@context": "https://schema.org",
