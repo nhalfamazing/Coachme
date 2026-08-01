@@ -7,7 +7,7 @@ import { DRILLS } from "@/lib/drills";
 import { libraryTotals } from "@/lib/drill-seo";
 import { UpdatedStamp } from "@/components/marketing/updated-stamp";
 import { PricingJsonLd } from "@/components/marketing/pricing-json-ld";
-import { PRICING_PUBLISHED } from "@/lib/sitemap-data";
+import { PRICING_UPDATED } from "@/lib/sitemap-data";
 
 /* What KoachMe costs.
  *
@@ -57,7 +57,7 @@ export default function PricingPage() {
 
       <p className="mk-prose-meta mono">Pricing</p>
       <h1 className="display">{TITLE}</h1>
-      <UpdatedStamp date={PRICING_PUBLISHED} />
+      <UpdatedStamp date={PRICING_UPDATED} />
 
       <section className="mk-tldr" aria-labelledby="tldr-heading">
         <span className="stamp stamp--flat" id="tldr-heading">In short</span>

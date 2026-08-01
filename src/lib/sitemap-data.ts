@@ -33,20 +33,31 @@ export interface SitemapEntry {
 export const VERIFICATION_PUBLISHED = "2026-07-30";
 export const PRICING_PUBLISHED = "2026-07-30";
 
+/* /pricing was rewritten on 2026-08-01 around the founding-member model,
+   when the "$9 a month" claim came off every surface. Kept separate from
+   PRICING_PUBLISHED rather than overwriting it: the page was published on
+   the 30th and changed on the 1st, and datePublished should not move to
+   hide that a substantive correction happened. */
+export const PRICING_UPDATED = "2026-08-01";
+
+/* The date the offer copy changed sitewide. The pages carrying it are the
+   ones whose visible claims about cost were rewritten. */
+export const OFFER_COPY_UPDATED = "2026-08-01";
+
 /** Static marketing pages. /app, /coach and /admin are absent on purpose:
  *  they are noindex product surfaces. */
 const STATIC_PAGES: SitemapEntry[] = [
-  { path: "/", lastModified: "2026-07-30", changeFrequency: "weekly", priority: 1 },
+  { path: "/", lastModified: OFFER_COPY_UPDATED, changeFrequency: "weekly", priority: 1 },
   // The verification standard is the most distinctive thing the site
   // publishes and the page most worth citing, so it ranks above the rest
   // of the static set.
   { path: "/verification", lastModified: VERIFICATION_PUBLISHED, changeFrequency: "monthly", priority: 0.9 },
   { path: "/become-a-coach", lastModified: "2026-07-29", changeFrequency: "monthly", priority: 0.8 },
-  { path: "/pricing", lastModified: PRICING_PUBLISHED, changeFrequency: "monthly", priority: 0.7 },
+  { path: "/pricing", lastModified: PRICING_UPDATED, changeFrequency: "monthly", priority: 0.7 },
   { path: "/about", lastModified: "2026-07-28", changeFrequency: "monthly", priority: 0.6 },
   { path: "/contact", lastModified: "2026-07-28", changeFrequency: "yearly", priority: 0.4 },
   { path: "/privacy", lastModified: "2026-07-28", changeFrequency: "monthly", priority: 0.3 },
-  { path: "/terms", lastModified: "2026-07-28", changeFrequency: "monthly", priority: 0.3 },
+  { path: "/terms", lastModified: OFFER_COPY_UPDATED, changeFrequency: "monthly", priority: 0.3 },
 ];
 
 export function pageEntries(): SitemapEntry[] {

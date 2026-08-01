@@ -12,8 +12,8 @@
  */
 
 import { SITE_URL } from "@/lib/site";
-import { OFFER, costSentence } from "@/lib/offer";
-import { PRICING_PUBLISHED } from "@/lib/sitemap-data";
+import { costSentence, foundingBenefitsProse } from "@/lib/offer";
+import { PRICING_PUBLISHED, PRICING_UPDATED } from "@/lib/sitemap-data";
 
 const abs = (path: string) => `${SITE_URL}${path}`;
 const PATH = "/pricing";
@@ -37,7 +37,7 @@ export function PricingJsonLd() {
     url: abs(PATH),
     inLanguage: "en",
     datePublished: PRICING_PUBLISHED,
-    dateModified: PRICING_PUBLISHED,
+    dateModified: PRICING_UPDATED,
     isPartOf: { "@type": "WebSite", name: "KoachMe", url: SITE_URL },
     offers: {
       "@type": "Offer",
@@ -46,7 +46,7 @@ export function PricingJsonLd() {
       priceCurrency: "USD",
       availability: "https://schema.org/InStock",
       url: abs(PATH),
-      description: `${costSentence()} Founding members keep these free while their account stays active: ${OFFER.foundingBenefits.join(", ").toLowerCase()}.`,
+      description: `${costSentence()} Founding members keep these free while their account stays active: ${foundingBenefitsProse()}.`,
     },
   };
 

@@ -1,5 +1,18 @@
 # Landing page copy - conversion rewrite (2026-07-29)
 
+> **SUPERSEDED on 2026-08-01, on the offer only.** This document records
+> the copy as written on 2026-07-29, when the site said the drill library
+> was "first month free, then $9 a month". Nobody was ever charged that,
+> and every surface has since been rewritten around the founding-member
+> model: free during beta, no price stated anywhere. See
+> [2026-07-31-offer-copy-reconcile.md](prompts/2026-07-31-offer-copy-reconcile.md)
+> and [`src/lib/offer.ts`](../src/lib/offer.ts).
+>
+> The reasoning about H1s, structure, and voice still stands. **Every price
+> claim below is out of date and must not be copied forward.** It is left
+> intact rather than edited because a copy record that is quietly rewritten
+> is not a record.
+
 For Sophia's read. Every claim below is checked against the product as
 it exists today; deviations from the session brief are marked ⚠ and
 explained. Voice: second person to the parent, active verbs, sentence

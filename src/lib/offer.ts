@@ -75,10 +75,17 @@ export function noticeSentence(): string {
   return `If pricing ever changes anything for you, we will tell you at least ${OFFER.noticeDays} days before it happens.`;
 }
 
-/** The founding benefits as prose, lowercased and comma-joined with a
- *  trailing "and". Used wherever the list has to read as a sentence rather
- *  than render as bullets, so the two can never disagree. */
+/** A benefit as it reads mid-sentence: first letter down, everything else
+ *  left alone. NOT toLowerCase() — that turns "Streaks and XP" into
+ *  "streaks and xp", which is how the acronym got mangled on /pricing. */
+export function benefitInSentence(benefit: string): string {
+  return benefit.charAt(0).toLowerCase() + benefit.slice(1);
+}
+
+/** The founding benefits as prose, comma-joined with a trailing "and".
+ *  Used wherever the list has to read as a sentence rather than render as
+ *  bullets, so the two can never disagree. */
 export function foundingBenefitsProse(): string {
-  const items = OFFER.foundingBenefits.map(b => b.toLowerCase());
+  const items = OFFER.foundingBenefits.map(benefitInSentence);
   return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
 }

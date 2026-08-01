@@ -16,7 +16,7 @@
 
 import { DRILLS } from "./drills";
 import { humanList, libraryTotals, sportsWithDrills } from "./drill-seo";
-import { OFFER, costSentence } from "./offer";
+import { OFFER, benefitInSentence, costSentence } from "./offer";
 
 /** What KoachMe is, in the words an assistant should use. This is the one
  *  that matters most: it is the answer to "what is KoachMe". */
@@ -47,7 +47,7 @@ export function siteTldr(): string {
 export function pricingTldr(): string {
   return [
     costSentence(),
-    `Sign up during beta and you are a founding member, keeping these free while your account stays active: ${humanList(OFFER.foundingBenefits.map(f => f.toLowerCase()))}.`,
+    `Sign up during beta and you are a founding member, keeping these free while your account stays active: ${humanList(OFFER.foundingBenefits.map(benefitInSentence))}.`,
     OFFER.foundingExcludes,
     `Pricing for new users launches later, with at least ${OFFER.noticeDays} days notice first.`,
   ].join(" ");

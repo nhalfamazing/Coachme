@@ -1,8 +1,30 @@
 # Offer copy — every place it appears
 
-**Compiled 2026-07-30. Nothing in this document has been changed.** This is
-an inventory for the monetization session, so the offer can be reconciled in
-one pass instead of being found a surface at a time.
+> **RESOLVED 2026-08-01.** The reconciliation this document was written for
+> has happened. The "$9 a month" claim is gone from every surface below and
+> from structured data; KoachMe is free during beta and every offer claim
+> reads from [`src/lib/offer.ts`](../src/lib/offer.ts), which has no price
+> field. See [the session prompt](prompts/2026-07-31-offer-copy-reconcile.md).
+>
+> **What this document got wrong**, recorded because the next inventory
+> should not repeat it:
+>
+> - **It counted two `Offer` nodes. There were four, in two files.**
+>   `pricing-json-ld.tsx` was added the same day this was compiled and never
+>   listed, so two of the four — including a second `$9` claim — were
+>   invisible to anyone working from this page.
+> - **It missed the `WebPage.description` in `pricing-json-ld.tsx`**, a
+>   fifth structured-data price claim.
+> - **It missed the `/pricing` metadata**, where `$9` appeared three more
+>   times (description, OG, Twitter).
+> - **The drill page had two occurrences, not one.**
+> - **It treated `src/app/app/page.tsx` as separate from the "seven visible
+>   surfaces".** The in-app lock screen was the single most misleading
+>   surface on the product: it told a child their free month was over and
+>   named a price, for a gate that should never have fired.
+>
+> The lesson is that an inventory compiled by reading is not the same as one
+> compiled by grepping. The section below is left as written.
 
 ## The discrepancy
 
